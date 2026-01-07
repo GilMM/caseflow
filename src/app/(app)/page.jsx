@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+
 import { supabase } from "@/lib/supabase/client";
 import {
   getActiveWorkspace,
   getDashboardStats,
   getMyOpenCases,
   getRecentActivity,
+  getOrgMembers,
 } from "@/lib/db";
 
 import {
@@ -56,7 +58,11 @@ const priorityColor = (p) =>
     low: "cyan",
   }[p] || "default");
 
-// tiny helper for pretty “live” timestamps
+function shortId(id) {
+  if (!id) return "—";
+  return `${String(id).slice(0, 8)}…`;
+}
+
 function timeAgo(iso) {
   const t = new Date(iso).getTime();
   const now = Date.now();
@@ -85,11 +91,19 @@ export default function DashboardPage() {
   const [myCases, setMyCases] = useState([]);
   const [activity, setActivity] = useState([]);
 
+  // ✅ NEW: map userId -> full_name/email for pretty display
+  const [userMap, setUserMap] = useState({});
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
 
   const lastToastRef = useRef(0);
+
+  const displayUser = (userId) => {
+    if (!userId) return "unknown";
+    return userMap?.[userId] || shortId(userId);
+  };
 
   async function loadAll({ silent = false } = {}) {
     try {
@@ -106,9 +120,11 @@ export default function DashboardPage() {
         setStats(null);
         setMyCases([]);
         setActivity([]);
+        setUserMap({}); // ✅ important
         return;
       }
 
+      // ✅ Load dashboard data in parallel
       const [s, a] = await Promise.all([
         getDashboardStats(ws.orgId),
         getRecentActivity(ws.orgId),
@@ -116,6 +132,19 @@ export default function DashboardPage() {
 
       setStats(s);
       setActivity(a);
+
+      // ✅ Build userMap once per org (for names instead of UUID)
+      try {
+        const members = await getOrgMembers(ws.orgId);
+        const map = {};
+        for (const m of members) {
+          map[m.user_id] = m.full_name || m.email || null;
+        }
+        setUserMap(map);
+      } catch (e) {
+        // If members fetch fails due to RLS etc., we still keep dashboard working
+        setUserMap({});
+      }
 
       if (user?.id) {
         const mine = await getMyOpenCases(ws.orgId, user.id);
@@ -136,7 +165,7 @@ export default function DashboardPage() {
   useEffect(() => {
     loadAll();
 
-    // Realtime “alive” feel: when activity inserted, refresh quietly
+    // Realtime updates
     const channel = supabase
       .channel("dashboard-live")
       .on(
@@ -145,7 +174,6 @@ export default function DashboardPage() {
         () => {
           loadAll({ silent: true });
 
-          // tiny UX: don’t spam toast
           const now = Date.now();
           if (now - lastToastRef.current > 8000) {
             lastToastRef.current = now;
@@ -173,7 +201,6 @@ export default function DashboardPage() {
   const newTodayCount = stats?.newTodayCount || 0;
   const resolvedThisWeekCount = stats?.resolvedThisWeekCount || 0;
 
-  // nice little “health” meters
   const urgentShare = openCount ? Math.round((urgentOpenCount / openCount) * 100) : 0;
   const openShare = total ? Math.round((openCount / total) * 100) : 0;
 
@@ -184,8 +211,7 @@ export default function DashboardPage() {
         loading={loading}
         style={{
           borderRadius: 16,
-          background:
-            "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
+          background: "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
         }}
       >
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
@@ -193,9 +219,7 @@ export default function DashboardPage() {
             <Space orientation="vertical" size={2}>
               <Title level={3} style={{ margin: 0 }}>
                 {greeting()},{" "}
-                <span style={{ opacity: 0.9 }}>
-                  {workspace?.orgName || "CaseFlow"}
-                </span>
+                <span style={{ opacity: 0.9 }}>{workspace?.orgName || "CaseFlow"}</span>
               </Title>
               <Space wrap size={8}>
                 {workspace?.orgName ? (
@@ -217,19 +241,11 @@ export default function DashboardPage() {
           <Col>
             <Space wrap>
               <Tooltip title="Refresh dashboard data">
-                <Button
-                  icon={<ReloadOutlined />}
-                  loading={refreshing}
-                  onClick={() => loadAll({ silent: true })}
-                >
+                <Button icon={<ReloadOutlined />} loading={refreshing} onClick={() => loadAll({ silent: true })}>
                   Refresh
                 </Button>
               </Tooltip>
-              <Button
-                type="primary"
-                icon={<InboxOutlined />}
-                onClick={() => router.push("/cases")}
-              >
+              <Button type="primary" icon={<InboxOutlined />} onClick={() => router.push("/cases")}>
                 Go to Cases
               </Button>
             </Space>
@@ -318,11 +334,7 @@ export default function DashboardPage() {
                 }
                 value={urgentOpenCount}
               />
-              <Progress
-                percent={urgentShare}
-                showInfo={false}
-                status={urgentShare >= 20 ? "exception" : "active"}
-              />
+              <Progress percent={urgentShare} showInfo={false} status={urgentShare >= 20 ? "exception" : "active"} />
               <Text type="secondary" style={{ fontSize: 12 }}>
                 Priority = urgent • escalation signal
               </Text>
@@ -387,14 +399,16 @@ export default function DashboardPage() {
                       <Col flex="auto">
                         <Space orientation="vertical" size={4} style={{ width: "100%" }}>
                           <Space wrap size={8}>
-                            <Text strong style={{ fontSize: 14 }}>{c.title}</Text>
+                            <Text strong style={{ fontSize: 14 }}>
+                              {c.title}
+                            </Text>
                             <Tag color={statusColor(c.status)}>{c.status}</Tag>
                             <Tag color={priorityColor(c.priority)}>{c.priority}</Tag>
                           </Space>
 
                           <Space wrap size={10}>
                             <Text type="secondary" style={{ fontSize: 12 }}>
-                              ID: {String(c.id).slice(0, 8)}…
+                              ID: {shortId(c.id)}
                             </Text>
                             <Text type="secondary" style={{ fontSize: 12 }}>
                               Created {timeAgo(c.created_at)}
@@ -433,7 +447,9 @@ export default function DashboardPage() {
             title={
               <Space size={8}>
                 <span>Live activity</span>
-                <Tag color="green" icon={<WifiOutlined />}>realtime</Tag>
+                <Tag color="green" icon={<WifiOutlined />}>
+                  realtime
+                </Tag>
               </Space>
             }
             style={{ borderRadius: 16 }}
@@ -453,11 +469,14 @@ export default function DashboardPage() {
                         <Col>
                           <Space wrap size={8}>
                             <Tag>{a.type}</Tag>
+
+                            {/* ✅ HERE: show name instead of UUID */}
                             <Text type="secondary" style={{ fontSize: 12 }}>
-                              {String(a.created_by).slice(0, 8)}…
+                              {displayUser(a.created_by)}
                             </Text>
                           </Space>
                         </Col>
+
                         <Col>
                           <Text type="secondary" style={{ fontSize: 12 }}>
                             {timeAgo(a.created_at)}
@@ -471,12 +490,16 @@ export default function DashboardPage() {
 
                       <Space style={{ justifyContent: "space-between", width: "100%" }}>
                         <Text type="secondary" style={{ fontSize: 12 }}>
-                          Case: {String(a.case_id).slice(0, 8)}…
+                          Case: {shortId(a.case_id)}
                         </Text>
-                        <Button type="link" style={{ padding: 0 }} onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/cases/${a.case_id}`);
-                        }}>
+                        <Button
+                          type="link"
+                          style={{ padding: 0 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/cases/${a.case_id}`);
+                          }}
+                        >
                           Open →
                         </Button>
                       </Space>

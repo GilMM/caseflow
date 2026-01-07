@@ -5,8 +5,16 @@ import { useParams, useRouter } from "next/navigation";
 import { Button, Card, Divider, Input, Space, Tag, Typography, message } from "antd";
 import { ArrowLeftOutlined, CheckOutlined } from "@ant-design/icons";
 
+import CaseAssignment from "@/components/cases/CaseAssignment";
 import CaseTimeline from "@/components/cases/CaseTimeLine";
-import { addCaseNote, getCaseActivities, getCaseById, updateCaseStatus } from "@/lib/db";
+
+import {
+  addCaseNote,
+  getCaseActivities,
+  getCaseById,
+  updateCaseStatus,
+  getOrgMembers, // ✅ צריך כדי לבנות userMap
+} from "@/lib/db";
 
 const { Title, Text } = Typography;
 
@@ -47,7 +55,8 @@ export default function CaseDetailsPage() {
   const { id } = useParams();
 
   const [row, setRow] = useState(null);
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState([]); // activities
+  const [userMap, setUserMap] = useState({}); // ✅ map userId -> full_name/email
   const [loading, setLoading] = useState(true);
 
   const [note, setNote] = useState("");
@@ -60,8 +69,21 @@ export default function CaseDetailsPage() {
     try {
       const c = await getCaseById(id);
       const acts = await getCaseActivities(id);
+
       setRow(c);
       setItems(acts);
+
+      // ✅ Build userMap for Timeline (names instead of UUID)
+      if (c?.org_id) {
+        const members = await getOrgMembers(c.org_id);
+        const map = {};
+        for (const m of members) {
+          map[m.user_id] = m.full_name || m.email || null;
+        }
+        setUserMap(map);
+      } else {
+        setUserMap({});
+      }
     } catch (e) {
       message.error(e.message || "Failed to load case");
     } finally {
@@ -74,15 +96,16 @@ export default function CaseDetailsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const quickStatuses = useMemo(() => {
-    return [
+  const quickStatuses = useMemo(
+    () => [
       { key: "new", label: "New" },
       { key: "in_progress", label: "In Progress" },
       { key: "waiting_customer", label: "Waiting Customer" },
       { key: "resolved", label: "Resolved" },
       { key: "closed", label: "Closed" },
-    ];
-  }, []);
+    ],
+    []
+  );
 
   async function onAddNote() {
     if (!row) return;
@@ -91,6 +114,7 @@ export default function CaseDetailsPage() {
 
     setBusyNote(true);
     try {
+      // שים לב: אצלך הפונקציות הן בצורה של אובייקט
       await addCaseNote({ caseId: row.id, orgId: row.org_id, body: text });
       setNote("");
       await loadAll();
@@ -122,13 +146,17 @@ export default function CaseDetailsPage() {
   if (!row) return <Card>Not found</Card>;
 
   return (
-    <Space direction="vertical" size={14} style={{ width: "100%" }}>
-      <Button icon={<ArrowLeftOutlined />} onClick={() => router.push("/cases")} style={{ width: "fit-content" }}>
+    <Space orientation="vertical" size={14} style={{ width: "100%" }}>
+      <Button
+        icon={<ArrowLeftOutlined />}
+        onClick={() => router.push("/cases")}
+        style={{ width: "fit-content" }}
+      >
         Back to Cases
       </Button>
 
       <Card>
-        <Space direction="vertical" size={10} style={{ width: "100%" }}>
+        <Space orientation="vertical" size={10} style={{ width: "100%" }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
             <div>
               <Title level={3} style={{ margin: 0 }}>
@@ -152,6 +180,15 @@ export default function CaseDetailsPage() {
 
           <Divider style={{ margin: "12px 0" }} />
 
+          <Card>
+            <CaseAssignment
+              caseId={row.id}
+              orgId={row.org_id}
+              assignedTo={row.assigned_to}
+              onChanged={loadAll}
+            />
+          </Card>
+
           <div>
             <Text strong>Quick status</Text>
             <div style={{ marginTop: 8 }}>
@@ -174,7 +211,7 @@ export default function CaseDetailsPage() {
       </Card>
 
       <Card title="Add note">
-        <Space direction="vertical" size={10} style={{ width: "100%" }}>
+        <Space orientation="vertical" size={10} style={{ width: "100%" }}>
           <Input.TextArea
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -187,8 +224,8 @@ export default function CaseDetailsPage() {
         </Space>
       </Card>
 
-      <Card title="Timeline">
-        <CaseTimeline items={items} />
+      <Card title="Timeline" style={{ borderRadius: 16 }}>
+        <CaseTimeline items={items} userMap={userMap} />
       </Card>
     </Space>
   );

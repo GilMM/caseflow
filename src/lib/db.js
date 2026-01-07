@@ -113,7 +113,7 @@ export async function createCase({
 export async function getCaseById(caseId) {
   const { data, error } = await supabase
     .from("cases")
-    .select("id, org_id, title, description, status, priority, created_at, updated_at")
+    .select("id, org_id, title, description, status, priority, assigned_to, created_at, updated_at")
     .eq("id", caseId)
     .single();
 
@@ -269,4 +269,89 @@ export async function getRecentActivity(orgId) {
 
   if (error) throw error;
   return data || [];
+}
+
+
+
+// Get org members list for assignment UI
+export async function getOrgMembers(orgId) {
+  const { data, error } = await supabase
+    .from("org_members_with_profiles")
+    .select("user_id, role, full_name, avatar_url")
+    .eq("org_id", orgId)
+    .eq("is_active", true);
+
+  if (error) throw error;
+  return data || [];
+}
+
+
+
+
+// Assign case and log activity
+export async function assignCase({ caseId, orgId, toUserId }) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const user = sessionData?.session?.user;
+  if (!user) throw new Error("Not authenticated");
+
+  // Read current assignment to log "from"
+  const { data: current, error: curErr } = await supabase
+    .from("cases")
+    .select("assigned_to")
+    .eq("id", caseId)
+    .single();
+  if (curErr) throw curErr;
+
+  const fromUserId = current?.assigned_to || null;
+
+  const { error: upErr } = await supabase
+    .from("cases")
+    .update({ assigned_to: toUserId })
+    .eq("id", caseId);
+  if (upErr) throw upErr;
+
+  const body =
+    toUserId === user.id
+      ? "Assigned to me"
+      : `Assigned to ${String(toUserId).slice(0, 8)}…`;
+
+  const { error: actErr } = await supabase.from("case_activities").insert({
+    org_id: orgId,
+    case_id: caseId,
+    type: "assignment",
+    body,
+    meta: { from: fromUserId, to: toUserId },
+    created_by: user.id,
+  });
+  if (actErr) throw actErr;
+}
+
+
+
+export async function addOrgMember({ orgId, userId, role = "viewer" }) {
+  const { error } = await supabase.from("org_memberships").insert({
+    org_id: orgId,
+    user_id: userId,
+    role,
+    is_active: true,
+  });
+  if (error) throw error;
+}
+
+export async function updateOrgMemberRole({ orgId, userId, role }) {
+  const { error } = await supabase
+    .from("org_memberships")
+    .update({ role })
+    .eq("org_id", orgId)
+    .eq("user_id", userId);
+  if (error) throw error;
+}
+
+export async function setOrgMemberActive({ orgId, userId, isActive }) {
+  const { error } = await supabase
+    .from("org_memberships")
+    .update({ is_active: isActive })
+    .eq("org_id", orgId)
+    .eq("user_id", userId);
+  if (error) throw error;
 }
