@@ -68,45 +68,30 @@ export async function createCase({
   queueId,
   title,
   description,
-  priority = "normal",
+  priority,
+  requesterContactId,
 }) {
   const { data: sessionData } = await supabase.auth.getSession();
   const user = sessionData?.session?.user;
   if (!user) throw new Error("Not authenticated");
 
-  // 1) Create case
-  const { data: c, error: caseErr } = await supabase
+  const { data, error } = await supabase
     .from("cases")
     .insert({
       org_id: orgId,
-      queue_id: queueId,
+      queue_id: queueId || null,
       title,
-      description,
+      description: description || null,
       priority,
-      status: "new",
       created_by: user.id,
+      requester_contact_id: requesterContactId || null, // ✅ here
     })
     .select("id")
     .single();
 
-  if (caseErr) throw caseErr;
-
-  // 2) Initial activity
-  const { error: actErr } = await supabase
-    .from("case_activities")
-    .insert({
-      org_id: orgId,
-      case_id: c.id,
-      type: "note",
-      body: "Case created",
-      created_by: user.id,
-    });
-
-  if (actErr) throw actErr;
-
-  return c.id;
+  if (error) throw error;
+  return data.id;
 }
-
 
 
 /** Load one case */

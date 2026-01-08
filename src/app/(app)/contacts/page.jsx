@@ -4,15 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { supabase } from "@/lib/supabase/client";
-import {
-  getActiveWorkspace,
-  getOrgMembers,
-  addOrgMember,
-  updateOrgMemberRole,
-  setOrgMemberActive,
-} from "@/lib/db";
+import { getActiveWorkspace } from "@/lib/db";
 
 import {
+  Alert,
+  App,
   Avatar,
   Badge,
   Button,
@@ -20,37 +16,33 @@ import {
   Col,
   Divider,
   Empty,
+  Form,
   Input,
   Modal,
   Row,
   Select,
   Space,
+  Spin,
+  Switch,
   Tag,
   Tooltip,
   Typography,
-  message,
-  Spin,
-  Switch,
 } from "antd";
 import {
-  ReloadOutlined,
   TeamOutlined,
+  ReloadOutlined,
   SearchOutlined,
-  UserAddOutlined,
-  CrownOutlined,
-  SafetyOutlined,
-  EyeOutlined,
+  PlusOutlined,
+  EditOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  EnvironmentOutlined,
 } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 
-function shortId(id) {
-  if (!id) return "—";
-  return `${String(id).slice(0, 8)}…`;
-}
-
-function initials(nameOrEmail) {
-  const s = (nameOrEmail || "").trim();
+function initials(name) {
+  const s = (name || "").trim();
   if (!s) return "?";
   const parts = s.split(/\s+/).filter(Boolean);
   const a = parts[0]?.[0] || "";
@@ -58,46 +50,49 @@ function initials(nameOrEmail) {
   return (a + b).toUpperCase() || "?";
 }
 
-const roleColor = (role) =>
-  ({
-    admin: "gold",
-    agent: "blue",
-    viewer: "default",
-  }[role] || "default");
+function shortId(id) {
+  if (!id) return "—";
+  return `${String(id).slice(0, 8)}…`;
+}
 
-const roleIcon = (role) =>
-  ({
-    admin: <CrownOutlined />,
-    agent: <SafetyOutlined />,
-    viewer: <EyeOutlined />,
-  }[role] || <EyeOutlined />);
-
-function isUuid(v) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    String(v || "").trim()
-  );
+function timeAgo(iso) {
+  if (!iso) return "—";
+  const t = new Date(iso).getTime();
+  const now = Date.now();
+  const sec = Math.max(1, Math.floor((now - t) / 1000));
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const d = Math.floor(hr / 24);
+  return `${d}d ago`;
 }
 
 export default function ContactsPage() {
   const router = useRouter();
+  const { message } = App.useApp();
+  const [form] = Form.useForm();
 
   const [workspace, setWorkspace] = useState(null);
 
   const [rows, setRows] = useState([]);
+  const [tableAvailable, setTableAvailable] = useState(true);
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
   // filters
   const [q, setQ] = useState("");
-  const [role, setRole] = useState("all");
-  const [active, setActive] = useState("all"); // all / active / inactive
+  const [active, setActive] = useState("active"); // all / active / inactive
+  const [dept, setDept] = useState("all");
 
-  // invite modal
-  const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteRole, setInviteRole] = useState("agent");
-  const [inviteInput, setInviteInput] = useState(""); // email OR uuid
-  const [inviting, setInviting] = useState(false);
+  // modal
+  const [modalOpen, setModalOpen] = useState(false);
+  const [mode, setMode] = useState("create"); // create | edit
+  const [editing, setEditing] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const lastToastRef = useRef(0);
 
@@ -115,19 +110,30 @@ export default function ContactsPage() {
         return;
       }
 
-      const members = await getOrgMembers(ws.orgId);
+      const res = await supabase
+        .from("contacts")
+        .select(
+          "id,org_id,full_name,email,phone,department,job_title,location,notes,is_active,created_at,updated_at"
+        )
+        .eq("org_id", ws.orgId)
+        .order("is_active", { ascending: false })
+        .order("full_name", { ascending: true })
+        .limit(800);
 
-      // normalize
-      const normalized = (members || []).map((m) => ({
-        user_id: m.user_id,
-        full_name: m.full_name || "",
-        email: m.email || "", // may be empty depending on your view
-        avatar_url: m.avatar_url || null,
-        role: m.role || "viewer",
-        is_active: m.is_active ?? true,
-      }));
+      if (res.error) {
+        const msg = String(res.error.message || "").toLowerCase();
+        const looksMissing =
+          msg.includes("does not exist") || msg.includes("relation") || msg.includes("schema cache");
+        if (looksMissing) {
+          setTableAvailable(false);
+          setRows([]);
+          return;
+        }
+        throw res.error;
+      }
 
-      setRows(normalized);
+      setTableAvailable(true);
+      setRows(res.data || []);
 
       const now = Date.now();
       if (silent && now - lastToastRef.current > 7000) {
@@ -148,126 +154,153 @@ export default function ContactsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const deptOptions = useMemo(() => {
+    const set = new Set();
+    for (const r of rows) if (r.department) set.add(r.department);
+    return ["all", ...Array.from(set).sort((a, b) => a.localeCompare(b))];
+  }, [rows]);
+
   const filtered = useMemo(() => {
     const qq = q.trim().toLowerCase();
 
     return (rows || []).filter((r) => {
-      if (role !== "all" && r.role !== role) return false;
-      if (active === "active" && r.is_active === false) return false;
-      if (active === "inactive" && r.is_active !== false) return false;
+      const isActive = (r.is_active ?? true) !== false;
+
+      if (active === "active" && !isActive) return false;
+      if (active === "inactive" && isActive) return false;
+
+      if (dept !== "all" && (r.department || "") !== dept) return false;
 
       if (!qq) return true;
 
-      const hay = [
-        r.full_name,
-        r.email,
-        r.user_id,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return hay.includes(qq);
+      return (
+        (r.full_name || "").toLowerCase().includes(qq) ||
+        (r.email || "").toLowerCase().includes(qq) ||
+        (r.phone || "").toLowerCase().includes(qq) ||
+        (r.department || "").toLowerCase().includes(qq) ||
+        (r.job_title || "").toLowerCase().includes(qq) ||
+        (r.location || "").toLowerCase().includes(qq) ||
+        String(r.id || "").toLowerCase().includes(qq)
+      );
     });
-  }, [rows, q, role, active]);
+  }, [rows, q, active, dept]);
 
   const total = rows.length;
-  const activeCount = rows.filter((r) => r.is_active !== false).length;
-  const adminsCount = rows.filter((r) => r.role === "admin").length;
+  const activeCount = rows.filter((r) => (r.is_active ?? true) !== false).length;
 
-  async function onInvite() {
-    const ws = workspace;
-    if (!ws?.orgId) return message.error("No workspace selected");
+  function openCreate() {
+    setMode("create");
+    setEditing(null);
+    form.setFieldsValue({
+      full_name: "",
+      email: "",
+      phone: "",
+      department: "",
+      job_title: "",
+      location: "",
+      is_active: true,
+      notes: "",
+    });
+    setModalOpen(true);
+  }
 
-    const value = inviteInput.trim();
-    if (!value) return message.error("Enter email or user UUID");
+  function openEdit(row) {
+    setMode("edit");
+    setEditing(row);
+    form.setFieldsValue({
+      full_name: row.full_name || "",
+      email: row.email || "",
+      phone: row.phone || "",
+      department: row.department || "",
+      job_title: row.job_title || "",
+      location: row.location || "",
+      is_active: (row.is_active ?? true) !== false,
+      notes: row.notes || "",
+    });
+    setModalOpen(true);
+  }
+
+  async function toggleActive(contactId, nextActive) {
+    if (!workspace?.orgId) return;
 
     try {
-      setInviting(true);
+      const { error } = await supabase
+        .from("contacts")
+        .update({ is_active: nextActive })
+        .eq("org_id", workspace.orgId)
+        .eq("id", contactId);
 
-      // If it's UUID -> directly add membership
-      if (isUuid(value)) {
-        await addOrgMember({ orgId: ws.orgId, userId: value, role: inviteRole });
-        message.success("Member added");
-        setInviteOpen(false);
-        setInviteInput("");
+      if (error) throw error;
+
+      message.success(nextActive ? "Contact activated" : "Contact deactivated");
+      await loadAll({ silent: true });
+    } catch (e) {
+      message.error(e?.message || "Failed to update contact");
+    }
+  }
+
+  async function onSave(values) {
+    if (!workspace?.orgId) {
+      message.error("No workspace selected");
+      return;
+    }
+
+    const payload = {
+      org_id: workspace.orgId,
+      full_name: String(values.full_name || "").trim(),
+      email: values.email ? String(values.email).trim() : null,
+      phone: values.phone ? String(values.phone).trim() : null,
+      department: values.department ? String(values.department).trim() : null,
+      job_title: values.job_title ? String(values.job_title).trim() : null,
+      location: values.location ? String(values.location).trim() : null,
+      notes: values.notes ? String(values.notes).trim() : null,
+      is_active: !!values.is_active,
+    };
+
+    if (!payload.full_name) {
+      message.error("Full name is required");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      if (mode === "create") {
+        const { error } = await supabase.from("contacts").insert(payload);
+        if (error) throw error;
+
+        message.success("Contact created");
+        setModalOpen(false);
         await loadAll({ silent: true });
         return;
       }
 
-      // Otherwise, try resolve email -> profile id (only works if profiles.email exists + is readable)
-      const { data: prof, error: profErr } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", value.toLowerCase())
-        .maybeSingle();
+      const { error } = await supabase
+        .from("contacts")
+        .update({
+          full_name: payload.full_name,
+          email: payload.email,
+          phone: payload.phone,
+          department: payload.department,
+          job_title: payload.job_title,
+          location: payload.location,
+          notes: payload.notes,
+          is_active: payload.is_active,
+        })
+        .eq("org_id", workspace.orgId)
+        .eq("id", editing.id);
 
-      if (profErr) {
-        // likely: profiles.email doesn't exist OR RLS blocks it
-        message.error(
-          "Email lookup isn't available yet. Paste the user's UUID instead (auth.users.id)."
-        );
-        return;
-      }
+      if (error) throw error;
 
-      if (!prof?.id) {
-        message.error("No user found for this email. Ask them to register first, then add by UUID.");
-        return;
-      }
-
-      await addOrgMember({ orgId: ws.orgId, userId: prof.id, role: inviteRole });
-      message.success("Member added");
-      setInviteOpen(false);
-      setInviteInput("");
+      message.success("Contact updated");
+      setModalOpen(false);
       await loadAll({ silent: true });
     } catch (e) {
-      message.error(e?.message || "Invite failed");
+      message.error(e?.message || "Save failed");
     } finally {
-      setInviting(false);
+      setSaving(false);
     }
   }
-
-  async function onChangeRole(userId, nextRole) {
-    try {
-      await updateOrgMemberRole({ orgId: workspace.orgId, userId, role: nextRole });
-      message.success("Role updated");
-      await loadAll({ silent: true });
-    } catch (e) {
-      message.error(e?.message || "Failed to update role");
-    }
-  }
-
-  async function onToggleActive(userId, nextActive) {
-    try {
-      await setOrgMemberActive({ orgId: workspace.orgId, userId, isActive: nextActive });
-      message.success(nextActive ? "Member activated" : "Member deactivated");
-      await loadAll({ silent: true });
-    } catch (e) {
-      message.error(e?.message || "Failed to update status");
-    }
-  }
-
-  const headerRight = (
-    <Space wrap>
-      <Tooltip title="Refresh directory">
-        <Button
-          icon={<ReloadOutlined />}
-          loading={refreshing}
-          onClick={() => loadAll({ silent: true })}
-        >
-          Refresh
-        </Button>
-      </Tooltip>
-
-      <Button
-        type="primary"
-        icon={<UserAddOutlined />}
-        onClick={() => setInviteOpen(true)}
-      >
-        Invite member
-      </Button>
-    </Space>
-  );
 
   if (loading) {
     return (
@@ -294,142 +327,101 @@ export default function ContactsPage() {
               </Title>
 
               <Space wrap size={8}>
+                <Tag icon={<TeamOutlined />}>Directory</Tag>
                 {workspace?.orgName ? (
                   <Tag color="blue">Workspace: {workspace.orgName}</Tag>
                 ) : (
                   <Tag>Workspace: none</Tag>
                 )}
-
-                <Tag icon={<TeamOutlined />}>Directory: org members</Tag>
-
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  {filtered.length} shown • {total} total
+                  {filtered.length} shown • {total} total • {activeCount} active
                 </Text>
               </Space>
             </Space>
           </Col>
 
-          <Col>{headerRight}</Col>
+          <Col>
+            <Space wrap>
+              <Tooltip title="Refresh contacts">
+                <Button
+                  icon={<ReloadOutlined />}
+                  loading={refreshing}
+                  onClick={() => loadAll({ silent: true })}
+                >
+                  Refresh
+                </Button>
+              </Tooltip>
+
+              <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                New contact
+              </Button>
+            </Space>
+          </Col>
         </Row>
       </Card>
 
-      {/* KPIs + Filters */}
-      <Row gutter={[12, 12]}>
-        <Col xs={24} lg={10}>
-          <Row gutter={[12, 12]}>
-            <Col xs={24} sm={8}>
-              <Card style={{ borderRadius: 16 }}>
-                <Space orientation="vertical" size={4}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Total
-                  </Text>
-                  <Text style={{ fontSize: 22, fontWeight: 800 }}>{total}</Text>
-                </Space>
-              </Card>
-            </Col>
-
-            <Col xs={24} sm={8}>
-              <Card style={{ borderRadius: 16 }}>
-                <Space orientation="vertical" size={4}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Active
-                  </Text>
-                  <Text style={{ fontSize: 22, fontWeight: 800 }}>{activeCount}</Text>
-                </Space>
-              </Card>
-            </Col>
-
-            <Col xs={24} sm={8}>
-              <Card style={{ borderRadius: 16 }}>
-                <Space orientation="vertical" size={4}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Admins
-                  </Text>
-                  <Text style={{ fontSize: 22, fontWeight: 800 }}>{adminsCount}</Text>
-                </Space>
-              </Card>
-            </Col>
-          </Row>
-        </Col>
-
-        <Col xs={24} lg={14}>
-          <Card style={{ borderRadius: 16 }}>
-            <Row gutter={[10, 10]} align="middle">
-              <Col xs={24} md={10}>
-                <Input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Search name / email / user id…"
-                  prefix={<SearchOutlined />}
-                  allowClear
-                />
-              </Col>
-
-              <Col xs={12} md={7}>
-                <Select
-                  value={role}
-                  onChange={setRole}
-                  style={{ width: "100%" }}
-                  options={[
-                    { value: "all", label: "All roles" },
-                    { value: "admin", label: "admin" },
-                    { value: "agent", label: "agent" },
-                    { value: "viewer", label: "viewer" },
-                  ]}
-                />
-              </Col>
-
-              <Col xs={12} md={7}>
-                <Select
-                  value={active}
-                  onChange={setActive}
-                  style={{ width: "100%" }}
-                  options={[
-                    { value: "all", label: "All states" },
-                    { value: "active", label: "Active" },
-                    { value: "inactive", label: "Inactive" },
-                  ]}
-                />
-              </Col>
-
-              <Col xs={24}>
-                <Space wrap size={8}>
-                  <Button
-                    onClick={() => {
-                      setQ("");
-                      setRole("all");
-                      setActive("all");
-                    }}
-                  >
-                    Clear filters
-                  </Button>
-
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Admins can invite, change roles, and deactivate members.
-                  </Text>
-                </Space>
-              </Col>
-            </Row>
-          </Card>
-        </Col>
-      </Row>
-
       {error ? (
         <Card style={{ borderRadius: 16, borderColor: "#ffccc7" }}>
-          <Text style={{ color: "#cf1322" }}>{error}</Text>
+          <Alert type="error" showIcon message="Couldn’t load contacts" description={error} />
         </Card>
       ) : null}
 
-      {/* Directory */}
-      <Card
-        title="Directory"
-        style={{ borderRadius: 16 }}
-        extra={
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            Showing {filtered.length}
-          </Text>
-        }
-      >
+      {/* Filters */}
+      <Card style={{ borderRadius: 16 }}>
+        <Row gutter={[10, 10]} align="middle">
+          <Col xs={24} md={10}>
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search by name, email, phone, department…"
+              prefix={<SearchOutlined />}
+              allowClear
+            />
+          </Col>
+
+          <Col xs={12} md={7}>
+            <Select
+              value={active}
+              onChange={setActive}
+              style={{ width: "100%" }}
+              options={[
+                { value: "all", label: "All states" },
+                { value: "active", label: "Active" },
+                { value: "inactive", label: "Inactive" },
+              ]}
+            />
+          </Col>
+
+          <Col xs={12} md={7}>
+            <Select
+              value={dept}
+              onChange={setDept}
+              style={{ width: "100%" }}
+              options={deptOptions.map((d) => ({ value: d, label: d === "all" ? "All departments" : d }))}
+            />
+          </Col>
+
+          <Col xs={24}>
+            <Space wrap size={8}>
+              <Button
+                onClick={() => {
+                  setQ("");
+                  setActive("active");
+                  setDept("all");
+                }}
+              >
+                Clear filters
+              </Button>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Contacts are internal employees. We’ll link them to cases as “Requester”.
+              </Text>
+            </Space>
+          </Col>
+        </Row>
+      </Card>
+
+      {/* List */}
+      <Card title="People" style={{ borderRadius: 16 }}>
         {!workspace?.orgId ? (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -437,88 +429,108 @@ export default function ContactsPage() {
               <Space orientation="vertical" size={2}>
                 <Text>No workspace</Text>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  Create org + membership to start seeing members.
+                  Create org + membership to start managing contacts.
+                </Text>
+              </Space>
+            }
+          />
+        ) : !tableAvailable ? (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={
+              <Space orientation="vertical" size={2}>
+                <Text>Contacts table not available</Text>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  Create the <Text code>contacts</Text> table (and RLS), then this page will light up.
                 </Text>
               </Space>
             }
           />
         ) : filtered.length ? (
           <Space orientation="vertical" size={10} style={{ width: "100%" }}>
-            {filtered.map((m) => {
-              const name = m.full_name || "Unnamed";
-              const isActive = m.is_active !== false;
+            {filtered.map((c) => {
+              const isActive = (c.is_active ?? true) !== false;
 
               return (
-                <Card key={m.user_id} size="small" hoverable style={{ borderRadius: 14 }}>
+                <Card key={c.id} size="small" hoverable style={{ borderRadius: 14 }}>
                   <Row justify="space-between" align="middle" gutter={[12, 12]}>
                     <Col flex="auto">
-                      <Space size={12} align="start">
-                        <Avatar size={40} src={m.avatar_url || undefined}>
-                          {initials(name || m.email)}
-                        </Avatar>
+                      <Space align="start" size={12}>
+                        <Avatar>{initials(c.full_name)}</Avatar>
 
                         <Space orientation="vertical" size={2} style={{ width: "100%" }}>
                           <Space wrap size={8}>
                             <Text strong style={{ fontSize: 14 }}>
-                              {name}
+                              {c.full_name}
+                            </Text>
+                            <Badge status={isActive ? "success" : "default"} text={isActive ? "Active" : "Inactive"} />
+                            {c.department ? <Tag color="geekblue">{c.department}</Tag> : null}
+                            {c.job_title ? <Tag>{c.job_title}</Tag> : null}
+                          </Space>
+
+                          <Space wrap size={12}>
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              ID: {shortId(c.id)}
                             </Text>
 
-                            <Tag color={roleColor(m.role)} icon={roleIcon(m.role)}>
-                              {m.role}
-                            </Tag>
+                            {c.email ? (
+                              <Space size={6}>
+                                <MailOutlined />
+                                <Text type="secondary" style={{ fontSize: 12 }}>
+                                  {c.email}
+                                </Text>
+                              </Space>
+                            ) : null}
 
-                            <Badge
-                              status={isActive ? "success" : "default"}
-                              text={isActive ? "Active" : "Inactive"}
-                            />
+                            {c.phone ? (
+                              <Space size={6}>
+                                <PhoneOutlined />
+                                <Text type="secondary" style={{ fontSize: 12 }}>
+                                  {c.phone}
+                                </Text>
+                              </Space>
+                            ) : null}
+
+                            {c.location ? (
+                              <Space size={6}>
+                                <EnvironmentOutlined />
+                                <Text type="secondary" style={{ fontSize: 12 }}>
+                                  {c.location}
+                                </Text>
+                              </Space>
+                            ) : null}
                           </Space>
 
-                          <Space wrap size={10}>
-                            {m.email ? (
-                              <Text type="secondary" style={{ fontSize: 12 }}>
-                                {m.email}
-                              </Text>
-                            ) : (
-                              <Text type="secondary" style={{ fontSize: 12 }}>
-                                ID: {shortId(m.user_id)}
-                              </Text>
-                            )}
+                          {c.notes ? (
+                            <Text type="secondary" style={{ fontSize: 12 }} ellipsis={{ tooltip: c.notes }}>
+                              {c.notes}
+                            </Text>
+                          ) : null}
 
-                            {!m.email ? null : (
-                              <Text type="secondary" style={{ fontSize: 12 }}>
-                                ID: {shortId(m.user_id)}
-                              </Text>
-                            )}
-                          </Space>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            Updated {timeAgo(c.updated_at)} • Created {timeAgo(c.created_at)}
+                          </Text>
                         </Space>
                       </Space>
                     </Col>
 
                     <Col>
                       <Space wrap>
-                        {/* Role change */}
-                        <Select
-                          size="middle"
-                          value={m.role}
-                          style={{ width: 140 }}
-                          onChange={(next) => onChangeRole(m.user_id, next)}
-                          options={[
-                            { value: "admin", label: "admin" },
-                            { value: "agent", label: "agent" },
-                            { value: "viewer", label: "viewer" },
-                          ]}
-                        />
-
-                        {/* Activate / Deactivate */}
-                        <Tooltip title={isActive ? "Deactivate member" : "Activate member"}>
-                          <Switch
-                            checked={isActive}
-                            onChange={(checked) => onToggleActive(m.user_id, checked)}
-                          />
+                        <Tooltip title="Activate / Deactivate">
+                          <Switch checked={isActive} onChange={(v) => toggleActive(c.id, v)} />
                         </Tooltip>
 
-                        {/* Quick action */}
-                        <Button type="primary" onClick={() => router.push("/cases/new")}>
+                        <Button icon={<EditOutlined />} onClick={() => openEdit(c)}>
+                          Edit
+                        </Button>
+
+                        <Button
+                          type="primary"
+                          onClick={() => {
+                            // Next step: create case with requester preselected
+                            router.push(`/cases/new?requester=${c.id}`);
+                          }}
+                        >
                           New case
                         </Button>
                       </Space>
@@ -529,10 +541,10 @@ export default function ContactsPage() {
 
                   <Space style={{ justifyContent: "space-between", width: "100%" }}>
                     <Text type="secondary" style={{ fontSize: 12 }}>
-                      Member actions are enforced by RLS (admin-only updates/inserts).
+                      Next: contact details page (all cases for this person).
                     </Text>
-                    <Button type="link" style={{ padding: 0 }} onClick={() => message.info("Next: member profile drawer")}>
-                      Open profile →
+                    <Button type="link" style={{ padding: 0 }} onClick={() => message.info("Next: /contacts/[id]")}>
+                      Open →
                     </Button>
                   </Space>
                 </Card>
@@ -544,9 +556,9 @@ export default function ContactsPage() {
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={
               <Space orientation="vertical" size={2}>
-                <Text>No members match your filters</Text>
+                <Text>No contacts match your filters</Text>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  Try clearing filters.
+                  Try clearing filters or create a new contact.
                 </Text>
               </Space>
             }
@@ -554,48 +566,78 @@ export default function ContactsPage() {
         )}
       </Card>
 
-      {/* Invite Modal */}
+      {/* Create/Edit Modal */}
       <Modal
-        open={inviteOpen}
-        onCancel={() => setInviteOpen(false)}
-        title="Invite member"
-        okText="Add"
-        onOk={onInvite}
-        confirmLoading={inviting}
+        open={modalOpen}
+        onCancel={() => setModalOpen(false)}
+        title={mode === "create" ? "New contact" : "Edit contact"}
+        okText={mode === "create" ? "Create" : "Save"}
+        onOk={() => form.submit()}
+        confirmLoading={saving}
+        destroyOnClose
       >
-        <Space orientation="vertical" size={12} style={{ width: "100%" }}>
-          <Text type="secondary">
-            Paste a user UUID (recommended). If your <Text code>profiles</Text> table has an{" "}
-            <Text code>email</Text> column, you can also type an email.
-          </Text>
+        <Form form={form} layout="vertical" onFinish={onSave}>
+          <Row gutter={[12, 12]}>
+            <Col span={24}>
+              <Form.Item
+                label="Full name"
+                name="full_name"
+                rules={[{ required: true, message: "Full name is required" }]}
+              >
+                <Input placeholder="e.g., David Cohen" maxLength={80} />
+              </Form.Item>
+            </Col>
 
-          <Input
-            value={inviteInput}
-            onChange={(e) => setInviteInput(e.target.value)}
-            placeholder="User UUID (auth.users.id) or email"
-            autoFocus
+            <Col xs={24} md={12}>
+              <Form.Item label="Email" name="email" rules={[{ type: "email", message: "Invalid email" }]}>
+                <Input placeholder="name@company.com" />
+              </Form.Item>
+            </Col>
+
+            <Col xs={24} md={12}>
+              <Form.Item label="Phone" name="phone">
+                <Input placeholder="+972..." />
+              </Form.Item>
+            </Col>
+
+            <Col xs={24} md={12}>
+              <Form.Item label="Department" name="department">
+                <Input placeholder="e.g., IT, HR, Marketing" />
+              </Form.Item>
+            </Col>
+
+            <Col xs={24} md={12}>
+              <Form.Item label="Job title" name="job_title">
+                <Input placeholder="e.g., Helpdesk Specialist" />
+              </Form.Item>
+            </Col>
+
+            <Col xs={24} md={12}>
+              <Form.Item label="Location" name="location">
+                <Input placeholder="e.g., HQ / Remote" />
+              </Form.Item>
+            </Col>
+
+            <Col xs={24} md={12}>
+              <Form.Item label="Active" name="is_active" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+            </Col>
+
+            <Col span={24}>
+              <Form.Item label="Notes" name="notes">
+                <Input.TextArea rows={3} placeholder="Internal notes…" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Alert
+            type="info"
+            showIcon
+            message="Tip"
+            description="Next we’ll link this contact to cases as “Requester” and show all cases per person."
           />
-
-          <div>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              Role
-            </Text>
-            <Select
-              value={inviteRole}
-              onChange={setInviteRole}
-              style={{ width: "100%", marginTop: 6 }}
-              options={[
-                { value: "admin", label: "admin" },
-                { value: "agent", label: "agent" },
-                { value: "viewer", label: "viewer" },
-              ]}
-            />
-          </div>
-
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            Tip: easiest workflow is: user registers → sends you their UUID → you add them here.
-          </Text>
-        </Space>
+        </Form>
       </Modal>
     </Space>
   );

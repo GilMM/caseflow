@@ -9,6 +9,14 @@
     --foreground: #ededed;
   }
 }
+html[data-theme="dark"] body {
+  background: #0f0f10;
+}
+
+html[data-theme="light"] body {
+  background: #ffffff;
+}
+
 
 html,
 body {
