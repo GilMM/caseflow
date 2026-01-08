@@ -6,7 +6,7 @@ import { Button, Card, Divider, Input, Space, Tag, Typography, message } from "a
 import { ArrowLeftOutlined, CheckOutlined } from "@ant-design/icons";
 
 import CaseAssignment from "@/components/cases/CaseAssignment";
-import CaseTimeline from "@/components/cases/CaseTimeLine";
+import CaseTimeline from "@/components/cases/CaseTimeline";
 
 import {
   addCaseNote,
