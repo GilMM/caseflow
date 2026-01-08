@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { supabase } from "@/lib/supabase/client";
-import { getActiveWorkspace } from "@/lib/db";
+import { getActiveWorkspace, createOrgInvite, getOrgInvites, revokeOrgInvite } from "@/lib/db";
 
 import {
   Alert,
@@ -16,8 +16,10 @@ import {
   Form,
   Input,
   Row,
+  Select,
   Space,
   Spin,
+  Table,
   Tag,
   Tooltip,
   Typography,
@@ -31,6 +33,11 @@ import {
   LogoutOutlined,
   AppstoreOutlined,
   SafetyOutlined,
+  PlusOutlined,
+  CopyOutlined,
+  StopOutlined,
+  MailOutlined,
+  KeyOutlined,
 } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
@@ -44,9 +51,24 @@ function initials(nameOrEmail) {
   return (a + b).toUpperCase() || "?";
 }
 
+function timeAgo(iso) {
+  if (!iso) return "—";
+  const t = new Date(iso).getTime();
+  const now = Date.now();
+  const sec = Math.max(1, Math.floor((now - t) / 1000));
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const d = Math.floor(hr / 24);
+  return `${d}d ago`;
+}
+
 export default function SettingsPage() {
   const router = useRouter();
-  const [form] = Form.useForm();
+  const [profileForm] = Form.useForm();
+  const [inviteForm] = Form.useForm();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -55,11 +77,19 @@ export default function SettingsPage() {
   const [workspace, setWorkspace] = useState(null);
   const [sessionUser, setSessionUser] = useState(null);
 
+  const isAdmin = workspace?.role === "admin";
+
+  // Invites
+  const [invites, setInvites] = useState([]);
+  const [invitesLoading, setInvitesLoading] = useState(false);
+  const [creatingInvite, setCreatingInvite] = useState(false);
+
   const userLabel = useMemo(() => {
-    const name = form.getFieldValue("full_name");
+    const name = profileForm.getFieldValue("full_name");
     const email = sessionUser?.email;
     return name || email || "Account";
-  }, [sessionUser, form]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionUser]);
 
   async function loadAll({ silent = false } = {}) {
     try {
@@ -74,35 +104,101 @@ export default function SettingsPage() {
       const ws = await getActiveWorkspace();
       setWorkspace(ws);
 
-      // profile values (MVP)
-      form.setFieldsValue({
+      // MVP profile (placeholder)
+      profileForm.setFieldsValue({
         full_name: "",
         avatar_url: "",
       });
     } catch (e) {
-      setError(e?.message || "Failed to load settings");
-      message.error(e?.message || "Failed to load settings");
+      const msg = e?.message || "Failed to load settings";
+      setError(msg);
+      message.error(msg);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }
 
+  async function loadInvites(orgId) {
+    if (!orgId) return;
+    try {
+      setInvitesLoading(true);
+      const data = await getOrgInvites(orgId);
+      setInvites(data || []);
+    } catch (e) {
+      console.error("getOrgInvites failed:", e);
+      message.error(e?.message || "Failed to load invites");
+      setInvites([]);
+    } finally {
+      setInvitesLoading(false);
+    }
+  }
+  
+
   useEffect(() => {
     loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!isAdmin || !workspace?.orgId) return;
+    loadInvites(workspace.orgId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, workspace?.orgId]);
+
   async function logout() {
-    await supabase.auth.signOut();
-    router.replace("/login");
+    // לוקאלי לפעמים נתקע עם refresh token -> זה הכי "חזק"
+    await supabase.auth.signOut({ scope: "local" });
+    window.location.assign("/login");
   }
 
-  async function onSaveProfile(values) {
-    // MVP: בלי כתיבה ל-profiles עדיין.
-    // אם תרצה — נחבר ל-profiles table + RLS (self update) ונשמור באמת.
+  async function onSaveProfile() {
     message.success("Saved (MVP placeholder)");
-    // console.log(values);
+  }
+
+  function inviteLinkFromToken(token) {
+    return `${window.location.origin}/onboarding?invite=${token}`;
+  }
+
+  async function onCreateInvite(values) {
+    if (!workspace?.orgId) return;
+
+    try {
+      setCreatingInvite(true);
+
+      const invite = await createOrgInvite({
+        orgId: workspace.orgId,
+        email: values.email,
+        role: values.role,
+      });
+
+      const link = inviteLinkFromToken(invite.token);
+
+      try {
+        await navigator.clipboard.writeText(invite.token);
+        message.success("Invite created & link copied");
+      } catch {
+        message.success("Invite created");
+        message.info("Copy manually from the table (Copy button)");
+      }
+
+      inviteForm.resetFields();
+      loadInvites(workspace.orgId);
+    } catch (e) {
+      message.error(e?.message || "Failed to create invite");
+    } finally {
+      setCreatingInvite(false);
+    }
+  }
+
+  async function onRevokeInvite(inviteId) {
+    try {
+      await revokeOrgInvite(inviteId);
+      message.success("Invite revoked");
+      loadInvites(workspace.orgId);
+    } catch (e) {
+      message.error(e?.message || "Failed to revoke");
+    }
   }
 
   if (loading) {
@@ -192,7 +288,7 @@ export default function SettingsPage() {
           >
             <Row gutter={[12, 12]} align="middle">
               <Col>
-                <Avatar size={56} src={form.getFieldValue("avatar_url") || undefined}>
+                <Avatar size={56} src={profileForm.getFieldValue("avatar_url") || undefined}>
                   {initials(userLabel)}
                 </Avatar>
               </Col>
@@ -202,7 +298,7 @@ export default function SettingsPage() {
                     {userLabel}
                   </Text>
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    This is a demo-friendly profile section (next: persist in profiles table).
+                    Demo profile section (next: persist in profiles table).
                   </Text>
                 </Space>
               </Col>
@@ -210,7 +306,7 @@ export default function SettingsPage() {
 
             <Divider style={{ margin: "12px 0" }} />
 
-            <Form form={form} layout="vertical" onFinish={onSaveProfile}>
+            <Form form={profileForm} layout="vertical" onFinish={onSaveProfile}>
               <Form.Item label="Display name" name="full_name">
                 <Input placeholder="e.g., Gil Meshou" />
               </Form.Item>
@@ -220,13 +316,156 @@ export default function SettingsPage() {
               </Form.Item>
 
               <Space>
-                <Button onClick={() => form.resetFields()}>Reset</Button>
+                <Button onClick={() => profileForm.resetFields()}>Reset</Button>
                 <Button type="primary" htmlType="submit">
                   Save
                 </Button>
               </Space>
             </Form>
           </Card>
+
+          {/* Admin: Invites */}
+          {isAdmin ? (
+            <Card
+              style={{ borderRadius: 16, marginTop: 12 }}
+              title={
+                <Space size={8}>
+                  <KeyOutlined />
+                  <span>Invites</span>
+                </Space>
+              }
+              extra={<Text type="secondary">{invites.length} total</Text>}
+            >
+              {!workspace?.orgId ? (
+                <Alert
+                  type="warning"
+                  showIcon
+                  message="No active workspace"
+                  description="Create an organization first."
+                />
+              ) : (
+                <>
+                  <Form
+                    form={inviteForm}
+                    layout="inline"
+                    onFinish={onCreateInvite}
+                    initialValues={{ role: "agent" }}
+                    style={{ marginBottom: 12 }}
+                  >
+                    <Form.Item
+                      name="email"
+                      rules={[
+                        { required: true, message: "Email is required" },
+                        { type: "email", message: "Invalid email" },
+                      ]}
+                    >
+                      <Input
+                        prefix={<MailOutlined />}
+                        placeholder="user@company.com"
+                        style={{ width: 260 }}
+                        disabled={creatingInvite}
+                      />
+                    </Form.Item>
+
+                    <Form.Item name="role">
+                      <Select
+                        style={{ width: 140 }}
+                        disabled={creatingInvite}
+                        options={[
+                          { value: "agent", label: "Agent" },
+                          { value: "viewer", label: "Viewer" },
+                        ]}
+                      />
+                    </Form.Item>
+
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      htmlType="submit"
+                      loading={creatingInvite}
+                    >
+                      Create invite
+                    </Button>
+                  </Form>
+
+                  <Table
+                    size="small"
+                    rowKey="id"
+                    loading={invitesLoading}
+                    dataSource={invites}
+                    pagination={false}
+                    columns={[
+                      {
+                        title: "Email",
+                        dataIndex: "email",
+                        render: (v) => <Text>{v}</Text>,
+                      },
+                      {
+                        title: "Role",
+                        dataIndex: "role",
+                        width: 110,
+                        render: (v) => <Tag>{v}</Tag>,
+                      },
+                      {
+                        title: "Status",
+                        width: 120,
+                        render: (_, r) => {
+                          const now = Date.now();
+const exp = r.expires_at ? new Date(r.expires_at).getTime() : null;
+                          if (r.accepted_at) return <Tag color="green">Accepted</Tag>;
+                          if (exp && exp < now) return <Tag>Expired</Tag>;
+                          return <Tag color="blue">Pending</Tag>;
+                        },
+                      },
+                      {
+                        title: "Created",
+                        width: 120,
+                        render: (_, r) => <Text type="secondary">{timeAgo(r.created_at)}</Text>,
+                      },
+                      {
+                        title: "",
+                        align: "right",
+                        width: 120,
+                        render: (_, r) => {
+                          const canAct = !r.accepted_at;
+                          return canAct ? (
+                            <Space>
+                              <Tooltip title="Copy invite link">
+                                <Button
+                                  size="small"
+                                  icon={<CopyOutlined />}
+                                  onClick={async () => {
+                                    const link = inviteLinkFromToken(r.token);
+                                    await navigator.clipboard.writeText(link);
+                                    message.success("Link copied");
+                                  }}
+                                />
+                              </Tooltip>
+
+                              <Tooltip title="Revoke invite">
+                                <Button
+                                  size="small"
+                                  danger
+                                  icon={<StopOutlined />}
+                                  onClick={() => onRevokeInvite(r.id)}
+                                />
+                              </Tooltip>
+                            </Space>
+                          ) : null;
+                        },
+                      },
+                    ]}
+                  />
+
+                  <div style={{ marginTop: 10 }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      Tip: send users the link, they will land on onboarding and join instantly.
+                    </Text>
+                  </div>
+                </>
+              )}
+            </Card>
+          ) : null}
         </Col>
 
         {/* Workspace */}
@@ -262,16 +501,16 @@ export default function SettingsPage() {
                 <Divider style={{ margin: "10px 0" }} />
 
                 <Space wrap>
-                  <Button onClick={() => message.info("Next: switch workspace UI")}>
+                  <Button onClick={() => message.info("Next: workspace switcher UI")}>
                     Switch workspace
                   </Button>
-                  <Button onClick={() => message.info("Next: invite members / permissions matrix")}>
-                    Manage access
+                  <Button onClick={() => message.info("Next: members table + role editor")}>
+                    Manage members
                   </Button>
                 </Space>
 
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  Next step (Portfolio): workspace switcher + permissions matrix (admin/agent/viewer).
+                  Next step (Portfolio): workspace switcher + members management (admin/agent/viewer).
                 </Text>
               </Space>
             ) : (
@@ -291,8 +530,8 @@ export default function SettingsPage() {
                 <Text strong>Security (RLS)</Text>
               </Space>
               <Text type="secondary" style={{ fontSize: 12 }}>
-                Your app is designed around Row Level Security: data is always scoped to org membership.
-                Next we can add a “Policies status” panel (checks + diagnostics).
+                Data is always scoped by org membership using Row Level Security (RLS).
+                Next we can add a “Policies status” / diagnostics panel.
               </Text>
 
               <Button onClick={() => message.info("Next: RLS diagnostics panel")}>
@@ -303,13 +542,12 @@ export default function SettingsPage() {
         </Col>
       </Row>
 
-      {/* Roadmap style card */}
+      {/* Roadmap */}
       <Card style={{ borderRadius: 16 }}>
         <Space orientation="vertical" size={6}>
           <Text strong>Next settings upgrades</Text>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            • Persist profile in <Text code>profiles</Text> (self update RLS){" "}
-            • Workspace switcher • Notification preferences • SLA settings per queue
+            • Persist profile in <Text code>profiles</Text> (self update RLS) • Workspace switcher • Notifications • SLA per queue
           </Text>
         </Space>
       </Card>

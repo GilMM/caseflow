@@ -340,3 +340,94 @@ export async function setOrgMemberActive({ orgId, userId, isActive }) {
     .eq("user_id", userId);
   if (error) throw error;
 }
+
+/** Admin only */
+export async function getJoinRequests(orgId) {
+  const { data, error } = await supabase
+    .from("org_join_requests")
+    .select("*")
+    .eq("org_id", orgId)
+    .eq("status", "pending")
+    .order("requested_at", { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function approveJoinRequest(request) {
+  // 1. Mark request approved
+  const { error: updErr } = await supabase
+    .from("org_join_requests")
+    .update({
+      status: "approved",
+      decided_at: new Date().toISOString(),
+    })
+    .eq("id", request.id);
+
+  if (updErr) throw updErr;
+
+  // 2. Add membership
+  const { error: memErr } = await supabase
+    .from("org_memberships")
+    .insert({
+      org_id: request.org_id,
+      user_id: request.requester_user_id,
+      role: "agent",
+      is_active: true,
+    });
+
+  if (memErr) throw memErr;
+}
+
+export async function rejectJoinRequest(requestId) {
+  const { error } = await supabase
+    .from("org_join_requests")
+    .update({
+      status: "rejected",
+      decided_at: new Date().toISOString(),
+    })
+    .eq("id", requestId);
+
+  if (error) throw error;
+}
+
+export async function createOrgInvite({ orgId, email, role = "agent" }) {
+  const { data, error } = await supabase.rpc("create_org_invite", {
+    p_org_id: orgId,
+    p_email: email,
+    p_role: role,
+    p_days_valid: 7,
+  });
+
+  if (error) throw error;
+
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row?.token) throw new Error("Invite RPC returned no token");
+  return row;
+}
+
+
+export async function getOrgInvites(orgId) {
+  const { data, error } = await supabase.rpc("get_org_invites", {
+    p_org_id: orgId,
+  });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function revokeOrgInvite(inviteId) {
+  const { error } = await supabase.rpc("revoke_org_invite", {
+    p_invite_id: inviteId,
+  });
+
+  if (error) throw error;
+}
+
+export async function getInviteByToken(token) {
+  const { data, error } = await supabase.rpc("get_invite_by_token", {
+    p_token: token,
+  });
+  if (error) throw error;
+  return (Array.isArray(data) ? data[0] : data) || null;
+}

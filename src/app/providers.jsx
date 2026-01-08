@@ -10,7 +10,7 @@ export function useThemeMode() {
 }
 
 export default function Providers({ children }) {
-  const [mode, setMode] = useState("light");
+  const [mode, setMode] = useState("dark");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
