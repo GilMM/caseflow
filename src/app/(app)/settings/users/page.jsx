@@ -57,7 +57,8 @@ function initials(nameOrEmail) {
   if (!s) return "?";
   const parts = s.split(/\s+/).filter(Boolean);
   const a = parts[0]?.[0] || "";
-  const b = parts.length > 1 ? parts[parts.length - 1]?.[0] : parts[0]?.[1] || "";
+  const b =
+    parts.length > 1 ? parts[parts.length - 1]?.[0] : parts[0]?.[1] || "";
   return (a + b).toUpperCase() || "?";
 }
 
@@ -134,7 +135,8 @@ function InvitesPanel({
         <Divider style={{ margin: "12px 0" }} />
 
         <Text type="secondary" style={{ fontSize: 12 }}>
-          Tip: the link is copied automatically. The invited user must be logged-in with the same email.
+          Tip: the link is copied automatically. The invited user must be
+          logged-in with the same email.
         </Text>
       </Card>
 
@@ -199,7 +201,8 @@ export default function UsersManagementPage() {
       setWorkspace(ws);
 
       if (ws?.role !== "admin") {
-        setError("Only admins can manage users.");
+        message.error("Admins only");
+        router.replace("/settings");
         return;
       }
 
@@ -349,7 +352,9 @@ export default function UsersManagementPage() {
               { value: "agent", label: "Agent" },
               { value: "viewer", label: "Viewer" },
             ]}
-            onChange={(role) => onChangeMemberRole(workspace.orgId, r.user_id, role)}
+            onChange={(role) =>
+              onChangeMemberRole(workspace.orgId, r.user_id, role)
+            }
           />
         ),
       },
@@ -361,7 +366,9 @@ export default function UsersManagementPage() {
           <Switch
             checked={!!v}
             disabled={membersUpdating || r.user_id === sessionUser?.id}
-            onChange={(checked) => onToggleMemberActive(workspace.orgId, r.user_id, checked)}
+            onChange={(checked) =>
+              onToggleMemberActive(workspace.orgId, r.user_id, checked)
+            }
           />
         ),
       },
@@ -435,7 +442,12 @@ export default function UsersManagementPage() {
                 disabled={disabled}
               >
                 <Tooltip title="Revoke invite">
-                  <Button size="small" danger icon={<StopOutlined />} disabled={disabled} />
+                  <Button
+                    size="small"
+                    danger
+                    icon={<StopOutlined />}
+                    disabled={disabled}
+                  />
                 </Tooltip>
               </Popconfirm>
             </Space>
@@ -459,7 +471,8 @@ export default function UsersManagementPage() {
       <Card
         style={{
           borderRadius: 16,
-          background: "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
+          background:
+            "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
         }}
       >
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
@@ -470,7 +483,9 @@ export default function UsersManagementPage() {
               </Title>
               <Space wrap size={8}>
                 <Tag icon={<TeamOutlined />}>Admin</Tag>
-                {workspace?.orgName ? <Tag color="blue">{workspace.orgName}</Tag> : null}
+                {workspace?.orgName ? (
+                  <Tag color="blue">{workspace.orgName}</Tag>
+                ) : null}
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   Manage members and invites for this organization
                 </Text>
@@ -480,11 +495,18 @@ export default function UsersManagementPage() {
 
           <Col>
             <Space wrap>
-              <Button icon={<ArrowLeftOutlined />} onClick={() => router.push("/settings")}>
+              <Button
+                icon={<ArrowLeftOutlined />}
+                onClick={() => router.push("/settings")}
+              >
                 Back to Settings
               </Button>
 
-              <Button icon={<ReloadOutlined />} loading={refreshing} onClick={() => boot({ silent: true })}>
+              <Button
+                icon={<ReloadOutlined />}
+                loading={refreshing}
+                onClick={() => boot({ silent: true })}
+              >
                 Refresh
               </Button>
             </Space>
@@ -493,7 +515,12 @@ export default function UsersManagementPage() {
       </Card>
 
       {error ? (
-        <Alert type="error" showIcon title="Cannot open user management" description={error} />
+        <Alert
+          type="error"
+          showIcon
+          title="Cannot open user management"
+          description={error}
+        />
       ) : null}
 
       {!isAdmin ? (

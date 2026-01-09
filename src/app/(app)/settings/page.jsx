@@ -51,7 +51,8 @@ function initials(nameOrEmail) {
   if (!s) return "?";
   const parts = s.split(/\s+/).filter(Boolean);
   const a = parts[0]?.[0] || "";
-  const b = parts.length > 1 ? parts[parts.length - 1]?.[0] : parts[0]?.[1] || "";
+  const b =
+    parts.length > 1 ? parts[parts.length - 1]?.[0] : parts[0]?.[1] || "";
   return (a + b).toUpperCase() || "?";
 }
 
@@ -298,7 +299,8 @@ export default function SettingsPage() {
         <Card
           style={{
             borderRadius: 16,
-            background: "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
+            background:
+              "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
           }}
         >
           <Row justify="space-between" align="middle" gutter={[12, 12]}>
@@ -317,7 +319,9 @@ export default function SettingsPage() {
                     <Tag>Workspace: none</Tag>
                   )}
 
-                  {workspace?.role ? <Tag color="geekblue">Role: {workspace.role}</Tag> : null}
+                  {workspace?.role ? (
+                    <Tag color="geekblue">Role: {workspace.role}</Tag>
+                  ) : null}
 
                   <Tag color="green" icon={<WifiOutlined />}>
                     Realtime enabled
@@ -352,7 +356,12 @@ export default function SettingsPage() {
 
         {error ? (
           <Card style={{ borderRadius: 16, borderColor: "#ffccc7" }}>
-            <Alert type="error" showIcon title="Couldn’t load settings" description={error} />
+            <Alert
+              type="error"
+              showIcon
+              title="Couldn’t load settings"
+              description={error}
+            />
           </Card>
         ) : null}
 
@@ -360,7 +369,10 @@ export default function SettingsPage() {
           {/* LEFT COLUMN */}
           <Col xs={24} lg={12}>
             {/* ✅ Profile moved to child component (Solution A) */}
-            <ProfileCard sessionUser={sessionUser} onSaveProfile={onSaveProfile} />
+            <ProfileCard
+              sessionUser={sessionUser}
+              onSaveProfile={onSaveProfile}
+            />
           </Col>
 
           {/* RIGHT COLUMN */}
@@ -376,7 +388,11 @@ export default function SettingsPage() {
               style={{ borderRadius: 16 }}
             >
               {workspace?.orgId ? (
-                <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+                <Space
+                  orientation="vertical"
+                  size={10}
+                  style={{ width: "100%" }}
+                >
                   <Space wrap size={8}>
                     <Tag color="blue">Org</Tag>
                     <Text strong>{workspace.orgName || workspace.orgId}</Text>
@@ -391,24 +407,51 @@ export default function SettingsPage() {
                     <Tag color="green" icon={<WifiOutlined />}>
                       Realtime
                     </Tag>
-                    <Text type="secondary">Subscribed to activity streams (postgres_changes)</Text>
+                    <Text type="secondary">
+                      Subscribed to activity streams (postgres_changes)
+                    </Text>
                   </Space>
 
                   <Divider style={{ margin: "10px 0" }} />
 
                   <Space wrap>
-                    <Button
-                      type="primary"
-                      icon={<TeamOutlined />}
-                      onClick={() => router.push("/settings/users")}
+                    <Tooltip
+                      title={
+                        isAdmin ? "Manage members & invites" : "Admins only"
+                      }
                     >
-                      Manage users
-                    </Button>
+                      <Button
+                        type="primary"
+                        icon={<TeamOutlined />}
+                        disabled={!isAdmin}
+                        onClick={() => {
+                          if (!isAdmin) return;
+                          router.push("/settings/users");
+                        }}
+                      >
+                        Manage users
+                      </Button>
+                    </Tooltip>
+
+                    {!isAdmin ? (
+                      <Button
+                        onClick={() =>
+                          message.info(
+                            "Only workspace admins can manage members and invitations."
+                          )
+                        }
+                      >
+                        Request access
+                      </Button>
+                    ) : null}
                   </Space>
 
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    User management moved to a dedicated page for a larger, cleaner table experience.
+                    {isAdmin
+                      ? "Manage members and invites for this workspace."
+                      : "This area is available to admins only."}
                   </Text>
+
                 </Space>
               ) : (
                 <Alert
@@ -422,7 +465,11 @@ export default function SettingsPage() {
 
             {/* Admin: Organization settings */}
             {isAdmin && workspace?.orgId ? (
-              <OrgSettingsCard workspace={workspace} savingOrg={savingOrg} onSaveOrg={onSaveOrg} />
+              <OrgSettingsCard
+                workspace={workspace}
+                savingOrg={savingOrg}
+                onSaveOrg={onSaveOrg}
+              />
             ) : null}
 
             {/* Security diagnostics */}
@@ -434,7 +481,8 @@ export default function SettingsPage() {
                 </Space>
 
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  Data is scoped by org membership using Row Level Security (RLS).
+                  Data is scoped by org membership using Row Level Security
+                  (RLS).
                 </Text>
 
                 {isAdmin && workspace?.orgId ? (
@@ -450,19 +498,33 @@ export default function SettingsPage() {
                     {diag ? (
                       <Space wrap>
                         <Tag
-                          icon={diag.is_member ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
+                          icon={
+                            diag.is_member ? (
+                              <CheckCircleOutlined />
+                            ) : (
+                              <CloseCircleOutlined />
+                            )
+                          }
                           color={diag.is_member ? "green" : "red"}
                         >
                           Member
                         </Tag>
                         <Tag
-                          icon={diag.is_admin ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
+                          icon={
+                            diag.is_admin ? (
+                              <CheckCircleOutlined />
+                            ) : (
+                              <CloseCircleOutlined />
+                            )
+                          }
                           color={diag.is_admin ? "green" : "red"}
                         >
                           Admin
                         </Tag>
 
-                        {diag.member_role ? <Tag color="blue">role: {diag.member_role}</Tag> : null}
+                        {diag.member_role ? (
+                          <Tag color="blue">role: {diag.member_role}</Tag>
+                        ) : null}
                         {typeof diag.active_members_count === "number" ? (
                           <Tag>active members: {diag.active_members_count}</Tag>
                         ) : null}
@@ -489,8 +551,8 @@ export default function SettingsPage() {
           <Space orientation="vertical" size={6}>
             <Text strong>Next settings upgrades</Text>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              • Persist profile in <Text code>profiles</Text> (self update RLS) • Workspace switcher • Notifications • SLA
-              per queue
+              • Persist profile in <Text code>profiles</Text> (self update RLS)
+              • Workspace switcher • Notifications • SLA per queue
             </Text>
           </Space>
         </Card>
