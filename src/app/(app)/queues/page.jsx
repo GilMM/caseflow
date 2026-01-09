@@ -606,7 +606,7 @@ export default function QueuesPage() {
         okText={mode === "create" ? "Create" : "Save"}
         onOk={() => form.submit()}
         confirmLoading={saving}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={onSave}>
           <Form.Item

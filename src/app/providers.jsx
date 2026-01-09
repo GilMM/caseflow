@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { App as AntdApp, ConfigProvider, theme as antdTheme } from "antd";
 
+
 const ThemeCtx = createContext(null);
 
 export function useThemeMode() {
@@ -40,6 +41,8 @@ export default function Providers({ children }) {
 
   if (!mounted) return null;
 
+
+  
   return (
     <ThemeCtx.Provider value={value}>
       <ConfigProvider theme={antdThemeConfig}>

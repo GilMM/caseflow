@@ -574,7 +574,7 @@ export default function ContactsPage() {
         okText={mode === "create" ? "Create" : "Save"}
         onOk={() => form.submit()}
         confirmLoading={saving}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={onSave}>
           <Row gutter={[12, 12]}>

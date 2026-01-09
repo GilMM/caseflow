@@ -431,3 +431,48 @@ export async function getInviteByToken(token) {
   if (error) throw error;
   return (Array.isArray(data) ? data[0] : data) || null;
 }
+
+
+export async function listOrgMembers(orgId) {
+  const { data, error } = await supabase.rpc("list_org_members", {
+    p_org_id: orgId,
+  });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function setMemberRole({ orgId, userId, role }) {
+  const { error } = await supabase.rpc("set_member_role", {
+    p_org_id: orgId,
+    p_user_id: userId,
+    p_role: role,
+  });
+  if (error) throw error;
+}
+
+export async function setMemberActive({ orgId, userId, isActive }) {
+  const { error } = await supabase.rpc("set_member_active", {
+    p_org_id: orgId,
+    p_user_id: userId,
+    p_is_active: isActive,
+  });
+  if (error) throw error;
+}
+
+export async function updateOrgSettings({ orgId, name, logoUrl = null }) {
+  const { error } = await supabase.rpc("update_org_settings", {
+    p_org_id: orgId,
+    p_name: name,
+    p_logo_url: logoUrl,
+  });
+  if (error) throw error;
+}
+
+export async function diagnosticsOrgAccess(orgId) {
+  const { data, error } = await supabase.rpc("diagnostics_org_access", {
+    p_org_id: orgId,
+  });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return row || null;
+}
