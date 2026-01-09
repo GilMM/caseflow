@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { supabase } from "@/lib/supabase/client";
 import { getActiveWorkspace } from "@/lib/db";
@@ -56,6 +56,7 @@ function shortId(id) {
 }
 
 function timeAgo(iso) {
+  if (!iso) return "—";
   const t = new Date(iso).getTime();
   const now = Date.now();
   const sec = Math.max(1, Math.floor((now - t) / 1000));
@@ -70,8 +71,13 @@ function timeAgo(iso) {
 
 export default function CasesPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const [workspace, setWorkspace] = useState(null);
+
+  const [queues, setQueues] = useState([]);
+  const [queueId, setQueueId] = useState(searchParams.get("queue") || "all");
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -85,6 +91,12 @@ export default function CasesPage() {
 
   const lastToastRef = useRef(0);
 
+  // keep state in sync with URL (?queue=...)
+  useEffect(() => {
+    setQueueId(searchParams.get("queue") || "all");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   async function loadAll({ silent = false } = {}) {
     try {
       setError("");
@@ -95,18 +107,35 @@ export default function CasesPage() {
       setWorkspace(ws);
 
       if (!ws?.orgId) {
+        setQueues([]);
         setRows([]);
         return;
       }
 
-      // NOTE: כרגע query ישיר. אם תרצה “נכון” לפי db.js—נעביר לפונקציה ייעודית.
-      const { data, error } = await supabase
+      // 1) load queues for filter dropdown
+      const { data: qData, error: qErr } = await supabase
+        .from("queues")
+        .select("id,name,is_default")
+        .eq("org_id", ws.orgId)
+        .order("is_default", { ascending: false })
+        .order("name", { ascending: true });
+
+      if (qErr) throw qErr;
+      setQueues(qData || []);
+
+      // 2) load cases (optionally filtered by queue_id)
+      let query = supabase
         .from("cases")
-        .select("id,title,status,priority,created_at,assigned_to")
+        .select("id,title,status,priority,created_at,assigned_to,queue_id")
         .eq("org_id", ws.orgId)
         .order("created_at", { ascending: false })
         .limit(200);
 
+      if (queueId && queueId !== "all") {
+        query = query.eq("queue_id", queueId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
 
       setRows(data || []);
@@ -125,10 +154,10 @@ export default function CasesPage() {
     }
   }
 
+  // reload when queueId changes (URL or select) so list stays synced
   useEffect(() => {
-    loadAll();
+    loadAll({ silent: false });
 
-    // optional realtime: reload when a case activity is added (keeps list fresh)
     const channel = supabase
       .channel("cases-live")
       .on(
@@ -140,7 +169,7 @@ export default function CasesPage() {
 
     return () => supabase.removeChannel(channel);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [queueId]);
 
   const filtered = useMemo(() => {
     const qq = q.trim().toLowerCase();
@@ -150,14 +179,29 @@ export default function CasesPage() {
       if (!qq) return true;
       return (
         (c.title || "").toLowerCase().includes(qq) ||
-        String(c.id || "").toLowerCase().includes(qq)
+        String(c.id || "")
+          .toLowerCase()
+          .includes(qq)
       );
     });
   }, [rows, q, status, priority]);
 
   const total = rows.length;
   const openCount = rows.filter((r) => r.status !== "closed").length;
-  const urgentOpen = rows.filter((r) => r.status !== "closed" && r.priority === "urgent").length;
+  const urgentOpen = rows.filter(
+    (r) => r.status !== "closed" && r.priority === "urgent"
+  ).length;
+
+  function setQueueFilter(nextQueueId) {
+    setQueueId(nextQueueId);
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (!nextQueueId || nextQueueId === "all") params.delete("queue");
+    else params.set("queue", nextQueueId);
+
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname);
+  }
 
   const headerRight = (
     <Space wrap>
@@ -195,7 +239,8 @@ export default function CasesPage() {
       <Card
         style={{
           borderRadius: 16,
-          background: "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
+          background:
+            "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
         }}
       >
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
@@ -210,9 +255,10 @@ export default function CasesPage() {
                 ) : (
                   <Tag>Workspace: none</Tag>
                 )}
-
                 <Tag icon={<InboxOutlined />}>List</Tag>
-
+                {queueId !== "all" ? (
+                  <Tag color="gold">Queue filtered</Tag>
+                ) : null}
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   {filtered.length} shown • {total} total
                 </Text>
@@ -244,7 +290,9 @@ export default function CasesPage() {
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     Open
                   </Text>
-                  <Text style={{ fontSize: 22, fontWeight: 800 }}>{openCount}</Text>
+                  <Text style={{ fontSize: 22, fontWeight: 800 }}>
+                    {openCount}
+                  </Text>
                 </Space>
               </Card>
             </Col>
@@ -254,7 +302,9 @@ export default function CasesPage() {
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     Urgent open
                   </Text>
-                  <Text style={{ fontSize: 22, fontWeight: 800 }}>{urgentOpen}</Text>
+                  <Text style={{ fontSize: 22, fontWeight: 800 }}>
+                    {urgentOpen}
+                  </Text>
                 </Space>
               </Card>
             </Col>
@@ -264,7 +314,7 @@ export default function CasesPage() {
         <Col xs={24} lg={14}>
           <Card style={{ borderRadius: 16 }}>
             <Row gutter={[10, 10]} align="middle">
-              <Col xs={24} md={10}>
+              <Col xs={24} md={8}>
                 <Input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
@@ -274,7 +324,22 @@ export default function CasesPage() {
                 />
               </Col>
 
-              <Col xs={12} md={7}>
+              <Col xs={12} md={5}>
+                <Select
+                  value={queueId}
+                  onChange={setQueueFilter}
+                  style={{ width: "100%" }}
+                  options={[
+                    { value: "all", label: "All queues" },
+                    ...(queues || []).map((qq) => ({
+                      value: qq.id,
+                      label: qq.is_default ? `${qq.name} (Default)` : qq.name,
+                    })),
+                  ]}
+                />
+              </Col>
+
+              <Col xs={12} md={5}>
                 <Select
                   value={status}
                   onChange={setStatus}
@@ -290,7 +355,7 @@ export default function CasesPage() {
                 />
               </Col>
 
-              <Col xs={12} md={7}>
+              <Col xs={12} md={5}>
                 <Select
                   value={priority}
                   onChange={setPriority}
@@ -307,7 +372,14 @@ export default function CasesPage() {
 
               <Col xs={24}>
                 <Space wrap size={8}>
-                  <Button onClick={() => { setQ(""); setStatus("all"); setPriority("all"); }}>
+                  <Button
+                    onClick={() => {
+                      setQ("");
+                      setStatus("all");
+                      setPriority("all");
+                      setQueueFilter("all"); // also clears URL
+                    }}
+                  >
                     Clear filters
                   </Button>
                   <Text type="secondary" style={{ fontSize: 12 }}>
@@ -360,13 +432,19 @@ export default function CasesPage() {
               >
                 <Row justify="space-between" align="top" gutter={[10, 10]}>
                   <Col flex="auto">
-                    <Space orientation="vertical" size={4} style={{ width: "100%" }}>
+                    <Space
+                      orientation="vertical"
+                      size={4}
+                      style={{ width: "100%" }}
+                    >
                       <Space wrap size={8}>
                         <Text strong style={{ fontSize: 14 }}>
                           {c.title || "(untitled)"}
                         </Text>
                         <Tag color={statusColor(c.status)}>{c.status}</Tag>
-                        <Tag color={priorityColor(c.priority)}>{c.priority}</Tag>
+                        <Tag color={priorityColor(c.priority)}>
+                          {c.priority}
+                        </Tag>
                       </Space>
 
                       <Space wrap size={10}>
@@ -390,11 +468,16 @@ export default function CasesPage() {
 
                 <Divider style={{ margin: "10px 0" }} />
 
-                <Space style={{ justifyContent: "space-between", width: "100%" }}>
+                <Space
+                  style={{ justifyContent: "space-between", width: "100%" }}
+                >
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     Open in details
                   </Text>
-                  <Link href={`/cases/${c.id}`} onClick={(e) => e.stopPropagation()}>
+                  <Link
+                    href={`/cases/${c.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     Open →
                   </Link>
                 </Space>

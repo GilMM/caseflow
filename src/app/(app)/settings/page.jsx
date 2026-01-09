@@ -55,14 +55,142 @@ function initials(nameOrEmail) {
   return (a + b).toUpperCase() || "?";
 }
 
+/* ---------------- child cards (Solution A) ---------------- */
+
+function ProfileCard({ sessionUser, onSaveProfile }) {
+  const [profileForm] = Form.useForm();
+
+  // MVP prefill (placeholder)
+  useEffect(() => {
+    profileForm.setFieldsValue({
+      full_name: "",
+      avatar_url: "",
+    });
+  }, [profileForm]);
+
+  // ✅ userLabel computed INSIDE component that actually renders the <Form>
+  const userLabel = useMemo(() => {
+    const name = profileForm.getFieldValue("full_name");
+    const email = sessionUser?.email;
+    return name || email || "Account";
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionUser]);
+
+  const avatarUrl = profileForm.getFieldValue("avatar_url") || undefined;
+
+  return (
+    <Card
+      title={
+        <Space size={8}>
+          <UserOutlined />
+          <span>Profile</span>
+        </Space>
+      }
+      style={{ borderRadius: 16 }}
+      extra={
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          {sessionUser?.email || ""}
+        </Text>
+      }
+    >
+      <Row gutter={[12, 12]} align="middle">
+        <Col>
+          <Avatar size={56} src={avatarUrl}>
+            {initials(userLabel)}
+          </Avatar>
+        </Col>
+        <Col flex="auto">
+          <Space orientation="vertical" size={0} style={{ width: "100%" }}>
+            <Text strong style={{ fontSize: 14 }}>
+              {userLabel}
+            </Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Demo profile section (next: persist in profiles table).
+            </Text>
+          </Space>
+        </Col>
+      </Row>
+
+      <Divider style={{ margin: "12px 0" }} />
+
+      <Form form={profileForm} layout="vertical" onFinish={onSaveProfile}>
+        <Form.Item label="Display name" name="full_name">
+          <Input placeholder="e.g., Gil Meshou" />
+        </Form.Item>
+
+        <Form.Item label="Avatar URL" name="avatar_url">
+          <Input placeholder="https://…" />
+        </Form.Item>
+
+        <Space>
+          <Button onClick={() => profileForm.resetFields()}>Reset</Button>
+          <Button type="primary" htmlType="submit">
+            Save
+          </Button>
+        </Space>
+      </Form>
+    </Card>
+  );
+}
+
+function OrgSettingsCard({ workspace, savingOrg, onSaveOrg }) {
+  const [orgForm] = Form.useForm();
+
+  // Prefill כשיש workspace
+  useEffect(() => {
+    if (!workspace?.orgId) return;
+    orgForm.setFieldsValue({
+      name: workspace?.orgName || "",
+      logo_url: "",
+    });
+  }, [orgForm, workspace?.orgId, workspace?.orgName]);
+
+  return (
+    <Card
+      style={{ borderRadius: 16, marginTop: 12 }}
+      title={
+        <Space size={8}>
+          <EditOutlined />
+          <span>Organization</span>
+        </Space>
+      }
+      extra={<Tag color="blue">Admin</Tag>}
+    >
+      <Form form={orgForm} layout="vertical" onFinish={onSaveOrg}>
+        <Form.Item
+          name="name"
+          label="Organization name"
+          rules={[
+            { required: true, message: "Name is required" },
+            { min: 2, message: "Too short" },
+          ]}
+        >
+          <Input placeholder="e.g., Acme Support" />
+        </Form.Item>
+
+        <Form.Item name="logo_url" label="Logo URL (optional)">
+          <Input placeholder="https://…" />
+        </Form.Item>
+
+        <Button type="primary" htmlType="submit" loading={savingOrg}>
+          Save organization
+        </Button>
+
+        <div style={{ marginTop: 10 }}>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            Next: upload logo to Supabase Storage (instead of URL).
+          </Text>
+        </div>
+      </Form>
+    </Card>
+  );
+}
+
 /* ---------------- page ---------------- */
 
 export default function SettingsPage() {
   const router = useRouter();
   const { message } = App.useApp();
-
-  const [profileForm] = Form.useForm();
-  const [orgForm] = Form.useForm();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -79,15 +207,6 @@ export default function SettingsPage() {
   // Diagnostics
   const [diag, setDiag] = useState(null);
   const [diagLoading, setDiagLoading] = useState(false);
-
-  const userLabel = useMemo(() => {
-    const name = profileForm.getFieldValue("full_name");
-    const email = sessionUser?.email;
-    return name || email || "Account";
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionUser]);
-
-  /* ---------------- data loading ---------------- */
 
   async function loadAll({ silent = false } = {}) {
     try {
@@ -108,20 +227,6 @@ export default function SettingsPage() {
 
       const ws = await getActiveWorkspace();
       setWorkspace(ws);
-
-      // MVP profile (placeholder)
-      profileForm.setFieldsValue({
-        full_name: "",
-        avatar_url: "",
-      });
-
-      // prefill org form
-      if (ws?.orgId) {
-        orgForm.setFieldsValue({
-          name: ws?.orgName || "",
-          logo_url: "",
-        });
-      }
     } catch (e) {
       const msg = e?.message || "Failed to load settings";
       setError(msg);
@@ -146,8 +251,6 @@ export default function SettingsPage() {
     }
   }
 
-  /* ---------------- effects ---------------- */
-
   useEffect(() => {
     loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -158,8 +261,6 @@ export default function SettingsPage() {
     runDiagnostics(workspace.orgId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, workspace?.orgId]);
-
-  /* ---------------- actions ---------------- */
 
   async function logout() {
     await supabase.auth.signOut({ scope: "local" });
@@ -190,313 +291,210 @@ export default function SettingsPage() {
     }
   }
 
-  /* ---------------- early render ---------------- */
-
-  if (loading) {
-    return (
-      <div style={{ height: "60vh", display: "grid", placeItems: "center" }}>
-        <Spin size="large" />
-      </div>
-    );
-  }
-
-  /* ---------------- UI ---------------- */
-
   return (
-    <Space orientation="vertical" size={14} style={{ width: "100%" }}>
-      {/* Header */}
-      <Card
-        style={{
-          borderRadius: 16,
-          background: "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
-        }}
-      >
-        <Row justify="space-between" align="middle" gutter={[12, 12]}>
-          <Col>
-            <Space orientation="vertical" size={2}>
-              <Title level={3} style={{ margin: 0 }}>
-                Settings
-              </Title>
-
-              <Space wrap size={8}>
-                <Tag icon={<SettingOutlined />}>Configuration</Tag>
-
-                {workspace?.orgName ? (
-                  <Tag color="blue">Workspace: {workspace.orgName}</Tag>
-                ) : (
-                  <Tag>Workspace: none</Tag>
-                )}
-
-                {workspace?.role ? <Tag color="geekblue">Role: {workspace.role}</Tag> : null}
-
-                <Tag color="green" icon={<WifiOutlined />}>
-                  Realtime enabled
-                </Tag>
-
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  Account & workspace preferences
-                </Text>
-              </Space>
-            </Space>
-          </Col>
-
-          <Col>
-            <Space wrap>
-              <Tooltip title="Refresh settings">
-                <Button
-                  icon={<ReloadOutlined />}
-                  loading={refreshing}
-                  onClick={() => loadAll({ silent: true })}
-                >
-                  Refresh
-                </Button>
-              </Tooltip>
-
-              <Button danger icon={<LogoutOutlined />} onClick={logout}>
-                Logout
-              </Button>
-            </Space>
-          </Col>
-        </Row>
-      </Card>
-
-      {error ? (
-        <Card style={{ borderRadius: 16, borderColor: "#ffccc7" }}>
-          <Alert type="error" showIcon message="Couldn’t load settings" description={error} />
-        </Card>
-      ) : null}
-
-      <Row gutter={[12, 12]}>
-        {/* LEFT COLUMN */}
-        <Col xs={24} lg={12}>
-          {/* Profile */}
-          <Card
-            title={
-              <Space size={8}>
-                <UserOutlined />
-                <span>Profile</span>
-              </Space>
-            }
-            style={{ borderRadius: 16 }}
-            extra={
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                {sessionUser?.email || ""}
-              </Text>
-            }
-          >
-            <Row gutter={[12, 12]} align="middle">
-              <Col>
-                <Avatar size={56} src={profileForm.getFieldValue("avatar_url") || undefined}>
-                  {initials(userLabel)}
-                </Avatar>
-              </Col>
-              <Col flex="auto">
-                <Space orientation="vertical" size={0} style={{ width: "100%" }}>
-                  <Text strong style={{ fontSize: 14 }}>
-                    {userLabel}
-                  </Text>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Demo profile section (next: persist in profiles table).
-                  </Text>
-                </Space>
-              </Col>
-            </Row>
-
-            <Divider style={{ margin: "12px 0" }} />
-
-            <Form form={profileForm} layout="vertical" onFinish={onSaveProfile}>
-              <Form.Item label="Display name" name="full_name">
-                <Input placeholder="e.g., Gil Meshou" />
-              </Form.Item>
-
-              <Form.Item label="Avatar URL" name="avatar_url">
-                <Input placeholder="https://…" />
-              </Form.Item>
-
-              <Space>
-                <Button onClick={() => profileForm.resetFields()}>Reset</Button>
-                <Button type="primary" htmlType="submit">
-                  Save
-                </Button>
-              </Space>
-            </Form>
-          </Card>
-        </Col>
-
-        {/* RIGHT COLUMN */}
-        <Col xs={24} lg={12}>
-          {/* Workspace */}
-          <Card
-            title={
-              <Space size={8}>
-                <AppstoreOutlined />
-                <span>Workspace</span>
-              </Space>
-            }
-            style={{ borderRadius: 16 }}
-          >
-            {workspace?.orgId ? (
-              <Space orientation="vertical" size={10} style={{ width: "100%" }}>
-                <Space wrap size={8}>
-                  <Tag color="blue">Org</Tag>
-                  <Text strong>{workspace.orgName || workspace.orgId}</Text>
-                </Space>
+    <Spin spinning={loading} size="large">
+      <Space orientation="vertical" size={14} style={{ width: "100%" }}>
+        {/* Header */}
+        <Card
+          style={{
+            borderRadius: 16,
+            background: "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
+          }}
+        >
+          <Row justify="space-between" align="middle" gutter={[12, 12]}>
+            <Col>
+              <Space orientation="vertical" size={2}>
+                <Title level={3} style={{ margin: 0 }}>
+                  Settings
+                </Title>
 
                 <Space wrap size={8}>
-                  <Tag color="geekblue">Role</Tag>
-                  <Text>{workspace.role || "—"}</Text>
-                </Space>
+                  <Tag icon={<SettingOutlined />}>Configuration</Tag>
 
-                <Space wrap size={8}>
+                  {workspace?.orgName ? (
+                    <Tag color="blue">Workspace: {workspace.orgName}</Tag>
+                  ) : (
+                    <Tag>Workspace: none</Tag>
+                  )}
+
+                  {workspace?.role ? <Tag color="geekblue">Role: {workspace.role}</Tag> : null}
+
                   <Tag color="green" icon={<WifiOutlined />}>
-                    Realtime
+                    Realtime enabled
                   </Tag>
-                  <Text type="secondary">Subscribed to activity streams (postgres_changes)</Text>
-                </Space>
 
-                <Divider style={{ margin: "10px 0" }} />
-
-                <Space wrap>
-                  <Button
-                    type="primary"
-                    icon={<TeamOutlined />}
-                    onClick={() => router.push("/settings/users")}
-                  >
-                    Manage users
-                  </Button>
-                </Space>
-
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  User management moved to a dedicated page for a larger, cleaner table experience.
-                </Text>
-              </Space>
-            ) : (
-              <Alert
-                type="warning"
-                showIcon
-                message="No active workspace"
-                description="Create an organization + membership first. Then settings will show org context."
-              />
-            )}
-          </Card>
-
-          {/* Admin: Organization settings */}
-          {isAdmin && workspace?.orgId ? (
-            <Card
-              style={{ borderRadius: 16, marginTop: 12 }}
-              title={
-                <Space size={8}>
-                  <EditOutlined />
-                  <span>Organization</span>
-                </Space>
-              }
-              extra={<Tag color="blue">Admin</Tag>}
-            >
-              <Form
-                form={orgForm}
-                layout="vertical"
-                initialValues={{
-                  name: workspace?.orgName || "",
-                  logo_url: "",
-                }}
-                onFinish={onSaveOrg}
-              >
-                <Form.Item
-                  name="name"
-                  label="Organization name"
-                  rules={[
-                    { required: true, message: "Name is required" },
-                    { min: 2, message: "Too short" },
-                  ]}
-                >
-                  <Input placeholder="e.g., Acme Support" />
-                </Form.Item>
-
-                <Form.Item name="logo_url" label="Logo URL (optional)">
-                  <Input placeholder="https://…" />
-                </Form.Item>
-
-                <Button type="primary" htmlType="submit" loading={savingOrg}>
-                  Save organization
-                </Button>
-
-                <div style={{ marginTop: 10 }}>
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    Next: upload logo to Supabase Storage (instead of URL).
+                    Account & workspace preferences
                   </Text>
-                </div>
-              </Form>
-            </Card>
-          ) : null}
-
-          {/* Security diagnostics */}
-          <Card style={{ borderRadius: 16, marginTop: 12 }}>
-            <Space orientation="vertical" size={8} style={{ width: "100%" }}>
-              <Space size={8}>
-                <SafetyOutlined />
-                <Text strong>Security (RLS)</Text>
+                </Space>
               </Space>
+            </Col>
 
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                Data is scoped by org membership using Row Level Security (RLS).
-              </Text>
-
-              {isAdmin && workspace?.orgId ? (
-                <Space wrap>
+            <Col>
+              <Space wrap>
+                <Tooltip title="Refresh settings">
                   <Button
                     icon={<ReloadOutlined />}
-                    loading={diagLoading}
-                    onClick={() => runDiagnostics(workspace.orgId)}
+                    loading={refreshing}
+                    onClick={() => loadAll({ silent: true })}
                   >
-                    Run diagnostics
+                    Refresh
                   </Button>
+                </Tooltip>
 
-                  {diag ? (
-                    <Space wrap>
-                      <Tag
-                        icon={diag.is_member ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
-                        color={diag.is_member ? "green" : "red"}
-                      >
-                        Member
-                      </Tag>
-                      <Tag
-                        icon={diag.is_admin ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
-                        color={diag.is_admin ? "green" : "red"}
-                      >
-                        Admin
-                      </Tag>
+                <Button danger icon={<LogoutOutlined />} onClick={logout}>
+                  Logout
+                </Button>
+              </Space>
+            </Col>
+          </Row>
+        </Card>
 
-                      {diag.member_role ? <Tag color="blue">role: {diag.member_role}</Tag> : null}
-                      {typeof diag.active_members_count === "number" ? (
-                        <Tag>active members: {diag.active_members_count}</Tag>
-                      ) : null}
-                    </Space>
-                  ) : (
-                    <Tag>Not loaded</Tag>
-                  )}
+        {error ? (
+          <Card style={{ borderRadius: 16, borderColor: "#ffccc7" }}>
+            <Alert type="error" showIcon title="Couldn’t load settings" description={error} />
+          </Card>
+        ) : null}
+
+        <Row gutter={[12, 12]}>
+          {/* LEFT COLUMN */}
+          <Col xs={24} lg={12}>
+            {/* ✅ Profile moved to child component (Solution A) */}
+            <ProfileCard sessionUser={sessionUser} onSaveProfile={onSaveProfile} />
+          </Col>
+
+          {/* RIGHT COLUMN */}
+          <Col xs={24} lg={12}>
+            {/* Workspace */}
+            <Card
+              title={
+                <Space size={8}>
+                  <AppstoreOutlined />
+                  <span>Workspace</span>
+                </Space>
+              }
+              style={{ borderRadius: 16 }}
+            >
+              {workspace?.orgId ? (
+                <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+                  <Space wrap size={8}>
+                    <Tag color="blue">Org</Tag>
+                    <Text strong>{workspace.orgName || workspace.orgId}</Text>
+                  </Space>
+
+                  <Space wrap size={8}>
+                    <Tag color="geekblue">Role</Tag>
+                    <Text>{workspace.role || "—"}</Text>
+                  </Space>
+
+                  <Space wrap size={8}>
+                    <Tag color="green" icon={<WifiOutlined />}>
+                      Realtime
+                    </Tag>
+                    <Text type="secondary">Subscribed to activity streams (postgres_changes)</Text>
+                  </Space>
+
+                  <Divider style={{ margin: "10px 0" }} />
+
+                  <Space wrap>
+                    <Button
+                      type="primary"
+                      icon={<TeamOutlined />}
+                      onClick={() => router.push("/settings/users")}
+                    >
+                      Manage users
+                    </Button>
+                  </Space>
+
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    User management moved to a dedicated page for a larger, cleaner table experience.
+                  </Text>
                 </Space>
               ) : (
                 <Alert
-                  type="info"
+                  type="warning"
                   showIcon
-                  message="Diagnostics available for admins"
-                  description="Create an organization and make sure you are an admin."
+                  title="No active workspace"
+                  description="Create an organization + membership first. Then settings will show org context."
                 />
               )}
-            </Space>
-          </Card>
-        </Col>
-      </Row>
+            </Card>
 
-      {/* Roadmap */}
-      <Card style={{ borderRadius: 16 }}>
-        <Space orientation="vertical" size={6}>
-          <Text strong>Next settings upgrades</Text>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            • Persist profile in <Text code>profiles</Text> (self update RLS) • Workspace switcher • Notifications • SLA per queue
-          </Text>
-        </Space>
-      </Card>
-    </Space>
+            {/* Admin: Organization settings */}
+            {isAdmin && workspace?.orgId ? (
+              <OrgSettingsCard workspace={workspace} savingOrg={savingOrg} onSaveOrg={onSaveOrg} />
+            ) : null}
+
+            {/* Security diagnostics */}
+            <Card style={{ borderRadius: 16, marginTop: 12 }}>
+              <Space orientation="vertical" size={8} style={{ width: "100%" }}>
+                <Space size={8}>
+                  <SafetyOutlined />
+                  <Text strong>Security (RLS)</Text>
+                </Space>
+
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  Data is scoped by org membership using Row Level Security (RLS).
+                </Text>
+
+                {isAdmin && workspace?.orgId ? (
+                  <Space wrap>
+                    <Button
+                      icon={<ReloadOutlined />}
+                      loading={diagLoading}
+                      onClick={() => runDiagnostics(workspace.orgId)}
+                    >
+                      Run diagnostics
+                    </Button>
+
+                    {diag ? (
+                      <Space wrap>
+                        <Tag
+                          icon={diag.is_member ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
+                          color={diag.is_member ? "green" : "red"}
+                        >
+                          Member
+                        </Tag>
+                        <Tag
+                          icon={diag.is_admin ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
+                          color={diag.is_admin ? "green" : "red"}
+                        >
+                          Admin
+                        </Tag>
+
+                        {diag.member_role ? <Tag color="blue">role: {diag.member_role}</Tag> : null}
+                        {typeof diag.active_members_count === "number" ? (
+                          <Tag>active members: {diag.active_members_count}</Tag>
+                        ) : null}
+                      </Space>
+                    ) : (
+                      <Tag>Not loaded</Tag>
+                    )}
+                  </Space>
+                ) : (
+                  <Alert
+                    type="info"
+                    showIcon
+                    title="Diagnostics available for admins"
+                    description="Create an organization and make sure you are an admin."
+                  />
+                )}
+              </Space>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Roadmap */}
+        <Card style={{ borderRadius: 16 }}>
+          <Space orientation="vertical" size={6}>
+            <Text strong>Next settings upgrades</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              • Persist profile in <Text code>profiles</Text> (self update RLS) • Workspace switcher • Notifications • SLA
+              per queue
+            </Text>
+          </Space>
+        </Card>
+      </Space>
+    </Spin>
   );
 }

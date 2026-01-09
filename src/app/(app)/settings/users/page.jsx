@@ -50,13 +50,14 @@ import {
 
 const { Title, Text } = Typography;
 
+/* ---------------- helpers ---------------- */
+
 function initials(nameOrEmail) {
   const s = (nameOrEmail || "").trim();
   if (!s) return "?";
   const parts = s.split(/\s+/).filter(Boolean);
   const a = parts[0]?.[0] || "";
-  const b =
-    parts.length > 1 ? parts[parts.length - 1]?.[0] : parts[0]?.[1] || "";
+  const b = parts.length > 1 ? parts[parts.length - 1]?.[0] : parts[0]?.[1] || "";
   return (a + b).toUpperCase() || "?";
 }
 
@@ -74,9 +75,88 @@ function timeAgo(iso) {
   return `${d}d ago`;
 }
 
+/* ---------------- Invites Panel (fix for useForm warning) ---------------- */
+
+function InvitesPanel({
+  workspace,
+  invites,
+  invitesLoading,
+  invitesColumns,
+  onCreateInvite,
+}) {
+  const [inviteForm] = Form.useForm();
+
+  return (
+    <Space orientation="vertical" size={12} style={{ width: "100%" }}>
+      <Card
+        size="small"
+        style={{
+          borderRadius: 12,
+          background: "rgba(0,0,0,0.02)",
+        }}
+      >
+        <Form
+          form={inviteForm}
+          layout="inline"
+          onFinish={(values) => onCreateInvite(values, inviteForm)}
+          initialValues={{ role: "agent" }}
+        >
+          <Form.Item
+            name="email"
+            rules={[
+              { required: true, message: "Email is required" },
+              { type: "email", message: "Invalid email" },
+            ]}
+          >
+            <Input
+              prefix={<MailOutlined />}
+              placeholder="user@company.com"
+              style={{ width: 280 }}
+            />
+          </Form.Item>
+
+          <Form.Item name="role">
+            <Select
+              style={{ width: 160 }}
+              options={[
+                { value: "agent", label: "Agent" },
+                { value: "viewer", label: "Viewer" },
+                { value: "admin", label: "Admin" },
+              ]}
+            />
+          </Form.Item>
+
+          <Button type="primary" icon={<PlusOutlined />} htmlType="submit">
+            Create invite
+          </Button>
+        </Form>
+
+        <Divider style={{ margin: "12px 0" }} />
+
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          Tip: the link is copied automatically. The invited user must be logged-in with the same email.
+        </Text>
+      </Card>
+
+      <Table
+        rowKey="id"
+        loading={invitesLoading}
+        dataSource={invites}
+        columns={invitesColumns}
+        pagination={{ pageSize: 10, showSizeChanger: true }}
+        scroll={{ x: 950 }}
+      />
+    </Space>
+  );
+}
+
+/* ---------------- page ---------------- */
+
 export default function UsersManagementPage() {
   const router = useRouter();
-  const { message, modal } = App.useApp();
+  const { message } = App.useApp();
+
+  const [activeTab, setActiveTab] = useState("members");
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -96,9 +176,6 @@ export default function UsersManagementPage() {
   const [invites, setInvites] = useState([]);
   const [invitesLoading, setInvitesLoading] = useState(false);
   const [creatingInvite, setCreatingInvite] = useState(false);
-  const [inviteForm] = Form.useForm();
-
-  const userEmail = sessionUser?.email || "";
 
   async function boot({ silent = false } = {}) {
     try {
@@ -126,7 +203,6 @@ export default function UsersManagementPage() {
         return;
       }
 
-      // Load data
       await Promise.all([loadMembers(ws.orgId), loadInvites(ws.orgId)]);
     } catch (e) {
       setError(e?.message || "Failed to load users management");
@@ -173,7 +249,7 @@ export default function UsersManagementPage() {
     return `${window.location.origin}/onboarding?invite=${token}`;
   }
 
-  async function onCreateInvite(values) {
+  async function onCreateInvite(values, formInstance) {
     if (!workspace?.orgId) return;
 
     try {
@@ -187,7 +263,6 @@ export default function UsersManagementPage() {
 
       const link = inviteLinkFromToken(invite.token);
 
-      // copy link (יותר שימושי מהטוקן)
       try {
         await navigator.clipboard.writeText(link);
         message.success("Invite created & link copied");
@@ -196,7 +271,7 @@ export default function UsersManagementPage() {
         message.info("Copy from table (Copy button)");
       }
 
-      inviteForm.resetFields();
+      formInstance?.resetFields?.();
       await loadInvites(workspace.orgId);
     } catch (e) {
       message.error(e?.message || "Failed to create invite");
@@ -251,7 +326,7 @@ export default function UsersManagementPage() {
             <Avatar src={r.avatar_url || undefined}>
               {initials(r.full_name || r.email)}
             </Avatar>
-            <Space direction="vertical" size={0}>
+            <Space orientation="vertical" size={0}>
               <Text strong>{r.full_name || r.email}</Text>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {r.email}
@@ -268,15 +343,13 @@ export default function UsersManagementPage() {
           <Select
             value={v}
             style={{ width: 140 }}
-            disabled={membersUpdating || r.user_id === sessionUser?.id} // לא לשנות לעצמך בטעות
+            disabled={membersUpdating || r.user_id === sessionUser?.id}
             options={[
               { value: "admin", label: "Admin" },
               { value: "agent", label: "Agent" },
               { value: "viewer", label: "Viewer" },
             ]}
-            onChange={(role) =>
-              onChangeMemberRole(workspace.orgId, r.user_id, role)
-            }
+            onChange={(role) => onChangeMemberRole(workspace.orgId, r.user_id, role)}
           />
         ),
       },
@@ -288,9 +361,7 @@ export default function UsersManagementPage() {
           <Switch
             checked={!!v}
             disabled={membersUpdating || r.user_id === sessionUser?.id}
-            onChange={(checked) =>
-              onToggleMemberActive(workspace.orgId, r.user_id, checked)
-            }
+            onChange={(checked) => onToggleMemberActive(workspace.orgId, r.user_id, checked)}
           />
         ),
       },
@@ -364,12 +435,7 @@ export default function UsersManagementPage() {
                 disabled={disabled}
               >
                 <Tooltip title="Revoke invite">
-                  <Button
-                    size="small"
-                    danger
-                    icon={<StopOutlined />}
-                    disabled={disabled}
-                  />
+                  <Button size="small" danger icon={<StopOutlined />} disabled={disabled} />
                 </Tooltip>
               </Popconfirm>
             </Space>
@@ -377,7 +443,7 @@ export default function UsersManagementPage() {
         },
       },
     ],
-    [workspace?.orgId]
+    [workspace?.orgId, message]
   );
 
   if (loading) {
@@ -389,25 +455,22 @@ export default function UsersManagementPage() {
   }
 
   return (
-    <Space direction="vertical" size={14} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={14} style={{ width: "100%" }}>
       <Card
         style={{
           borderRadius: 16,
-          background:
-            "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
+          background: "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
         }}
       >
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
           <Col>
-            <Space direction="vertical" size={2}>
+            <Space orientation="vertical" size={2}>
               <Title level={3} style={{ margin: 0 }}>
                 User Management
               </Title>
               <Space wrap size={8}>
                 <Tag icon={<TeamOutlined />}>Admin</Tag>
-                {workspace?.orgName ? (
-                  <Tag color="blue">{workspace.orgName}</Tag>
-                ) : null}
+                {workspace?.orgName ? <Tag color="blue">{workspace.orgName}</Tag> : null}
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   Manage members and invites for this organization
                 </Text>
@@ -417,18 +480,11 @@ export default function UsersManagementPage() {
 
           <Col>
             <Space wrap>
-              <Button
-                icon={<ArrowLeftOutlined />}
-                onClick={() => router.push("/settings")}
-              >
+              <Button icon={<ArrowLeftOutlined />} onClick={() => router.push("/settings")}>
                 Back to Settings
               </Button>
 
-              <Button
-                icon={<ReloadOutlined />}
-                loading={refreshing}
-                onClick={() => boot({ silent: true })}
-              >
+              <Button icon={<ReloadOutlined />} loading={refreshing} onClick={() => boot({ silent: true })}>
                 Refresh
               </Button>
             </Space>
@@ -437,25 +493,21 @@ export default function UsersManagementPage() {
       </Card>
 
       {error ? (
-        <Alert
-          type="error"
-          showIcon
-          message="Cannot open user management"
-          description={error}
-        />
+        <Alert type="error" showIcon title="Cannot open user management" description={error} />
       ) : null}
 
       {!isAdmin ? (
         <Alert
           type="warning"
           showIcon
-          message="Admin only"
+          title="Admin only"
           description="You do not have permission to manage users."
         />
       ) : (
         <Card style={{ borderRadius: 16 }}>
           <Tabs
-            defaultActiveKey="members"
+            activeKey={activeTab}
+            onChange={setActiveTab}
             items={[
               {
                 key: "members",
@@ -475,76 +527,15 @@ export default function UsersManagementPage() {
                 key: "invites",
                 label: `Invites (${invites.length})`,
                 children: (
-                  <Space
-                    direction="vertical"
-                    size={12}
-                    style={{ width: "100%" }}
-                  >
-                    <Card
-                      size="small"
-                      style={{
-                        borderRadius: 12,
-                        background: "rgba(0,0,0,0.02)",
-                      }}
-                    >
-                      <Form
-                        form={inviteForm}
-                        layout="inline"
-                        onFinish={onCreateInvite}
-                        initialValues={{ role: "agent" }}
-                      >
-                        <Form.Item
-                          name="email"
-                          rules={[
-                            { required: true, message: "Email is required" },
-                            { type: "email", message: "Invalid email" },
-                          ]}
-                        >
-                          <Input
-                            prefix={<MailOutlined />}
-                            placeholder="user@company.com"
-                            style={{ width: 280 }}
-                          />
-                        </Form.Item>
-
-                        <Form.Item name="role">
-                          <Select
-                            style={{ width: 160 }}
-                            options={[
-                              { value: "agent", label: "Agent" },
-                              { value: "viewer", label: "Viewer" },
-                              { value: "admin", label: "Admin" },
-                            ]}
-                          />
-                        </Form.Item>
-
-                        <Button
-                          type="primary"
-                          icon={<PlusOutlined />}
-                          htmlType="submit"
-                          loading={creatingInvite}
-                        >
-                          Create invite
-                        </Button>
-                      </Form>
-
-                      <Divider style={{ margin: "12px 0" }} />
-
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        Tip: the link is copied automatically. The invited user
-                        must be logged-in with the same email.
-                      </Text>
-                    </Card>
-
-                    <Table
-                      rowKey="id"
-                      loading={invitesLoading}
-                      dataSource={invites}
-                      columns={invitesColumns}
-                      pagination={{ pageSize: 10, showSizeChanger: true }}
-                      scroll={{ x: 950 }}
+                  <div style={{ opacity: creatingInvite ? 0.8 : 1 }}>
+                    <InvitesPanel
+                      workspace={workspace}
+                      invites={invites}
+                      invitesLoading={invitesLoading}
+                      invitesColumns={invitesColumns}
+                      onCreateInvite={onCreateInvite}
                     />
-                  </Space>
+                  </div>
                 ),
               },
             ]}

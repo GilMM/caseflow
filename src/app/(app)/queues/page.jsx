@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase/client";
 import { getActiveWorkspace } from "@/lib/db";
 
 import {
+  App,
   Alert,
   Badge,
   Button,
@@ -24,7 +25,6 @@ import {
   Tag,
   Tooltip,
   Typography,
-  message,
   Spin,
 } from "antd";
 import {
@@ -60,7 +60,13 @@ function timeAgo(iso) {
 
 export default function QueuesPage() {
   const router = useRouter();
-  const [form] = Form.useForm();
+  // const [form] = Form.useForm();
+  const [formKey, setFormKey] = useState(0);
+  const [formInitials, setFormInitials] = useState({
+    name: "",
+    is_active: true,
+    is_default: false,
+  });
 
   const [workspace, setWorkspace] = useState(null);
 
@@ -156,34 +162,40 @@ export default function QueuesPage() {
 
       return (
         (r.name || "").toLowerCase().includes(qq) ||
-        String(r.id || "").toLowerCase().includes(qq)
+        String(r.id || "")
+          .toLowerCase()
+          .includes(qq)
       );
     });
   }, [rows, q, active, defaultOnly]);
 
   const total = rows.length;
-  const activeCount = rows.filter((r) => (r.is_active ?? true) !== false).length;
+  const activeCount = rows.filter(
+    (r) => (r.is_active ?? true) !== false
+  ).length;
   const defaultCount = rows.filter((r) => !!r.is_default).length;
 
   function openCreate() {
     setMode("create");
     setEditing(null);
-    form.setFieldsValue({
+    setFormInitials({
       name: "",
       is_active: true,
-      is_default: rows.length === 0, // nice UX: first queue becomes default
+      is_default: rows.length === 0,
     });
+    setFormKey((k) => k + 1);
     setModalOpen(true);
   }
 
   function openEdit(queue) {
     setMode("edit");
     setEditing(queue);
-    form.setFieldsValue({
+    setFormInitials({
       name: queue.name || "",
       is_active: (queue.is_active ?? true) !== false,
       is_default: !!queue.is_default,
     });
+    setFormKey((k) => k + 1);
     setModalOpen(true);
   }
 
@@ -208,10 +220,17 @@ export default function QueuesPage() {
 
       if (e2) throw e2;
 
-      message.success({ content: "Default queue updated", key: "setdefault", duration: 1.2 });
+      message.success({
+        content: "Default queue updated",
+        key: "setdefault",
+        duration: 1.2,
+      });
       await loadAll({ silent: true });
     } catch (e) {
-      message.error({ content: e?.message || "Failed to set default", key: "setdefault" });
+      message.error({
+        content: e?.message || "Failed to set default",
+        key: "setdefault",
+      });
     }
   }
 
@@ -340,7 +359,8 @@ export default function QueuesPage() {
       <Card
         style={{
           borderRadius: 16,
-          background: "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
+          background:
+            "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
         }}
       >
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
@@ -391,7 +411,9 @@ export default function QueuesPage() {
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     Active
                   </Text>
-                  <Text style={{ fontSize: 22, fontWeight: 800 }}>{activeCount}</Text>
+                  <Text style={{ fontSize: 22, fontWeight: 800 }}>
+                    {activeCount}
+                  </Text>
                 </Space>
               </Card>
             </Col>
@@ -402,7 +424,9 @@ export default function QueuesPage() {
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     Default
                   </Text>
-                  <Text style={{ fontSize: 22, fontWeight: 800 }}>{defaultCount}</Text>
+                  <Text style={{ fontSize: 22, fontWeight: 800 }}>
+                    {defaultCount}
+                  </Text>
                 </Space>
               </Card>
             </Col>
@@ -470,7 +494,12 @@ export default function QueuesPage() {
 
       {error ? (
         <Card style={{ borderRadius: 16, borderColor: "#ffccc7" }}>
-          <Alert type="error" showIcon message="Couldn’t load queues" description={error} />
+          <Alert
+            type="error"
+            showIcon
+            message="Couldn’t load queues"
+            description={error}
+          />
         </Card>
       ) : null}
 
@@ -478,7 +507,11 @@ export default function QueuesPage() {
       <Card
         title="Queues"
         style={{ borderRadius: 16 }}
-        extra={<Text type="secondary" style={{ fontSize: 12 }}>Showing {filtered.length}</Text>}
+        extra={
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            Showing {filtered.length}
+          </Text>
+        }
       >
         {!workspace?.orgId ? (
           <Empty
@@ -499,7 +532,8 @@ export default function QueuesPage() {
               <Space orientation="vertical" size={2}>
                 <Text>Queues table not available</Text>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  Create the <Text code>queues</Text> table (and RLS), then this page will light up.
+                  Create the <Text code>queues</Text> table (and RLS), then this
+                  page will light up.
                 </Text>
               </Space>
             }
@@ -510,10 +544,19 @@ export default function QueuesPage() {
               const isActive = (row.is_active ?? true) !== false;
 
               return (
-                <Card key={row.id} size="small" hoverable style={{ borderRadius: 14 }}>
+                <Card
+                  key={row.id}
+                  size="small"
+                  hoverable
+                  style={{ borderRadius: 14 }}
+                >
                   <Row justify="space-between" align="middle" gutter={[12, 12]}>
                     <Col flex="auto">
-                      <Space orientation="vertical" size={4} style={{ width: "100%" }}>
+                      <Space
+                        orientation="vertical"
+                        size={4}
+                        style={{ width: "100%" }}
+                      >
                         <Space wrap size={8}>
                           <Text strong style={{ fontSize: 14 }}>
                             {row.name || "Untitled queue"}
@@ -545,23 +588,31 @@ export default function QueuesPage() {
                     <Col>
                       <Space wrap>
                         <Tooltip title="Activate / Deactivate queue">
-                          <Switch checked={isActive} onChange={(v) => toggleActive(row.id, v)} />
+                          <Switch
+                            checked={isActive}
+                            onChange={(v) => toggleActive(row.id, v)}
+                          />
                         </Tooltip>
 
                         {!row.is_default ? (
-                          <Button onClick={() => setDefaultQueue(row.id)}>Set default</Button>
+                          <Button onClick={() => setDefaultQueue(row.id)}>
+                            Set default
+                          </Button>
                         ) : (
                           <Button disabled>Default</Button>
                         )}
 
-                        <Button icon={<EditOutlined />} onClick={() => openEdit(row)}>
+                        <Button
+                          icon={<EditOutlined />}
+                          onClick={() => openEdit(row)}
+                        >
                           Edit
                         </Button>
 
                         <Button
                           type="primary"
                           icon={<InboxOutlined />}
-                          onClick={() => router.push("/cases")}
+                          onClick={() => router.push(`/cases?queue=${row.id}`)}
                         >
                           View cases
                         </Button>
@@ -571,11 +622,17 @@ export default function QueuesPage() {
 
                   <Divider style={{ margin: "10px 0" }} />
 
-                  <Space style={{ justifyContent: "space-between", width: "100%" }}>
+                  <Space
+                    style={{ justifyContent: "space-between", width: "100%" }}
+                  >
                     <Text type="secondary" style={{ fontSize: 12 }}>
                       Next: routing rules, SLA, auto-assignment.
                     </Text>
-                    <Button type="link" style={{ padding: 0 }} onClick={() => message.info("Next: queue details page")}>
+                    <Button
+                      type="link"
+                      style={{ padding: 0 }}
+                      onClick={() => message.info("Next: queue details page")}
+                    >
                       Open →
                     </Button>
                   </Space>
@@ -608,7 +665,12 @@ export default function QueuesPage() {
         confirmLoading={saving}
         destroyOnHidden
       >
-        <Form form={form} layout="vertical" onFinish={onSave}>
+        <Form
+          key={formKey}
+          layout="vertical"
+          onFinish={onSave}
+          initialValues={formInitials}
+        >
           <Form.Item
             label="Queue name"
             name="name"
@@ -617,17 +679,29 @@ export default function QueuesPage() {
               { min: 2, message: "Name should be at least 2 characters" },
             ]}
           >
-            <Input placeholder="e.g., Support, Billing, Onboarding…" maxLength={60} showCount />
+            <Input
+              placeholder="e.g., Support, Billing, Onboarding…"
+              maxLength={60}
+              showCount
+            />
           </Form.Item>
 
           <Row gutter={[12, 12]}>
             <Col span={12}>
-              <Form.Item label="Active" name="is_active" valuePropName="checked">
+              <Form.Item
+                label="Active"
+                name="is_active"
+                valuePropName="checked"
+              >
                 <Switch />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item label="Default" name="is_default" valuePropName="checked">
+              <Form.Item
+                label="Default"
+                name="is_default"
+                valuePropName="checked"
+              >
                 <Switch />
               </Form.Item>
             </Col>
@@ -636,7 +710,7 @@ export default function QueuesPage() {
           <Alert
             type="info"
             showIcon
-            message="Note"
+            title="Note"
             description="Setting a queue as Default will unset Default from other queues in this workspace."
           />
         </Form>

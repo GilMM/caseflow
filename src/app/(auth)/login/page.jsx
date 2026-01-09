@@ -110,9 +110,9 @@ export default function LoginPage() {
               </Link>
             </Text>
 
-            <Link href="/cases" style={{ opacity: 0.7 }}>
+            {/* <Link href="/cases" style={{ opacity: 0.7 }}>
               Skip →
-            </Link>
+            </Link> */}
           </div>
         </Card>
 
