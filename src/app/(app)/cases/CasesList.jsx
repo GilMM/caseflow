@@ -50,9 +50,16 @@ export default function CasesList({ filtered, onOpenCase }) {
                     </Space>
 
                     <Space wrap size={10}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-  Case {caseKey(c.id)}
+                    <Text
+  type="secondary"
+  style={{
+    fontSize: 12,
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+  }}
+>
+  {caseKey(c.id)}
 </Text>
+
 
                       <Text type="secondary" style={{ fontSize: 12 }}>
                         Created {timeAgo(c.created_at)}

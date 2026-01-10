@@ -3,7 +3,7 @@
 import { Alert, Avatar, Button, Card, Form, Input, Select, Space, Tag, Typography } from "antd";
 import { PlusOutlined, ThunderboltOutlined, UserOutlined } from "@ant-design/icons";
 import { initials } from "@/lib/ui/initials";
-import { priorityColor, priorityOptions } from "@/lib/ui/priority";
+import { priorityColor, PRIORITY_OPTIONS } from "@/lib/ui/priority";
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -169,7 +169,7 @@ export default function NewCaseForm({
             rules={[{ required: true, message: "Select a priority" }]}
           >
             <Select
-              options={priorityOptions}
+              options={PRIORITY_OPTIONS}
               disabled={busy}
               optionRender={(opt) => (
                 <Space>
