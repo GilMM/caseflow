@@ -31,6 +31,7 @@ import {
   Tooltip,
   Typography,
   message,
+  Grid,
 } from "antd";
 import {
   ReloadOutlined,
@@ -44,6 +45,7 @@ import {
 } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
+const { useBreakpoint } = Grid;
 
 function greeting() {
   const h = new Date().getHours();
@@ -51,19 +53,19 @@ function greeting() {
   if (h < 18) return "Good afternoon";
   return "Good evening";
 }
+
 function presetColorVar(color, level = 6) {
-  // AntD v5 exposes preset color CSS vars like --ant-color-blue-6
-  // fallback stays safe even אם אין var
-  if (!color || color === "default")
+  if (!color || color === "default") {
     return "var(--ant-color-text, rgba(255,255,255,0.85))";
+  }
   return `var(--ant-color-${color}-${level}, var(--ant-color-primary, #1677ff))`;
 }
 
+/** Renders a consistent "change chips" row for live activity (status/priority/assignment) */
 function renderActivityChange({ a, displayUser }) {
   const t = String(a?.type || "").toLowerCase();
   const meta = a?.meta || {};
 
-  // Helpers
   const Arrow = (
     <Text type="secondary" style={{ fontSize: 12 }}>
       →
@@ -154,14 +156,82 @@ function renderActivityChange({ a, displayUser }) {
   return null;
 }
 
+/** KPI card (responsive compact/normal) */
+function KpiCard({
+  loading,
+  title,
+  icon,
+  value,
+  extra,
+  progress,
+  footer,
+  compact = false,
+}) {
+  return (
+    <Card
+      loading={loading}
+      style={{
+        borderRadius: 16,
+        width: "100%",
+      }}
+      styles={{
+        body: {
+          minHeight: compact ? 108 : 140,
+          padding: compact ? 12 : 16,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+        },
+      }}
+    >
+      {/* Header line */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Space size={6}>
+          {icon}
+          <Text type="secondary" style={{ fontSize: compact ? 12 : 13 }}>
+            {title}
+          </Text>
+        </Space>
+
+        <div style={{ marginInlineStart: "auto" }}>{extra}</div>
+      </div>
+
+      {/* Value */}
+      <div style={{ marginTop: compact ? 6 : 10 }}>
+        {compact ? (
+          <Text style={{ fontSize: 28, fontWeight: 600, lineHeight: 1.1 }}>
+            {value}
+          </Text>
+        ) : (
+          <Statistic value={value} valueStyle={{ fontSize: 34, lineHeight: 1.15 }} />
+        )}
+      </div>
+
+      {/* Progress / footer */}
+      <div style={{ marginTop: compact ? 8 : 10 }}>
+        {typeof progress === "number" ? (
+          <Progress percent={progress} showInfo={false} size={compact ? "small" : "default"} />
+        ) : null}
+
+        {footer ? (
+          <Text type="secondary" style={{ fontSize: compact ? 11 : 12 }}>
+            {footer}
+          </Text>
+        ) : null}
+      </div>
+    </Card>
+  );
+}
+
 export default function DashboardPage() {
   const router = useRouter();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   const [workspace, setWorkspace] = useState(null);
   const [stats, setStats] = useState(null);
   const [myCases, setMyCases] = useState([]);
   const [activity, setActivity] = useState([]);
-
   const [userMap, setUserMap] = useState({});
 
   const [loading, setLoading] = useState(true);
@@ -206,8 +276,7 @@ export default function DashboardPage() {
       try {
         const members = await getOrgMembers(ws.orgId);
         const map = {};
-        for (const m of members)
-          map[m.user_id] = m.full_name || m.email || null;
+        for (const m of members) map[m.user_id] = m.full_name || m.email || null;
         setUserMap(map);
       } catch {
         setUserMap({});
@@ -256,13 +325,7 @@ export default function DashboardPage() {
   const statusChips = useMemo(() => {
     const map = stats?.byStatus || {};
     const entries = Object.entries(map);
-    const order = [
-      "new",
-      "in_progress",
-      "waiting_customer",
-      "resolved",
-      "closed",
-    ];
+    const order = ["new", "in_progress", "waiting_customer", "resolved", "closed"];
     entries.sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
     return entries;
   }, [stats]);
@@ -273,9 +336,7 @@ export default function DashboardPage() {
   const newTodayCount = stats?.newTodayCount || 0;
   const resolvedThisWeekCount = stats?.resolvedThisWeekCount || 0;
 
-  const urgentShare = openCount
-    ? Math.round((urgentOpenCount / openCount) * 100)
-    : 0;
+  const urgentShare = openCount ? Math.round((urgentOpenCount / openCount) * 100) : 0;
   const openShare = total ? Math.round((openCount / total) * 100) : 0;
 
   return (
@@ -285,8 +346,7 @@ export default function DashboardPage() {
         loading={loading}
         style={{
           borderRadius: 16,
-          background:
-            "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
+          background: "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
         }}
       >
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
@@ -294,9 +354,7 @@ export default function DashboardPage() {
             <Space orientation="vertical" size={2}>
               <Title level={3} style={{ margin: 0 }}>
                 {greeting()},{" "}
-                <span style={{ opacity: 0.9 }}>
-                  {workspace?.orgName || "CaseFlow"}
-                </span>
+                <span style={{ opacity: 0.9 }}>{workspace?.orgName || "CaseFlow"}</span>
               </Title>
               <Space wrap size={8}>
                 {workspace?.orgName ? (
@@ -304,16 +362,12 @@ export default function DashboardPage() {
                 ) : (
                   <Tag>Workspace: none</Tag>
                 )}
-                {workspace?.role ? (
-                  <Tag color="geekblue">Role: {workspace.role}</Tag>
-                ) : null}
+                {workspace?.role ? <Tag color="geekblue">Role: {workspace.role}</Tag> : null}
                 <Tag color="green" icon={<WifiOutlined />}>
                   Realtime
                 </Tag>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  {lastUpdated
-                    ? `Updated ${lastUpdated.toLocaleTimeString()}`
-                    : "—"}
+                  {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : "—"}
                 </Text>
               </Space>
             </Space>
@@ -330,11 +384,7 @@ export default function DashboardPage() {
                   Refresh
                 </Button>
               </Tooltip>
-              <Button
-                type="primary"
-                icon={<InboxOutlined />}
-                onClick={() => router.push("/cases")}
-              >
+              <Button type="primary" icon={<InboxOutlined />} onClick={() => router.push("/cases")}>
                 Go to Cases
               </Button>
             </Space>
@@ -342,99 +392,72 @@ export default function DashboardPage() {
         </Row>
       </Card>
 
-      {/* KPI Cards */}
-      <Row gutter={[12, 12]}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card loading={loading} style={{ borderRadius: 16 }}>
-            <Space orientation="vertical" size={6} style={{ width: "100%" }}>
-              <Statistic
-                title={
-                  <Space size={6}>
-                    <ClockCircleOutlined />
-                    <span>Open</span>
-                    <Tooltip title="Share of open cases out of all cases in the workspace">
-                      <Tag style={{ marginInlineStart: 6 }}>{openShare}%</Tag>
-                    </Tooltip>
-                  </Space>
-                }
-                value={openCount}
-              />
-              <Progress percent={openShare} showInfo={false} />
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                Not closed • quick workload indicator
-              </Text>
-            </Space>
-          </Card>
+      {/* KPI Cards
+          ✅ Mobile: 2x2 (xs=12)
+          ✅ Desktop: 4 in a row (lg=6)
+      */}
+      <Row gutter={[12, 12]} align="stretch">
+        <Col xs={12} sm={12} lg={6} style={{ display: "flex" }}>
+          <KpiCard
+            loading={loading}
+            compact={isMobile}
+            title="Open"
+            icon={<ClockCircleOutlined />}
+            value={openCount}
+            extra={
+              <Tooltip title="Share of open cases out of all cases in the workspace">
+                <Tag style={{ margin: 0 }}>{openShare}%</Tag>
+              </Tooltip>
+            }
+            progress={openShare}
+            footer={isMobile ? "Not closed" : "Not closed • quick workload indicator"}
+          />
         </Col>
 
-        <Col xs={24} sm={12} lg={6}>
-          <Card loading={loading} style={{ borderRadius: 16 }}>
-            <Space orientation="vertical" size={6} style={{ width: "100%" }}>
-              <Statistic
-                title={
-                  <Space size={6}>
-                    <ThunderboltOutlined />
-                    <span>New today</span>
-                    <Tag color="blue" icon={<ArrowUpOutlined />}>
-                      live
-                    </Tag>
-                  </Space>
-                }
-                value={newTodayCount}
-              />
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                Created since 00:00 • triage queue candidate
-              </Text>
-            </Space>
-          </Card>
+        <Col xs={12} sm={12} lg={6} style={{ display: "flex" }}>
+          <KpiCard
+            loading={loading}
+            compact={isMobile}
+            title="New today"
+            icon={<ThunderboltOutlined />}
+            value={newTodayCount}
+            extra={
+              <Tag color="blue" icon={<ArrowUpOutlined />} style={{ margin: 0 }}>
+                live
+              </Tag>
+            }
+            footer={isMobile ? "Since 00:00" : "Created since 00:00 • triage queue candidate"}
+          />
         </Col>
 
-        <Col xs={24} sm={12} lg={6}>
-          <Card loading={loading} style={{ borderRadius: 16 }}>
-            <Space orientation="vertical" size={6} style={{ width: "100%" }}>
-              <Statistic
-                title={
-                  <Space size={6}>
-                    <ArrowRightOutlined />
-                    <span>Resolved (week)</span>
-                  </Space>
-                }
-                value={resolvedThisWeekCount}
-              />
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                Simple weekly throughput • good for demos
-              </Text>
-            </Space>
-          </Card>
+        <Col xs={12} sm={12} lg={6} style={{ display: "flex" }}>
+          <KpiCard
+            loading={loading}
+            compact={isMobile}
+            title="Resolved"
+            icon={<ArrowRightOutlined />}
+            value={resolvedThisWeekCount}
+            footer={isMobile ? "This week" : "Simple weekly throughput • good for demos"}
+          />
         </Col>
 
-        <Col xs={24} sm={12} lg={6}>
-          <Card loading={loading} style={{ borderRadius: 16 }}>
-            <Space orientation="vertical" size={6} style={{ width: "100%" }}>
-              <Statistic
-                title={
-                  <Space size={6}>
-                    <FireOutlined />
-                    <span>Urgent open</span>
-                    <Tooltip title="Urgent cases as a % of open cases">
-                      <Tag color={urgentShare >= 20 ? "red" : "gold"}>
-                        {urgentShare}%
-                      </Tag>
-                    </Tooltip>
-                  </Space>
-                }
-                value={urgentOpenCount}
-              />
-              <Progress
-                percent={urgentShare}
-                showInfo={false}
-                status={urgentShare >= 20 ? "exception" : "active"}
-              />
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                Priority = urgent • escalation signal
-              </Text>
-            </Space>
-          </Card>
+        <Col xs={12} sm={12} lg={6} style={{ display: "flex" }}>
+          <KpiCard
+            loading={loading}
+            compact={isMobile}
+            title="Urgent open"
+            icon={<FireOutlined />}
+            value={urgentOpenCount}
+            extra={
+              <Tooltip title="Urgent cases as a % of open cases">
+                <Tag color={urgentShare >= 20 ? "red" : "gold"} style={{ margin: 0 }}>
+                  {urgentShare}%
+                </Tag>
+              </Tooltip>
+            }
+            progress={urgentShare}
+            footer={isMobile ? "Priority: urgent" : "Priority = urgent • escalation signal"}
+          />
         </Col>
       </Row>
 
@@ -456,12 +479,7 @@ export default function DashboardPage() {
             {statusChips.map(([k, v]) => {
               const sm = getStatusMeta(k);
               return (
-                <Badge
-                  key={k}
-                  count={v}
-                  overflowCount={999}
-                  style={{ backgroundColor: "#1677ff" }}
-                >
+                <Badge key={k} count={v} overflowCount={999} style={{ backgroundColor: "#1677ff" }}>
                   <Tag
                     color={sm.color}
                     icon={sm.Icon ? <sm.Icon /> : null}
@@ -486,11 +504,7 @@ export default function DashboardPage() {
             loading={loading}
             title="My work"
             extra={
-              <Button
-                type="link"
-                onClick={() => router.push("/cases")}
-                style={{ padding: 0 }}
-              >
+              <Button type="link" onClick={() => router.push("/cases")} style={{ padding: 0 }}>
                 View all →
               </Button>
             }
@@ -510,48 +524,33 @@ export default function DashboardPage() {
                       style={{ borderRadius: 14 }}
                       onClick={() => router.push(`/cases/${c.id}`)}
                     >
-                      <Row
-                        justify="space-between"
-                        align="top"
-                        gutter={[10, 10]}
-                      >
+                      <Row justify="space-between" align="top" gutter={[10, 10]}>
                         <Col flex="auto">
-                          <Space
-                            orientation="vertical"
-                            size={4}
-                            style={{ width: "100%" }}
-                          >
+                          <Space orientation="vertical" size={4} style={{ width: "100%" }}>
                             <Space wrap size={8}>
                               <Text strong style={{ fontSize: 14 }}>
                                 {c.title}
                               </Text>
 
-                              <Tag
-                                color={sm.color}
-                                icon={sm.Icon ? <sm.Icon /> : null}
-                              >
+                              <Tag color={sm.color} icon={sm.Icon ? <sm.Icon /> : null}>
                                 {sm.label}
                               </Tag>
 
-                              <Tag
-                                color={pm.color}
-                                icon={pm.Icon ? <pm.Icon /> : null}
-                              >
+                              <Tag color={pm.color} icon={pm.Icon ? <pm.Icon /> : null}>
                                 {pm.label}
                               </Tag>
                             </Space>
 
                             <Space wrap size={10}>
-                            <Text
-  type="secondary"
-  style={{
-    fontSize: 12,
-    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-  }}
->
-  {caseKey(c.id)}
-</Text>
-
+                              <Text
+                                type="secondary"
+                                style={{
+                                  fontSize: 12,
+                                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                                }}
+                              >
+                                {caseKey(c.id)}
+                              </Text>
 
                               <Text type="secondary" style={{ fontSize: 12 }}>
                                 Created {timeAgo(c.created_at)}
@@ -614,9 +613,7 @@ export default function DashboardPage() {
                         position: "relative",
                         overflow: "hidden",
                         border: "1px solid rgba(255,255,255,0.06)",
-                        background: `linear-gradient(135deg, ${activityBg(
-                          am.color
-                        )}, rgba(0,0,0,0))`,
+                        background: `linear-gradient(135deg, ${activityBg(am.color)}, rgba(0,0,0,0))`,
                       }}
                       onClick={() => router.push(`/cases/${a.case_id}`)}
                     >
@@ -628,24 +625,17 @@ export default function DashboardPage() {
                           bottom: 0,
                           width: 4,
                           background: Accent,
+                          opacity: 0.95,
                         }}
                       />
 
-                      <Space
-                        orientation="vertical"
-                        size={8}
-                        style={{ width: "100%", paddingInlineStart: 8 }}
-                      >
-                        <Row
-                          justify="space-between"
-                          align="middle"
-                          gutter={[8, 8]}
-                        >
+                      <Space orientation="vertical" size={8} style={{ width: "100%", paddingInlineStart: 8 }}>
+                        <Row justify="space-between" align="middle" gutter={[8, 8]}>
                           <Col flex="auto" style={{ minWidth: 0 }}>
                             <Space wrap size={8}>
                               <Tag
                                 color={am.color}
-                                icon={am.Icon ? <am.Icon /> : null}
+                                icon={am.icon ? am.icon : null}
                                 style={{ margin: 0 }}
                               >
                                 {am.label}
@@ -655,10 +645,15 @@ export default function DashboardPage() {
                                 {displayUser(a.created_by)}
                               </Text>
 
-                              <Tag style={{ margin: 0, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }} color="default">
-  {caseKey(a.case_id)}
-</Tag>
-
+                              <Tag
+                                style={{
+                                  margin: 0,
+                                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                                }}
+                                color="default"
+                              >
+                                {caseKey(a.case_id)}
+                              </Tag>
                             </Space>
                           </Col>
 
@@ -685,23 +680,12 @@ export default function DashboardPage() {
                         <Divider style={{ margin: "6px 0" }} />
 
                         {(() => {
-                          const change = renderActivityChange({
-                            a,
-                            displayUser,
-                          });
+                          const change = renderActivityChange({ a, displayUser });
 
                           return (
-                            <Space
-                              style={{
-                                justifyContent: "space-between",
-                                width: "100%",
-                                marginTop: 2,
-                              }}
-                            >
-                              {/* Left side: change chips if exist */}
+                            <Space style={{ justifyContent: "space-between", width: "100%", marginTop: 2 }}>
                               {change ? change : <span />}
 
-                              {/* Right side: always open */}
                               <Button
                                 type="link"
                                 style={{ padding: 0 }}
