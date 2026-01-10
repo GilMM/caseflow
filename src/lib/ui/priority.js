@@ -1,15 +1,23 @@
 // src/lib/ui/priority.js
-export const CASE_PRIORITIES = [
-    { value: "urgent", label: "Urgent" },
-    { value: "high", label: "High" },
-    { value: "normal", label: "Normal" },
+
+export const PRIORITIES = [
     { value: "low", label: "Low" },
+    { value: "normal", label: "Normal" },
+    { value: "high", label: "High" },
+    { value: "urgent", label: "Urgent" },
   ];
   
+  export const priorityOptions = PRIORITIES;
+  
   export const priorityColor = (p) =>
-    ({ urgent: "red", high: "volcano", normal: "default", low: "cyan" }[p] || "default");
+    ({
+      urgent: "red",
+      high: "volcano",
+      normal: "default",
+      low: "cyan",
+    }[p] || "default");
   
   export function priorityLabel(value) {
-    return CASE_PRIORITIES.find((x) => x.value === value)?.label || value || "—";
+    return PRIORITIES.find((x) => x.value === value)?.label || value || "—";
   }
   
