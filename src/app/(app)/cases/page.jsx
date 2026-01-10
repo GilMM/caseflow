@@ -71,7 +71,9 @@ export default function CasesPage() {
       // cases (filtered by queue in DB, if chosen)
       let query = supabase
         .from("cases")
-        .select("id,title,status,priority,created_at,queue_id,assigned_to")
+        .select(
+          "id,org_id,title,status,priority,created_at,queue_id,assigned_to"
+        )
         .eq("org_id", ws.orgId)
         .order("created_at", { ascending: false })
         .limit(200);
@@ -125,7 +127,9 @@ export default function CasesPage() {
       if (!qq) return true;
       return (
         (c.title || "").toLowerCase().includes(qq) ||
-        String(c.id || "").toLowerCase().includes(qq)
+        String(c.id || "")
+          .toLowerCase()
+          .includes(qq)
       );
     });
   }, [rows, q, status, priority]);
@@ -155,9 +159,9 @@ export default function CasesPage() {
     );
   }
 
-console.log("ROWS:", rows.length, rows);
-console.log("FILTERED:", filtered.length, filtered);
-console.log("FILTERS:", { q, status, priority, queueId });
+  console.log("ROWS:", rows.length, rows);
+  console.log("FILTERED:", filtered.length, filtered);
+  console.log("FILTERS:", { q, status, priority, queueId });
 
   return (
     <Space orientation="vertical" size={14} style={{ width: "100%" }}>
@@ -171,32 +175,35 @@ console.log("FILTERS:", { q, status, priority, queueId });
         onNewCase={() => router.push("/cases/new")}
       />
 
-<Row gutter={[12, 12]} align="stretch">
-  <Col xs={24} lg={10} style={{ height: "100%" }}>
-    <CasesKpis total={total} openCount={openCount} urgentOpen={urgentOpen} />
-  </Col>
+      <Row gutter={[12, 12]} align="stretch">
+        <Col xs={24} lg={10} style={{ height: "100%" }}>
+          <CasesKpis
+            total={total}
+            openCount={openCount}
+            urgentOpen={urgentOpen}
+          />
+        </Col>
 
-  <Col xs={24} lg={14} style={{ height: "100%" }}>
-    <CasesFilters
-      q={q}
-      onChangeQ={setQ}
-      status={status}
-      onChangeStatus={setStatus}
-      priority={priority}
-      onChangePriority={setPriority}
-      queueId={queueId}
-      queues={queues}
-      onChangeQueue={setQueueFilter}
-      onClear={() => {
-        setQ("");
-        setStatus("all");
-        setPriority("all");
-        setQueueFilter("all");
-      }}
-    />
-  </Col>
-</Row>
-
+        <Col xs={24} lg={14} style={{ height: "100%" }}>
+          <CasesFilters
+            q={q}
+            onChangeQ={setQ}
+            status={status}
+            onChangeStatus={setStatus}
+            priority={priority}
+            onChangePriority={setPriority}
+            queueId={queueId}
+            queues={queues}
+            onChangeQueue={setQueueFilter}
+            onClear={() => {
+              setQ("");
+              setStatus("all");
+              setPriority("all");
+              setQueueFilter("all");
+            }}
+          />
+        </Col>
+      </Row>
 
       {error ? (
         <Card style={{ borderRadius: 16, borderColor: "#ffccc7" }}>
@@ -208,6 +215,7 @@ console.log("FILTERS:", { q, status, priority, queueId });
         workspace={workspace}
         filtered={filtered}
         onOpenCase={(id) => router.push(`/cases/${id}`)}
+        onRefresh={() => loadAll({ silent: true })}
       />
     </Space>
   );
