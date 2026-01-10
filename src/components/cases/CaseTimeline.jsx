@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, Space, Tag, Typography, Tooltip } from "antd";
+import { Card, Space, Tag, Typography, Tooltip, Grid } from "antd";
 import {
   MessageOutlined,
   SwapOutlined,
@@ -10,6 +10,7 @@ import {
 } from "@ant-design/icons";
 
 const { Text } = Typography;
+const { useBreakpoint } = Grid;
 
 function shortId(id) {
   if (!id) return "—";
@@ -22,6 +23,7 @@ function displayUser(userId, userMap) {
 }
 
 function timeAgo(iso) {
+  if (!iso) return "—";
   const t = new Date(iso).getTime();
   const now = Date.now();
   const sec = Math.max(1, Math.floor((now - t) / 1000));
@@ -76,15 +78,11 @@ function renderBody(it, userMap) {
           <Text>Assignment:</Text>
         </Space>
 
-        <Tag>
-          {fromId ? displayUser(fromId, userMap) : "Unassigned"}
-        </Tag>
+        <Tag>{fromId ? displayUser(fromId, userMap) : "Unassigned"}</Tag>
 
         <Text style={{ opacity: 0.6 }}>→</Text>
 
-        <Tag color="geekblue">
-          {toId ? displayUser(toId, userMap) : "Unassigned"}
-        </Tag>
+        <Tag color="geekblue">{toId ? displayUser(toId, userMap) : "Unassigned"}</Tag>
       </Space>
     );
   }
@@ -93,6 +91,9 @@ function renderBody(it, userMap) {
 }
 
 export default function CaseTimeline({ items, userMap = {} }) {
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
+
   if (!items || items.length === 0) {
     return <Text type="secondary">No activity yet</Text>;
   }
@@ -100,10 +101,23 @@ export default function CaseTimeline({ items, userMap = {} }) {
   return (
     <Space orientation="vertical" size={10} style={{ width: "100%" }}>
       {items.map((it) => (
-        <Card key={it.id} size="small" style={{ borderRadius: 14 }}>
+        <Card
+          key={it.id}
+          size="small"
+          style={{ borderRadius: 14 }}
+          bodyStyle={{ padding: isMobile ? 12 : 16 }}
+        >
           <Space orientation="vertical" size={6} style={{ width: "100%" }}>
             {/* Header */}
-            <Space style={{ justifyContent: "space-between", width: "100%" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 10,
+                alignItems: "flex-start",
+                flexWrap: "wrap",
+              }}
+            >
               <Space size={8} wrap>
                 <span style={{ opacity: 0.75 }}>{typeIcon(it.type)}</span>
                 {typeTag(it.type)}
@@ -120,17 +134,19 @@ export default function CaseTimeline({ items, userMap = {} }) {
                   {timeAgo(it.created_at)}
                 </Text>
               </Tooltip>
-            </Space>
+            </div>
 
             {/* Body */}
-            <div style={{ whiteSpace: "pre-wrap" }}>
+            <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
               {renderBody(it, userMap)}
             </div>
 
             {/* Footer */}
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              {new Date(it.created_at).toLocaleString()}
-            </Text>
+            {!isMobile && (
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {new Date(it.created_at).toLocaleString()}
+              </Text>
+            )}
           </Space>
         </Card>
       ))}

@@ -23,6 +23,7 @@ import {
   Typography,
   message,
   Spin,
+  Grid,
 } from "antd";
 import {
   PlusOutlined,
@@ -32,6 +33,7 @@ import {
 } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
+const { useBreakpoint } = Grid;
 
 const statusColor = (s) =>
   ({
@@ -73,6 +75,8 @@ export default function CasesPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   const [workspace, setWorkspace] = useState(null);
 
@@ -179,9 +183,7 @@ export default function CasesPage() {
       if (!qq) return true;
       return (
         (c.title || "").toLowerCase().includes(qq) ||
-        String(c.id || "")
-          .toLowerCase()
-          .includes(qq)
+        String(c.id || "").toLowerCase().includes(qq)
       );
     });
   }, [rows, q, status, priority]);
@@ -204,14 +206,15 @@ export default function CasesPage() {
   }
 
   const headerRight = (
-    <Space wrap>
+    <Space wrap style={{ width: isMobile ? "100%" : "auto" }}>
       <Tooltip title="Refresh cases list">
         <Button
           icon={<ReloadOutlined />}
           loading={refreshing}
           onClick={() => loadAll({ silent: true })}
+          block={isMobile}
         >
-          Refresh
+          {isMobile ? "Refresh" : "Refresh"}
         </Button>
       </Tooltip>
 
@@ -219,6 +222,7 @@ export default function CasesPage() {
         type="primary"
         icon={<PlusOutlined />}
         onClick={() => router.push("/cases/new")}
+        block={isMobile}
       >
         New case
       </Button>
@@ -244,9 +248,9 @@ export default function CasesPage() {
         }}
       >
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
-          <Col>
-            <Space orientation="vertical" size={2}>
-              <Title level={3} style={{ margin: 0 }}>
+          <Col xs={24} md="auto">
+            <Space orientation="vertical" size={2} style={{ width: "100%" }}>
+              <Title level={isMobile ? 4 : 3} style={{ margin: 0 }}>
                 Cases
               </Title>
               <Space wrap size={8}>
@@ -256,9 +260,7 @@ export default function CasesPage() {
                   <Tag>Workspace: none</Tag>
                 )}
                 <Tag icon={<InboxOutlined />}>List</Tag>
-                {queueId !== "all" ? (
-                  <Tag color="gold">Queue filtered</Tag>
-                ) : null}
+                {queueId !== "all" ? <Tag color="gold">Queue filtered</Tag> : null}
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   {filtered.length} shown • {total} total
                 </Text>
@@ -266,7 +268,9 @@ export default function CasesPage() {
             </Space>
           </Col>
 
-          <Col>{headerRight}</Col>
+          <Col xs={24} md="auto">
+            {headerRight}
+          </Col>
         </Row>
       </Card>
 
@@ -284,6 +288,7 @@ export default function CasesPage() {
                 </Space>
               </Card>
             </Col>
+
             <Col xs={24} sm={8}>
               <Card style={{ borderRadius: 16 }}>
                 <Space orientation="vertical" size={4}>
@@ -296,6 +301,7 @@ export default function CasesPage() {
                 </Space>
               </Card>
             </Col>
+
             <Col xs={24} sm={8}>
               <Card style={{ borderRadius: 16 }}>
                 <Space orientation="vertical" size={4}>
@@ -324,7 +330,8 @@ export default function CasesPage() {
                 />
               </Col>
 
-              <Col xs={12} md={5}>
+              {/* במובייל: כל Select שורה מלאה כדי לא להידחס */}
+              <Col xs={24} sm={12} md={5}>
                 <Select
                   value={queueId}
                   onChange={setQueueFilter}
@@ -339,7 +346,7 @@ export default function CasesPage() {
                 />
               </Col>
 
-              <Col xs={12} md={5}>
+              <Col xs={24} sm={12} md={5}>
                 <Select
                   value={status}
                   onChange={setStatus}
@@ -355,7 +362,7 @@ export default function CasesPage() {
                 />
               </Col>
 
-              <Col xs={12} md={5}>
+              <Col xs={24} sm={12} md={5}>
                 <Select
                   value={priority}
                   onChange={setPriority}
@@ -371,7 +378,11 @@ export default function CasesPage() {
               </Col>
 
               <Col xs={24}>
-                <Space wrap size={8}>
+                <Space
+                  wrap
+                  size={8}
+                  style={{ width: "100%", justifyContent: "space-between" }}
+                >
                   <Button
                     onClick={() => {
                       setQ("");
@@ -382,9 +393,11 @@ export default function CasesPage() {
                   >
                     Clear filters
                   </Button>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Tip: click a case card to open details
-                  </Text>
+                  {!isMobile && (
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      Tip: click a case card to open details
+                    </Text>
+                  )}
                 </Space>
               </Col>
             </Row>
@@ -427,24 +440,51 @@ export default function CasesPage() {
                 key={c.id}
                 size="small"
                 hoverable
-                style={{ borderRadius: 14 }}
+                style={{
+                  borderRadius: 14,
+                  cursor: "pointer",
+                }}
+                bodyStyle={{
+                  padding: isMobile ? 12 : 16,
+                }}
                 onClick={() => router.push(`/cases/${c.id}`)}
               >
                 <Row justify="space-between" align="top" gutter={[10, 10]}>
                   <Col flex="auto">
                     <Space
                       orientation="vertical"
-                      size={4}
+                      size={6}
                       style={{ width: "100%" }}
                     >
-                      <Space wrap size={8}>
-                        <Text strong style={{ fontSize: 14 }}>
+                      <Space
+                        wrap
+                        size={8}
+                        style={{ width: "100%", justifyContent: "space-between" }}
+                      >
+                        <Text
+                          strong
+                          style={{
+                            fontSize: 14,
+                            maxWidth: "100%",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           {c.title || "(untitled)"}
                         </Text>
+
+                        <Badge
+                          status={
+                            c.status === "closed" ? "default" : "processing"
+                          }
+                          text={c.status === "closed" ? "Closed" : "Open"}
+                        />
+                      </Space>
+
+                      <Space wrap size={8}>
                         <Tag color={statusColor(c.status)}>{c.status}</Tag>
-                        <Tag color={priorityColor(c.priority)}>
-                          {c.priority}
-                        </Tag>
+                        <Tag color={priorityColor(c.priority)}>{c.priority}</Tag>
                       </Space>
 
                       <Space wrap size={10}>
@@ -457,30 +497,27 @@ export default function CasesPage() {
                       </Space>
                     </Space>
                   </Col>
-
-                  <Col>
-                    <Badge
-                      status={c.status === "closed" ? "default" : "processing"}
-                      text={c.status === "closed" ? "Closed" : "Open"}
-                    />
-                  </Col>
                 </Row>
 
-                <Divider style={{ margin: "10px 0" }} />
-
-                <Space
-                  style={{ justifyContent: "space-between", width: "100%" }}
-                >
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Open in details
-                  </Text>
-                  <Link
-                    href={`/cases/${c.id}`}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    Open →
-                  </Link>
-                </Space>
+                {/* במובייל לא חייבים Divider + "Open →" כי כל הכרטיס קליקבילי */}
+                {!isMobile && (
+                  <>
+                    <Divider style={{ margin: "10px 0" }} />
+                    <Space
+                      style={{ justifyContent: "space-between", width: "100%" }}
+                    >
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        Open in details
+                      </Text>
+                      <Link
+                        href={`/cases/${c.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Open →
+                      </Link>
+                    </Space>
+                  </>
+                )}
               </Card>
             ))}
           </Space>

@@ -7,15 +7,16 @@ import { supabase } from "@/lib/supabase/client";
 import { getActiveWorkspace } from "@/lib/db";
 
 import {
-  App,
   Alert,
   Badge,
   Button,
   Card,
   Col,
   Divider,
+  Dropdown,
   Empty,
   Form,
+  Grid,
   Input,
   Modal,
   Row,
@@ -26,6 +27,7 @@ import {
   Tooltip,
   Typography,
   Spin,
+  message,
 } from "antd";
 import {
   AppstoreOutlined,
@@ -35,9 +37,11 @@ import {
   StarFilled,
   InboxOutlined,
   EditOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
+const { useBreakpoint } = Grid;
 
 function shortId(id) {
   if (!id) return "—";
@@ -60,8 +64,12 @@ function timeAgo(iso) {
 
 export default function QueuesPage() {
   const router = useRouter();
-  // const [form] = Form.useForm();
-  const [formKey, setFormKey] = useState(0);
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
+
+  // ✅ FIX: form instance exists
+  const [form] = Form.useForm();
+
   const [formInitials, setFormInitials] = useState({
     name: "",
     is_active: true,
@@ -162,40 +170,38 @@ export default function QueuesPage() {
 
       return (
         (r.name || "").toLowerCase().includes(qq) ||
-        String(r.id || "")
-          .toLowerCase()
-          .includes(qq)
+        String(r.id || "").toLowerCase().includes(qq)
       );
     });
   }, [rows, q, active, defaultOnly]);
 
   const total = rows.length;
-  const activeCount = rows.filter(
-    (r) => (r.is_active ?? true) !== false
-  ).length;
+  const activeCount = rows.filter((r) => (r.is_active ?? true) !== false).length;
   const defaultCount = rows.filter((r) => !!r.is_default).length;
 
   function openCreate() {
     setMode("create");
     setEditing(null);
-    setFormInitials({
+    const initials = {
       name: "",
       is_active: true,
       is_default: rows.length === 0,
-    });
-    setFormKey((k) => k + 1);
+    };
+    setFormInitials(initials);
+    form.setFieldsValue(initials);
     setModalOpen(true);
   }
 
   function openEdit(queue) {
     setMode("edit");
     setEditing(queue);
-    setFormInitials({
+    const initials = {
       name: queue.name || "",
       is_active: (queue.is_active ?? true) !== false,
       is_default: !!queue.is_default,
-    });
-    setFormKey((k) => k + 1);
+    };
+    setFormInitials(initials);
+    form.setFieldsValue(initials);
     setModalOpen(true);
   }
 
@@ -282,25 +288,18 @@ export default function QueuesPage() {
       }
 
       if (mode === "create") {
-        const { data, error } = await supabase
-          .from("queues")
-          .insert({
-            org_id: workspace.orgId,
-            name,
-            is_active,
-            is_default,
-          })
-          .select("id")
-          .single();
+        const { error } = await supabase.from("queues").insert({
+          org_id: workspace.orgId,
+          name,
+          is_active,
+          is_default,
+        });
 
         if (error) throw error;
 
         message.success("Queue created");
         setModalOpen(false);
         await loadAll({ silent: true });
-
-        // optional nice UX: if first queue created, keep user on page
-        // router.push(`/queues/${data.id}`) // if you later add details page
         return;
       }
 
@@ -328,18 +327,24 @@ export default function QueuesPage() {
   }
 
   const headerRight = (
-    <Space wrap>
+    <Space wrap style={{ width: isMobile ? "100%" : "auto" }}>
       <Tooltip title="Refresh queues list">
         <Button
           icon={<ReloadOutlined />}
           loading={refreshing}
           onClick={() => loadAll({ silent: true })}
+          block={isMobile}
         >
           Refresh
         </Button>
       </Tooltip>
 
-      <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+      <Button
+        type="primary"
+        icon={<PlusOutlined />}
+        onClick={openCreate}
+        block={isMobile}
+      >
         New queue
       </Button>
     </Space>
@@ -364,9 +369,9 @@ export default function QueuesPage() {
         }}
       >
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
-          <Col>
-            <Space orientation="vertical" size={2}>
-              <Title level={3} style={{ margin: 0 }}>
+          <Col xs={24} md="auto">
+            <Space orientation="vertical" size={2} style={{ width: "100%" }}>
+              <Title level={isMobile ? 4 : 3} style={{ margin: 0 }}>
                 Queues
               </Title>
 
@@ -386,7 +391,9 @@ export default function QueuesPage() {
             </Space>
           </Col>
 
-          <Col>{headerRight}</Col>
+          <Col xs={24} md="auto">
+            {headerRight}
+          </Col>
         </Row>
       </Card>
 
@@ -446,7 +453,8 @@ export default function QueuesPage() {
                 />
               </Col>
 
-              <Col xs={12} md={7}>
+              {/* ✅ Mobile: full width so it won't squeeze */}
+              <Col xs={24} sm={12} md={7}>
                 <Select
                   value={active}
                   onChange={setActive}
@@ -459,7 +467,7 @@ export default function QueuesPage() {
                 />
               </Col>
 
-              <Col xs={12} md={7}>
+              <Col xs={24} sm={12} md={7}>
                 <Select
                   value={defaultOnly ? "default" : "all"}
                   onChange={(v) => setDefaultOnly(v === "default")}
@@ -472,7 +480,7 @@ export default function QueuesPage() {
               </Col>
 
               <Col xs={24}>
-                <Space wrap size={8}>
+                <Space wrap size={8} style={{ width: "100%", justifyContent: "space-between" }}>
                   <Button
                     onClick={() => {
                       setQ("");
@@ -482,10 +490,19 @@ export default function QueuesPage() {
                   >
                     Clear filters
                   </Button>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
+
+                  {!isMobile && (
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      Default queue is used for “New Case” routing (MVP).
+                    </Text>
+                  )}
+                </Space>
+
+                {isMobile ? (
+                  <Text type="secondary" style={{ fontSize: 12, display: "block", marginTop: 6 }}>
                     Default queue is used for “New Case” routing (MVP).
                   </Text>
-                </Space>
+                ) : null}
               </Col>
             </Row>
           </Card>
@@ -543,35 +560,64 @@ export default function QueuesPage() {
             {filtered.map((row) => {
               const isActive = (row.is_active ?? true) !== false;
 
+              const moreMenu = {
+                items: [
+                  {
+                    key: "edit",
+                    label: "Edit",
+                    icon: <EditOutlined />,
+                    onClick: () => openEdit(row),
+                  },
+                  {
+                    key: "default",
+                    label: row.is_default ? "Default" : "Set default",
+                    icon: <StarFilled />,
+                    disabled: row.is_default,
+                    onClick: () => setDefaultQueue(row.id),
+                  },
+                ],
+              };
+
               return (
                 <Card
                   key={row.id}
                   size="small"
                   hoverable
                   style={{ borderRadius: 14 }}
+                  bodyStyle={{ padding: isMobile ? 12 : 16 }}
                 >
                   <Row justify="space-between" align="middle" gutter={[12, 12]}>
-                    <Col flex="auto">
+                    <Col xs={24} md flex="auto">
                       <Space
                         orientation="vertical"
                         size={4}
                         style={{ width: "100%" }}
                       >
-                        <Space wrap size={8}>
-                          <Text strong style={{ fontSize: 14 }}>
-                            {row.name || "Untitled queue"}
-                          </Text>
+                        <Space wrap size={8} style={{ width: "100%", justifyContent: "space-between" }}>
+                          <Space wrap size={8}>
+                            <Text strong style={{ fontSize: 14 }}>
+                              {row.name || "Untitled queue"}
+                            </Text>
 
-                          {row.is_default ? (
-                            <Tag color="gold" icon={<StarFilled />}>
-                              Default
-                            </Tag>
-                          ) : null}
+                            {row.is_default ? (
+                              <Tag color="gold" icon={<StarFilled />}>
+                                Default
+                              </Tag>
+                            ) : null}
 
-                          <Badge
-                            status={isActive ? "success" : "default"}
-                            text={isActive ? "Active" : "Inactive"}
-                          />
+                            <Badge
+                              status={isActive ? "success" : "default"}
+                              text={isActive ? "Active" : "Inactive"}
+                            />
+                          </Space>
+
+                          {/* switch can sit nicely on the right */}
+                          <Tooltip title="Activate / Deactivate queue">
+                            <Switch
+                              checked={isActive}
+                              onChange={(v) => toggleActive(row.id, v)}
+                            />
+                          </Tooltip>
                         </Space>
 
                         <Space wrap size={10}>
@@ -585,46 +631,73 @@ export default function QueuesPage() {
                       </Space>
                     </Col>
 
-                    <Col>
-                      <Space wrap>
-                        <Tooltip title="Activate / Deactivate queue">
-                          <Switch
-                            checked={isActive}
-                            onChange={(v) => toggleActive(row.id, v)}
-                          />
-                        </Tooltip>
-
-                        {!row.is_default ? (
-                          <Button onClick={() => setDefaultQueue(row.id)}>
-                            Set default
+                    <Col xs={24} md="auto">
+                      {/* Actions */}
+                      {isMobile ? (
+                        <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                          <Button
+                            type="primary"
+                            icon={<InboxOutlined />}
+                            block
+                            onClick={() => router.push(`/cases?queue=${row.id}`)}
+                          >
+                            View cases
                           </Button>
-                        ) : (
-                          <Button disabled>Default</Button>
-                        )}
 
-                        <Button
-                          icon={<EditOutlined />}
-                          onClick={() => openEdit(row)}
-                        >
-                          Edit
-                        </Button>
+                          <Space style={{ width: "100%" }}>
+                            <Dropdown menu={moreMenu} trigger={["click"]} placement="bottomRight">
+                              <Button icon={<MoreOutlined />} block>
+                                More
+                              </Button>
+                            </Dropdown>
 
-                        <Button
-                          type="primary"
-                          icon={<InboxOutlined />}
-                          onClick={() => router.push(`/cases?queue=${row.id}`)}
-                        >
-                          View cases
-                        </Button>
-                      </Space>
+                            {!row.is_default ? (
+                              <Button onClick={() => setDefaultQueue(row.id)} block>
+                                Set default
+                              </Button>
+                            ) : (
+                              <Button disabled block>
+                                Default
+                              </Button>
+                            )}
+                          </Space>
+                        </Space>
+                      ) : (
+                        <Space wrap>
+                          <Tooltip title="Activate / Deactivate queue">
+                            <Switch
+                              checked={isActive}
+                              onChange={(v) => toggleActive(row.id, v)}
+                            />
+                          </Tooltip>
+
+                          {!row.is_default ? (
+                            <Button onClick={() => setDefaultQueue(row.id)}>
+                              Set default
+                            </Button>
+                          ) : (
+                            <Button disabled>Default</Button>
+                          )}
+
+                          <Button icon={<EditOutlined />} onClick={() => openEdit(row)}>
+                            Edit
+                          </Button>
+
+                          <Button
+                            type="primary"
+                            icon={<InboxOutlined />}
+                            onClick={() => router.push(`/cases?queue=${row.id}`)}
+                          >
+                            View cases
+                          </Button>
+                        </Space>
+                      )}
                     </Col>
                   </Row>
 
                   <Divider style={{ margin: "10px 0" }} />
 
-                  <Space
-                    style={{ justifyContent: "space-between", width: "100%" }}
-                  >
+                  <Space style={{ justifyContent: "space-between", width: "100%" }}>
                     <Text type="secondary" style={{ fontSize: 12 }}>
                       Next: routing rules, SLA, auto-assignment.
                     </Text>
@@ -661,12 +734,14 @@ export default function QueuesPage() {
         onCancel={() => setModalOpen(false)}
         title={mode === "create" ? "New queue" : "Edit queue"}
         okText={mode === "create" ? "Create" : "Save"}
-        onOk={() => form.submit()}
+        onOk={() => form.submit()}  // ✅ now works
         confirmLoading={saving}
-        destroyOnHidden
+        destroyOnClose
+        width={isMobile ? "100%" : 520}
+        style={isMobile ? { top: 12 } : undefined}
       >
         <Form
-          key={formKey}
+          form={form}
           layout="vertical"
           onFinish={onSave}
           initialValues={formInitials}
@@ -687,21 +762,13 @@ export default function QueuesPage() {
           </Form.Item>
 
           <Row gutter={[12, 12]}>
-            <Col span={12}>
-              <Form.Item
-                label="Active"
-                name="is_active"
-                valuePropName="checked"
-              >
+            <Col xs={12}>
+              <Form.Item label="Active" name="is_active" valuePropName="checked">
                 <Switch />
               </Form.Item>
             </Col>
-            <Col span={12}>
-              <Form.Item
-                label="Default"
-                name="is_default"
-                valuePropName="checked"
-              >
+            <Col xs={12}>
+              <Form.Item label="Default" name="is_default" valuePropName="checked">
                 <Switch />
               </Form.Item>
             </Col>
@@ -710,7 +777,7 @@ export default function QueuesPage() {
           <Alert
             type="info"
             showIcon
-            title="Note"
+            message="Note"
             description="Setting a queue as Default will unset Default from other queues in this workspace."
           />
         </Form>

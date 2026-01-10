@@ -22,6 +22,7 @@ import {
   Spin,
   Tag,
   Typography,
+  Grid
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -33,6 +34,8 @@ import {
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
+const { useBreakpoint } = Grid;
+
 
 const priorityOptions = [
   { value: "low", label: "Low" },
@@ -62,7 +65,8 @@ function initials(name) {
 export default function NewCasePage() {
   const router = useRouter();
   const search = useSearchParams();
-
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
   // optional prefill
   const requesterFromUrl = search.get("requester");
   const queueFromUrl = search.get("queue"); // ✅ אם מגיעים מ-/cases?queue=...
@@ -354,23 +358,27 @@ export default function NewCasePage() {
           </Col>
 
           <Col>
-            <Space wrap>
-              <Button
-                icon={<ArrowLeftOutlined />}
-                onClick={() => router.push("/cases")}
-              >
-                Back to cases
-              </Button>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                loading={busy}
-                onClick={() => form.submit()}
-                disabled={!orgId || !hasQueues}
-              >
-                Create case
-              </Button>
-            </Space>
+          <Space wrap style={{ width: isMobile ? "100%" : "auto" }}>
+  <Button
+    block={isMobile}
+    icon={<ArrowLeftOutlined />}
+    onClick={() => router.push("/cases")}
+  >
+    Back to cases
+  </Button>
+
+  <Button
+    block={isMobile}
+    type="primary"
+    icon={<PlusOutlined />}
+    loading={busy}
+    onClick={() => form.submit()}
+    disabled={!orgId || !hasQueues}
+  >
+    Create case
+  </Button>
+</Space>
+
           </Col>
         </Row>
       </Card>

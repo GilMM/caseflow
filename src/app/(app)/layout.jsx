@@ -14,6 +14,8 @@ import {
   Typography,
   Spin,
   Switch,
+  Drawer,
+  Grid,
   theme,
 } from "antd";
 import {
@@ -24,17 +26,21 @@ import {
   LogoutOutlined,
   AppstoreOutlined,
   MoonOutlined,
+  MenuOutlined,
 } from "@ant-design/icons";
 
 import { useThemeMode } from "@/app/providers";
-import { getActiveWorkspace } from "@/lib/db"; // ✅ חשוב!
+import { getActiveWorkspace } from "@/lib/db";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
+const { useBreakpoint } = Grid;
 
 export default function AppLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   const { token } = theme.useToken();
 
@@ -44,6 +50,9 @@ export default function AppLayout({ children }) {
 
   const [loading, setLoading] = useState(true);
   const [userEmail, setUserEmail] = useState("");
+
+  // Drawer state (Mobile)
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -59,9 +68,8 @@ export default function AppLayout({ children }) {
           return;
         }
 
-        // ✅ בדיקת workspace (membership)
+        // ✅ Workspace guard
         const ws = await getActiveWorkspace();
-
         if (!ws?.orgId) {
           if (mounted) setLoading(false);
           router.replace("/onboarding");
@@ -76,13 +84,12 @@ export default function AppLayout({ children }) {
         console.error("AppLayout init failed:", e);
         if (mounted) {
           setLoading(false);
-          // fallback בטוח: לוגין
           router.replace("/login");
         }
       }
     }
 
-    init(); // ✅ חובה
+    init();
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) router.replace("/login");
@@ -94,6 +101,12 @@ export default function AppLayout({ children }) {
     };
   }, [router]);
 
+  // Close drawer on route change (Mobile)
+  useEffect(() => {
+    if (drawerOpen) setDrawerOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
   const selectedKey = useMemo(() => {
     if (pathname === "/") return "dashboard";
     if (pathname.startsWith("/cases")) return "cases";
@@ -103,6 +116,17 @@ export default function AppLayout({ children }) {
     return "dashboard";
   }, [pathname]);
 
+  const pageTitle = useMemo(() => {
+    const map = {
+      dashboard: "Dashboard",
+      cases: "Cases",
+      contacts: "Contacts",
+      queues: "Queues",
+      settings: "Settings",
+    };
+    return map[selectedKey] || "CaseFlow";
+  }, [selectedKey]);
+
   async function logout() {
     await supabase.auth.signOut({ scope: "local" });
     window.location.assign("/login");
@@ -110,7 +134,11 @@ export default function AppLayout({ children }) {
 
   const userMenu = {
     items: [
-      { key: "email", label: <Text type="secondary">{userEmail}</Text>, disabled: true },
+      {
+        key: "email",
+        label: <Text type="secondary">{userEmail}</Text>,
+        disabled: true,
+      },
       { type: "divider" },
       {
         key: "theme",
@@ -135,6 +163,61 @@ export default function AppLayout({ children }) {
     },
   };
 
+  const menuItems = useMemo(
+    () => [
+      {
+        key: "dashboard",
+        icon: <DashboardOutlined />,
+        label: <Link href="/">Dashboard</Link>,
+      },
+      {
+        key: "cases",
+        icon: <InboxOutlined />,
+        label: <Link href="/cases">Cases</Link>,
+      },
+      {
+        key: "contacts",
+        icon: <TeamOutlined />,
+        label: <Link href="/contacts">Contacts</Link>,
+      },
+      {
+        key: "queues",
+        icon: <InboxOutlined />,
+        label: <Link href="/queues">Queues</Link>,
+      },
+      {
+        key: "settings",
+        icon: <SettingOutlined />,
+        label: <Link href="/settings">Settings</Link>,
+      },
+    ],
+    []
+  );
+
+  const Brand = ({ compact = false }) => (
+    <div
+      style={{
+        padding: compact ? "0 8px" : 16,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        height: compact ? 56 : "auto",
+      }}
+    >
+      <AppstoreOutlined style={{ color: token.colorPrimary, fontSize: 18 }} />
+      <div
+        style={{
+          fontWeight: 800,
+          letterSpacing: 0.2,
+          color: token.colorText,
+          whiteSpace: "nowrap",
+        }}
+      >
+        CaseFlow
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div style={{ height: "100vh", display: "grid", placeItems: "center" }}>
@@ -145,36 +228,67 @@ export default function AppLayout({ children }) {
 
   return (
     <Layout style={{ height: "100vh", overflow: "hidden", background: token.colorBgLayout }}>
-      <Sider
-        width={240}
-        theme={mode === "dark" ? "dark" : "light"}
-        style={{
-          height: "100vh",
-          borderRight: `1px solid ${token.colorBorder}`,
-          background: token.colorBgContainer,
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-          <div style={{ padding: 16, display: "flex", alignItems: "center", gap: 10 }}>
-            <AppstoreOutlined style={{ color: token.colorPrimary, fontSize: 18 }} />
-            <div style={{ fontWeight: 800, letterSpacing: 0.2, color: token.colorText }}>
-              CaseFlow
+      {/* Desktop Sider */}
+      {!isMobile && (
+        <Sider
+          width={240}
+          theme={mode === "dark" ? "dark" : "light"}
+          style={{
+            height: "100vh",
+            borderRight: `1px solid ${token.colorBorder}`,
+            background: token.colorBgContainer,
+            overflow: "hidden",
+          }}
+        >
+          <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+            <Brand />
+
+            <div style={{ flex: 1, overflow: "auto", paddingBottom: 8 }}>
+              <Menu
+                mode="inline"
+                selectedKeys={[selectedKey]}
+                style={{ background: "transparent", borderRight: 0 }}
+                items={menuItems}
+              />
+            </div>
+
+            <div
+              style={{
+                padding: "12px 16px",
+                fontSize: 11,
+                color: token.colorTextSecondary,
+                borderTop: `1px solid ${token.colorBorderSecondary || token.colorBorder}`,
+                textAlign: "center",
+                lineHeight: 1.4,
+                flexShrink: 0,
+              }}
+            >
+              <div style={{ opacity: 0.75 }}>Built by</div>
+              <div style={{ fontWeight: 600 }}>GilM</div>
             </div>
           </div>
+        </Sider>
+      )}
 
-          <div style={{ flex: 1, overflow: "auto", paddingBottom: 8 }}>
+      {/* Mobile Drawer */}
+      {isMobile && (
+        <Drawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          placement="left"
+          width={280}
+          styles={{
+            body: { padding: 0 },
+            header: { padding: 0, borderBottom: `1px solid ${token.colorBorder}` },
+          }}
+          title={<Brand compact />}
+        >
+          <div style={{ paddingBottom: 8 }}>
             <Menu
               mode="inline"
               selectedKeys={[selectedKey]}
               style={{ background: "transparent", borderRight: 0 }}
-              items={[
-                { key: "dashboard", icon: <DashboardOutlined />, label: <Link href="/">Dashboard</Link> },
-                { key: "cases", icon: <InboxOutlined />, label: <Link href="/cases">Cases</Link> },
-                { key: "contacts", icon: <TeamOutlined />, label: <Link href="/contacts">Contacts</Link> },
-                { key: "queues", icon: <InboxOutlined />, label: <Link href="/queues">Queues</Link> },
-                { key: "settings", icon: <SettingOutlined />, label: <Link href="/settings">Settings</Link> },
-              ]}
+              items={menuItems}
             />
           </div>
 
@@ -186,14 +300,13 @@ export default function AppLayout({ children }) {
               borderTop: `1px solid ${token.colorBorderSecondary || token.colorBorder}`,
               textAlign: "center",
               lineHeight: 1.4,
-              flexShrink: 0,
             }}
           >
             <div style={{ opacity: 0.75 }}>Built by</div>
             <div style={{ fontWeight: 600 }}>GilM</div>
           </div>
-        </div>
-      </Sider>
+        </Drawer>
+      )}
 
       <Layout style={{ background: token.colorBgLayout, height: "100%", overflow: "hidden" }}>
         <Header
@@ -203,22 +316,50 @@ export default function AppLayout({ children }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "0 16px",
+            padding: isMobile ? "0 12px" : "0 16px",
             height: 56,
             lineHeight: "56px",
             flex: "0 0 auto",
+            gap: 12,
           }}
         >
-          <Space>
-            <Text strong style={{ fontSize: 14 }}>
-              {selectedKey.charAt(0).toUpperCase() + selectedKey.slice(1)}
+          <Space size={10} style={{ minWidth: 0 }}>
+            {isMobile && (
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
+                onClick={() => setDrawerOpen(true)}
+                aria-label="Open menu"
+              />
+            )}
+
+            <Text
+              strong
+              style={{
+                fontSize: isMobile ? 14 : 14,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                maxWidth: isMobile ? 160 : 320,
+              }}
+            >
+              {pageTitle}
             </Text>
           </Space>
 
-          <Dropdown menu={userMenu} trigger={["click"]}>
+          <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
             <Button>
               <Space>
-                <Text>{userEmail || "Account"}</Text>
+                <Text
+                  style={{
+                    maxWidth: isMobile ? 120 : 260,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {userEmail || "Account"}
+                </Text>
               </Space>
             </Button>
           </Dropdown>
@@ -226,7 +367,7 @@ export default function AppLayout({ children }) {
 
         <Content
           style={{
-            padding: 18,
+            padding: isMobile ? 12 : 18,
             background: token.colorBgLayout,
             overflowY: "auto",
             overflowX: "hidden",

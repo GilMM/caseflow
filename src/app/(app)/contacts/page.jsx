@@ -15,8 +15,10 @@ import {
   Card,
   Col,
   Divider,
+  Dropdown,
   Empty,
   Form,
+  Grid,
   Input,
   Modal,
   Row,
@@ -37,16 +39,18 @@ import {
   MailOutlined,
   PhoneOutlined,
   EnvironmentOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
+const { useBreakpoint } = Grid;
 
 function initials(name) {
   const s = (name || "").trim();
   if (!s) return "?";
   const parts = s.split(/\s+/).filter(Boolean);
   const a = parts[0]?.[0] || "";
-  const b = parts.length > 1 ? parts[parts.length - 1]?.[0] : (parts[0]?.[1] || "");
+  const b = parts.length > 1 ? parts[parts.length - 1]?.[0] : parts[0]?.[1] || "";
   return (a + b).toUpperCase() || "?";
 }
 
@@ -73,6 +77,9 @@ export default function ContactsPage() {
   const router = useRouter();
   const { message } = App.useApp();
   const [form] = Form.useForm();
+
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   const [workspace, setWorkspace] = useState(null);
 
@@ -123,7 +130,10 @@ export default function ContactsPage() {
       if (res.error) {
         const msg = String(res.error.message || "").toLowerCase();
         const looksMissing =
-          msg.includes("does not exist") || msg.includes("relation") || msg.includes("schema cache");
+          msg.includes("does not exist") ||
+          msg.includes("relation") ||
+          msg.includes("schema cache");
+
         if (looksMissing) {
           setTableAvailable(false);
           setRows([]);
@@ -320,9 +330,9 @@ export default function ContactsPage() {
         }}
       >
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
-          <Col>
-            <Space orientation="vertical" size={2}>
-              <Title level={3} style={{ margin: 0 }}>
+          <Col xs={24} md="auto">
+            <Space orientation="vertical" size={2} style={{ width: "100%" }}>
+              <Title level={isMobile ? 4 : 3} style={{ margin: 0 }}>
                 Contacts
               </Title>
 
@@ -340,19 +350,25 @@ export default function ContactsPage() {
             </Space>
           </Col>
 
-          <Col>
-            <Space wrap>
+          <Col xs={24} md="auto">
+            <Space wrap style={{ width: isMobile ? "100%" : "auto" }}>
               <Tooltip title="Refresh contacts">
                 <Button
                   icon={<ReloadOutlined />}
                   loading={refreshing}
                   onClick={() => loadAll({ silent: true })}
+                  block={isMobile}
                 >
                   Refresh
                 </Button>
               </Tooltip>
 
-              <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={openCreate}
+                block={isMobile}
+              >
                 New contact
               </Button>
             </Space>
@@ -379,7 +395,8 @@ export default function ContactsPage() {
             />
           </Col>
 
-          <Col xs={12} md={7}>
+          {/* ✅ במובייל: full width כדי לא להידחס */}
+          <Col xs={24} sm={12} md={7}>
             <Select
               value={active}
               onChange={setActive}
@@ -392,17 +409,20 @@ export default function ContactsPage() {
             />
           </Col>
 
-          <Col xs={12} md={7}>
+          <Col xs={24} sm={12} md={7}>
             <Select
               value={dept}
               onChange={setDept}
               style={{ width: "100%" }}
-              options={deptOptions.map((d) => ({ value: d, label: d === "all" ? "All departments" : d }))}
+              options={deptOptions.map((d) => ({
+                value: d,
+                label: d === "all" ? "All departments" : d,
+              }))}
             />
           </Col>
 
           <Col xs={24}>
-            <Space wrap size={8}>
+            <Space wrap size={8} style={{ width: "100%", justifyContent: "space-between" }}>
               <Button
                 onClick={() => {
                   setQ("");
@@ -412,10 +432,19 @@ export default function ContactsPage() {
               >
                 Clear filters
               </Button>
-              <Text type="secondary" style={{ fontSize: 12 }}>
+
+              {!isMobile ? (
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  Contacts are internal employees. We’ll link them to cases as “Requester”.
+                </Text>
+              ) : null}
+            </Space>
+
+            {isMobile ? (
+              <Text type="secondary" style={{ fontSize: 12, display: "block", marginTop: 6 }}>
                 Contacts are internal employees. We’ll link them to cases as “Requester”.
               </Text>
-            </Space>
+            ) : null}
           </Col>
         </Row>
       </Card>
@@ -451,32 +480,62 @@ export default function ContactsPage() {
             {filtered.map((c) => {
               const isActive = (c.is_active ?? true) !== false;
 
+              const moreMenu = {
+                items: [
+                  {
+                    key: "edit",
+                    label: "Edit",
+                    icon: <EditOutlined />,
+                    onClick: () => openEdit(c),
+                  },
+                  {
+                    key: "toggle",
+                    label: isActive ? "Deactivate" : "Activate",
+                    onClick: () => toggleActive(c.id, !isActive),
+                  },
+                ],
+              };
+
               return (
-                <Card key={c.id} size="small" hoverable style={{ borderRadius: 14 }}>
-                  <Row justify="space-between" align="middle" gutter={[12, 12]}>
-                    <Col flex="auto">
-                      <Space align="start" size={12}>
+                <Card
+                  key={c.id}
+                  size="small"
+                  hoverable
+                  style={{ borderRadius: 14 }}
+                  bodyStyle={{ padding: isMobile ? 12 : 16 }}
+                >
+                  <Row justify="space-between" align="top" gutter={[12, 12]}>
+                    <Col xs={24} md flex="auto">
+                      <Space align="start" size={12} style={{ width: "100%" }}>
                         <Avatar>{initials(c.full_name)}</Avatar>
 
-                        <Space orientation="vertical" size={2} style={{ width: "100%" }}>
+                        <Space orientation="vertical" size={6} style={{ width: "100%", minWidth: 0 }}>
                           <Space wrap size={8}>
                             <Text strong style={{ fontSize: 14 }}>
                               {c.full_name}
                             </Text>
-                            <Badge status={isActive ? "success" : "default"} text={isActive ? "Active" : "Inactive"} />
+
+                            <Badge
+                              status={isActive ? "success" : "default"}
+                              text={isActive ? "Active" : "Inactive"}
+                            />
+
                             {c.department ? <Tag color="geekblue">{c.department}</Tag> : null}
                             {c.job_title ? <Tag>{c.job_title}</Tag> : null}
                           </Space>
 
-                          <Space wrap size={12}>
+                          <Space wrap size={12} style={{ width: "100%" }}>
                             <Text type="secondary" style={{ fontSize: 12 }}>
                               ID: {shortId(c.id)}
                             </Text>
 
                             {c.email ? (
-                              <Space size={6}>
+                              <Space size={6} style={{ minWidth: 0 }}>
                                 <MailOutlined />
-                                <Text type="secondary" style={{ fontSize: 12 }}>
+                                <Text
+                                  type="secondary"
+                                  style={{ fontSize: 12, minWidth: 0, wordBreak: "break-word" }}
+                                >
                                   {c.email}
                                 </Text>
                               </Space>
@@ -492,9 +551,12 @@ export default function ContactsPage() {
                             ) : null}
 
                             {c.location ? (
-                              <Space size={6}>
+                              <Space size={6} style={{ minWidth: 0 }}>
                                 <EnvironmentOutlined />
-                                <Text type="secondary" style={{ fontSize: 12 }}>
+                                <Text
+                                  type="secondary"
+                                  style={{ fontSize: 12, minWidth: 0, wordBreak: "break-word" }}
+                                >
                                   {c.location}
                                 </Text>
                               </Space>
@@ -514,26 +576,50 @@ export default function ContactsPage() {
                       </Space>
                     </Col>
 
-                    <Col>
-                      <Space wrap>
-                        <Tooltip title="Activate / Deactivate">
-                          <Switch checked={isActive} onChange={(v) => toggleActive(c.id, v)} />
-                        </Tooltip>
+                    <Col xs={24} md="auto">
+                      {/* Actions */}
+                      {isMobile ? (
+                        <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                          <Button
+                            type="primary"
+                            block
+                            onClick={() => router.push(`/cases/new?requester=${c.id}`)}
+                          >
+                            New case
+                          </Button>
 
-                        <Button icon={<EditOutlined />} onClick={() => openEdit(c)}>
-                          Edit
-                        </Button>
+                          <Space style={{ width: "100%" }}>
+                            <Dropdown menu={moreMenu} trigger={["click"]} placement="bottomRight">
+                              <Button icon={<MoreOutlined />} block>
+                                More
+                              </Button>
+                            </Dropdown>
 
-                        <Button
-                          type="primary"
-                          onClick={() => {
-                            // Next step: create case with requester preselected
-                            router.push(`/cases/new?requester=${c.id}`);
-                          }}
-                        >
-                          New case
-                        </Button>
-                      </Space>
+                            <Tooltip title="Activate / Deactivate">
+                              <Switch checked={isActive} onChange={(v) => toggleActive(c.id, v)} />
+                            </Tooltip>
+                          </Space>
+                        </Space>
+                      ) : (
+                        <Space wrap>
+                          <Tooltip title="Activate / Deactivate">
+                            <Switch checked={isActive} onChange={(v) => toggleActive(c.id, v)} />
+                          </Tooltip>
+
+                          <Button icon={<EditOutlined />} onClick={() => openEdit(c)}>
+                            Edit
+                          </Button>
+
+                          <Button
+                            type="primary"
+                            onClick={() => {
+                              router.push(`/cases/new?requester=${c.id}`);
+                            }}
+                          >
+                            New case
+                          </Button>
+                        </Space>
+                      )}
                     </Col>
                   </Row>
 
@@ -574,7 +660,9 @@ export default function ContactsPage() {
         okText={mode === "create" ? "Create" : "Save"}
         onOk={() => form.submit()}
         confirmLoading={saving}
-        destroyOnHidden
+        destroyOnClose
+        width={isMobile ? "100%" : 720}
+        style={isMobile ? { top: 12 } : undefined}
       >
         <Form form={form} layout="vertical" onFinish={onSave}>
           <Row gutter={[12, 12]}>
@@ -626,7 +714,7 @@ export default function ContactsPage() {
 
             <Col span={24}>
               <Form.Item label="Notes" name="notes">
-                <Input.TextArea rows={3} placeholder="Internal notes…" />
+                <Input.TextArea rows={isMobile ? 4 : 3} placeholder="Internal notes…" />
               </Form.Item>
             </Col>
           </Row>

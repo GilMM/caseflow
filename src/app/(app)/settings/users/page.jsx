@@ -24,6 +24,7 @@ import {
   Col,
   Divider,
   Form,
+  Grid,
   Input,
   Row,
   Select,
@@ -50,6 +51,7 @@ import {
 } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
+const { useBreakpoint } = Grid;
 
 /* ---------------- helpers ---------------- */
 
@@ -76,9 +78,188 @@ function timeAgo(iso) {
   return `${d}d ago`;
 }
 
+function inviteLinkFromToken(token) {
+  return `${window.location.origin}/onboarding?invite=${token}`;
+}
+
+function inviteStatusTag(inv) {
+  const now = Date.now();
+  const exp = inv.expires_at ? new Date(inv.expires_at).getTime() : null;
+  if (inv.accepted_at) return <Tag color="green">Accepted</Tag>;
+  if (exp && exp < now) return <Tag>Expired</Tag>;
+  return <Tag color="blue">Pending</Tag>;
+}
+
+/* ---------------- Mobile Cards ---------------- */
+
+function MemberCard({
+  r,
+  ownerUserId,
+  sessionUserId,
+  membersUpdating,
+  orgId,
+  onChangeMemberRole,
+  onToggleMemberActive,
+}) {
+  const label = ((r?.full_name || r?.email || "User")?.trim?.() || r?.email || "User");
+  const sub = r?.email || "—";
+  const isOwnerRow = !!ownerUserId && r?.user_id === ownerUserId;
+  const disableEdit = membersUpdating || r.user_id === sessionUserId || isOwnerRow;
+  const isActive = !!r?.is_active;
+
+  return (
+    <Card size="small" style={{ borderRadius: 14 }}>
+      <Space direction="vertical" size={10} style={{ width: "100%" }}>
+        <Space align="start" size={12} style={{ width: "100%" }}>
+          <Avatar src={r?.avatar_url || undefined}>{initials(label)}</Avatar>
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Space direction="vertical" size={2} style={{ width: "100%" }}>
+              <Space wrap size={8}>
+                <Text strong style={{ fontSize: 14, wordBreak: "break-word" }}>
+                  {label}
+                </Text>
+                {isOwnerRow ? (
+                  <Tag icon={<CrownOutlined />} color="gold">
+                    Owner
+                  </Tag>
+                ) : null}
+              </Space>
+
+              <Text type="secondary" style={{ fontSize: 12, wordBreak: "break-word" }}>
+                {sub}
+              </Text>
+
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Joined {timeAgo(r?.created_at)}
+              </Text>
+            </Space>
+          </div>
+        </Space>
+
+        <Divider style={{ margin: "6px 0" }} />
+
+        <Space direction="vertical" size={10} style={{ width: "100%" }}>
+          <div>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Role
+            </Text>
+            <Select
+              value={r?.role}
+              style={{ width: "100%" }}
+              disabled={disableEdit}
+              options={[
+                { value: "admin", label: "Admin" },
+                { value: "agent", label: "Agent" },
+                { value: "viewer", label: "Viewer" },
+              ]}
+              onChange={(role) => onChangeMemberRole(orgId, r.user_id, role)}
+            />
+            {disableEdit ? (
+              <Text type="secondary" style={{ fontSize: 11, display: "block", marginTop: 6 }}>
+                {isOwnerRow
+                  ? "Owner is protected"
+                  : r.user_id === sessionUserId
+                  ? "You can’t change yourself"
+                  : "Updating…"}
+              </Text>
+            ) : null}
+          </div>
+
+          <Space style={{ width: "100%", justifyContent: "space-between" }}>
+            <Space size={8}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Active
+              </Text>
+              <Tag color={isActive ? "green" : "default"}>{isActive ? "Active" : "Inactive"}</Tag>
+            </Space>
+
+            <Switch
+              checked={isActive}
+              disabled={disableEdit}
+              onChange={(checked) => onToggleMemberActive(orgId, r.user_id, checked)}
+            />
+          </Space>
+        </Space>
+      </Space>
+    </Card>
+  );
+}
+
+function InviteCard({ r, onRevokeInvite, message }) {
+  const disabled = !!r.accepted_at;
+  const link = inviteLinkFromToken(r.token);
+
+  return (
+    <Card size="small" style={{ borderRadius: 14 }}>
+      <Space direction="vertical" size={10} style={{ width: "100%" }}>
+        <Space direction="vertical" size={2} style={{ width: "100%" }}>
+          <Text strong style={{ fontSize: 14, wordBreak: "break-word" }}>
+            {r.email}
+          </Text>
+          <Space wrap size={8}>
+            <Tag>{r.role}</Tag>
+            {inviteStatusTag(r)}
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Created {timeAgo(r.created_at)}
+            </Text>
+          </Space>
+        </Space>
+
+        <Divider style={{ margin: "6px 0" }} />
+
+        <Space direction="vertical" size={8} style={{ width: "100%" }}>
+          <Button
+            icon={<CopyOutlined />}
+            disabled={disabled}
+            block
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(link);
+                message.success("Link copied");
+              } catch {
+                message.info("Couldn’t copy automatically. Copy from desktop browser.");
+              }
+            }}
+          >
+            Copy invite link
+          </Button>
+
+          <Popconfirm
+            title="Revoke invite?"
+            okText="Revoke"
+            cancelText="Cancel"
+            onConfirm={() => onRevokeInvite(r.id)}
+            disabled={disabled}
+          >
+            <Button danger icon={<StopOutlined />} disabled={disabled} block>
+              Revoke
+            </Button>
+          </Popconfirm>
+
+          {!disabled ? (
+            <Text type="secondary" style={{ fontSize: 12, wordBreak: "break-word" }}>
+              {link}
+            </Text>
+          ) : null}
+        </Space>
+      </Space>
+    </Card>
+  );
+}
+
 /* ---------------- Invites Panel ---------------- */
 
-function InvitesPanel({ invites, invitesLoading, invitesColumns, onCreateInvite }) {
+function InvitesPanel({
+  invites,
+  invitesLoading,
+  invitesColumns,
+  onCreateInvite,
+  creatingInvite,
+  isMobile,
+  onRevokeInvite,
+  message,
+}) {
   const [inviteForm] = Form.useForm();
 
   return (
@@ -92,7 +273,7 @@ function InvitesPanel({ invites, invitesLoading, invitesColumns, onCreateInvite 
       >
         <Form
           form={inviteForm}
-          layout="inline"
+          layout={isMobile ? "vertical" : "inline"}
           onFinish={(values) => onCreateInvite(values, inviteForm)}
           initialValues={{ role: "agent" }}
         >
@@ -102,13 +283,18 @@ function InvitesPanel({ invites, invitesLoading, invitesColumns, onCreateInvite 
               { required: true, message: "Email is required" },
               { type: "email", message: "Invalid email" },
             ]}
+            style={isMobile ? { marginBottom: 10 } : undefined}
           >
-            <Input prefix={<MailOutlined />} placeholder="user@company.com" style={{ width: 280 }} />
+            <Input
+              prefix={<MailOutlined />}
+              placeholder="user@company.com"
+              style={isMobile ? { width: "100%" } : { width: 280 }}
+            />
           </Form.Item>
 
-          <Form.Item name="role">
+          <Form.Item name="role" style={isMobile ? { marginBottom: 10 } : undefined}>
             <Select
-              style={{ width: 160 }}
+              style={isMobile ? { width: "100%" } : { width: 160 }}
               options={[
                 { value: "agent", label: "Agent" },
                 { value: "viewer", label: "Viewer" },
@@ -117,7 +303,7 @@ function InvitesPanel({ invites, invitesLoading, invitesColumns, onCreateInvite 
             />
           </Form.Item>
 
-          <Button type="primary" icon={<PlusOutlined />} htmlType="submit">
+          <Button type="primary" icon={<PlusOutlined />} htmlType="submit" loading={creatingInvite} block={isMobile}>
             Create invite
           </Button>
         </Form>
@@ -129,14 +315,29 @@ function InvitesPanel({ invites, invitesLoading, invitesColumns, onCreateInvite 
         </Text>
       </Card>
 
-      <Table
-        rowKey="id"
-        loading={invitesLoading}
-        dataSource={invites}
-        columns={invitesColumns}
-        pagination={{ pageSize: 10, showSizeChanger: true }}
-        scroll={{ x: 950 }}
-      />
+      {/* Desktop table */}
+      {!isMobile ? (
+        <Table
+          rowKey="id"
+          loading={invitesLoading}
+          dataSource={invites}
+          columns={invitesColumns}
+          pagination={{ pageSize: 10, showSizeChanger: true }}
+          scroll={{ x: 950 }}
+        />
+      ) : (
+        <Space direction="vertical" size={10} style={{ width: "100%", opacity: invitesLoading ? 0.7 : 1 }}>
+          {(invites || []).length ? (
+            invites.map((r) => (
+              <InviteCard key={r.id} r={r} onRevokeInvite={onRevokeInvite} message={message} />
+            ))
+          ) : (
+            <Card size="small" style={{ borderRadius: 14 }}>
+              <Text type="secondary">No invites yet</Text>
+            </Card>
+          )}
+        </Space>
+      )}
     </Space>
   );
 }
@@ -146,6 +347,8 @@ function InvitesPanel({ invites, invitesLoading, invitesColumns, onCreateInvite 
 export default function UsersManagementPage() {
   const router = useRouter();
   const { message } = App.useApp();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   const [activeTab, setActiveTab] = useState("members");
 
@@ -157,7 +360,7 @@ export default function UsersManagementPage() {
   const [sessionUser, setSessionUser] = useState(null);
 
   const isAdmin = workspace?.role === "admin";
-  const ownerUserId = workspace?.ownerUserId || null; // ✅ from getActiveWorkspace()
+  const ownerUserId = workspace?.ownerUserId || null;
 
   // Members
   const [members, setMembers] = useState([]);
@@ -238,10 +441,6 @@ export default function UsersManagementPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function inviteLinkFromToken(token) {
-    return `${window.location.origin}/onboarding?invite=${token}`;
-  }
-
   async function onCreateInvite(values, formInstance) {
     if (!workspace?.orgId) return;
 
@@ -261,7 +460,7 @@ export default function UsersManagementPage() {
         message.success("Invite created & link copied");
       } catch {
         message.success("Invite created");
-        message.info("Copy from table (Copy button)");
+        message.info("Copy from the list");
       }
 
       formInstance?.resetFields?.();
@@ -407,13 +606,7 @@ export default function UsersManagementPage() {
       {
         title: "Status",
         width: 140,
-        render: (_, r) => {
-          const now = Date.now();
-          const exp = r.expires_at ? new Date(r.expires_at).getTime() : null;
-          if (r.accepted_at) return <Tag color="green">Accepted</Tag>;
-          if (exp && exp < now) return <Tag>Expired</Tag>;
-          return <Tag color="blue">Pending</Tag>;
-        },
+        render: (_, r) => inviteStatusTag(r),
       },
       {
         title: "Created",
@@ -458,7 +651,7 @@ export default function UsersManagementPage() {
         },
       },
     ],
-    [workspace?.orgId, message]
+    [message]
   );
 
   if (loading) {
@@ -471,6 +664,7 @@ export default function UsersManagementPage() {
 
   return (
     <Space orientation="vertical" size={14} style={{ width: "100%" }}>
+      {/* Header */}
       <Card
         style={{
           borderRadius: 16,
@@ -478,9 +672,9 @@ export default function UsersManagementPage() {
         }}
       >
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
-          <Col>
+          <Col xs={24} md="auto">
             <Space orientation="vertical" size={2}>
-              <Title level={3} style={{ margin: 0 }}>
+              <Title level={isMobile ? 4 : 3} style={{ margin: 0 }}>
                 User Management
               </Title>
               <Space wrap size={8}>
@@ -498,13 +692,18 @@ export default function UsersManagementPage() {
             </Space>
           </Col>
 
-          <Col>
-            <Space wrap>
-              <Button icon={<ArrowLeftOutlined />} onClick={() => router.push("/settings")}>
+          <Col xs={24} md="auto">
+            <Space wrap style={{ width: isMobile ? "100%" : "auto" }}>
+              <Button icon={<ArrowLeftOutlined />} onClick={() => router.push("/settings")} block={isMobile}>
                 Back to Settings
               </Button>
 
-              <Button icon={<ReloadOutlined />} loading={refreshing} onClick={() => boot({ silent: true })}>
+              <Button
+                icon={<ReloadOutlined />}
+                loading={refreshing}
+                onClick={() => boot({ silent: true })}
+                block={isMobile}
+              >
                 Refresh
               </Button>
             </Space>
@@ -512,10 +711,10 @@ export default function UsersManagementPage() {
         </Row>
       </Card>
 
-      {error ? <Alert type="error" showIcon title="Cannot open user management" description={error} /> : null}
+      {error ? <Alert type="error" showIcon message="Cannot open user management" description={error} /> : null}
 
       {!isAdmin ? (
-        <Alert type="warning" showIcon title="Admin only" description="You do not have permission to manage users." />
+        <Alert type="warning" showIcon message="Admin only" description="You do not have permission to manage users." />
       ) : (
         <Card style={{ borderRadius: 16 }}>
           <Tabs
@@ -525,7 +724,7 @@ export default function UsersManagementPage() {
               {
                 key: "members",
                 label: `Members (${members.length})`,
-                children: (
+                children: !isMobile ? (
                   <Table
                     rowKey="user_id"
                     loading={membersLoading || membersUpdating}
@@ -534,18 +733,43 @@ export default function UsersManagementPage() {
                     pagination={{ pageSize: 10, showSizeChanger: true }}
                     scroll={{ x: 900 }}
                   />
+                ) : (
+                  <Space direction="vertical" size={10} style={{ width: "100%", opacity: membersLoading ? 0.7 : 1 }}>
+                    {(members || []).length ? (
+                      members.map((r) => (
+                        <MemberCard
+                          key={r.user_id}
+                          r={r}
+                          ownerUserId={ownerUserId}
+                          sessionUserId={sessionUser?.id}
+                          membersUpdating={membersUpdating}
+                          orgId={workspace?.orgId}
+                          onChangeMemberRole={onChangeMemberRole}
+                          onToggleMemberActive={onToggleMemberActive}
+                        />
+                      ))
+                    ) : (
+                      <Card size="small" style={{ borderRadius: 14 }}>
+                        <Text type="secondary">No members found</Text>
+                      </Card>
+                    )}
+                  </Space>
                 ),
               },
               {
                 key: "invites",
                 label: `Invites (${invites.length})`,
                 children: (
-                  <div style={{ opacity: creatingInvite ? 0.8 : 1 }}>
+                  <div style={{ opacity: creatingInvite ? 0.85 : 1 }}>
                     <InvitesPanel
                       invites={invites}
                       invitesLoading={invitesLoading}
                       invitesColumns={invitesColumns}
                       onCreateInvite={onCreateInvite}
+                      creatingInvite={creatingInvite}
+                      isMobile={isMobile}
+                      onRevokeInvite={onRevokeInvite}
+                      message={message}
                     />
                   </div>
                 ),

@@ -16,6 +16,14 @@ html[data-theme="dark"] body {
 html[data-theme="light"] body {
   background: #ffffff;
 }
+html, body {
+  height: 100%;
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
 
 
 html,

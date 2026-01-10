@@ -31,7 +31,7 @@ export default function LoginPage() {
 
       if (error) throw error;
 
-      message.success("Welcome back");
+      // message.success("Welcome back");
       router.replace("/");
       router.refresh?.();
     } catch (e) {

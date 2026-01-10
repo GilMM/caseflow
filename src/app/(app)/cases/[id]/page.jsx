@@ -2,7 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Button, Card, Divider, Input, Space, Tag, Typography, message } from "antd";
+import {
+  Button,
+  Card,
+  Divider,
+  Input,
+  Space,
+  Tag,
+  Typography,
+  message,
+  Grid,
+  Spin,
+} from "antd";
 import { ArrowLeftOutlined, CheckOutlined } from "@ant-design/icons";
 
 import CaseAssignment from "@/components/cases/CaseAssignment";
@@ -13,10 +24,11 @@ import {
   getCaseActivities,
   getCaseById,
   updateCaseStatus,
-  getOrgMembers, // ✅ צריך כדי לבנות userMap
+  getOrgMembers,
 } from "@/lib/db";
 
 const { Title, Text } = Typography;
+const { useBreakpoint } = Grid;
 
 function statusColor(status) {
   switch (status) {
@@ -53,10 +65,12 @@ function priorityColor(p) {
 export default function CaseDetailsPage() {
   const router = useRouter();
   const { id } = useParams();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   const [row, setRow] = useState(null);
   const [items, setItems] = useState([]); // activities
-  const [userMap, setUserMap] = useState({}); // ✅ map userId -> full_name/email
+  const [userMap, setUserMap] = useState({});
   const [loading, setLoading] = useState(true);
 
   const [note, setNote] = useState("");
@@ -85,7 +99,7 @@ export default function CaseDetailsPage() {
         setUserMap({});
       }
     } catch (e) {
-      message.error(e.message || "Failed to load case");
+      message.error(e?.message || "Failed to load case");
     } finally {
       setLoading(false);
     }
@@ -114,13 +128,12 @@ export default function CaseDetailsPage() {
 
     setBusyNote(true);
     try {
-      // שים לב: אצלך הפונקציות הן בצורה של אובייקט
       await addCaseNote({ caseId: row.id, orgId: row.org_id, body: text });
       setNote("");
       await loadAll();
       message.success("Note added");
     } catch (e) {
-      message.error(e.message || "Failed to add note");
+      message.error(e?.message || "Failed to add note");
     } finally {
       setBusyNote(false);
     }
@@ -136,14 +149,37 @@ export default function CaseDetailsPage() {
       await loadAll();
       message.success(`Status updated to ${nextStatus}`);
     } catch (e) {
-      message.error(e.message || "Failed to update status");
+      message.error(e?.message || "Failed to update status");
     } finally {
       setBusyStatus(false);
     }
   }
 
-  if (loading) return <Card>Loading…</Card>;
-  if (!row) return <Card>Not found</Card>;
+  if (loading) {
+    return (
+      <Card style={{ borderRadius: 16 }}>
+        <div style={{ height: "40vh", display: "grid", placeItems: "center" }}>
+          <Spin size="large" />
+        </div>
+      </Card>
+    );
+  }
+
+  if (!row) {
+    return (
+      <Card style={{ borderRadius: 16 }}>
+        <Space orientation="vertical" size={6}>
+          <Title level={4} style={{ margin: 0 }}>
+            Not found
+          </Title>
+          <Text type="secondary">This case does not exist or you don&apos;t have access.</Text>
+          <Button icon={<ArrowLeftOutlined />} onClick={() => router.push("/cases")} style={{ width: "fit-content" }}>
+            Back to Cases
+          </Button>
+        </Space>
+      </Card>
+    );
+  }
 
   return (
     <Space orientation="vertical" size={14} style={{ width: "100%" }}>
@@ -151,21 +187,33 @@ export default function CaseDetailsPage() {
         icon={<ArrowLeftOutlined />}
         onClick={() => router.push("/cases")}
         style={{ width: "fit-content" }}
+        block={isMobile}
       >
         Back to Cases
       </Button>
 
-      <Card>
+      <Card style={{ borderRadius: 16 }}>
         <Space orientation="vertical" size={10} style={{ width: "100%" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
-            <div>
-              <Title level={3} style={{ margin: 0 }}>
-                {row.title}
+          {/* Header block */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              alignItems: "flex-start",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ minWidth: 0, flex: "1 1 320px" }}>
+              <Title level={isMobile ? 4 : 3} style={{ margin: 0 }}>
+                {row.title || "(untitled)"}
               </Title>
-              <Text type="secondary">Created: {new Date(row.created_at).toLocaleString()}</Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Created: {new Date(row.created_at).toLocaleString()}
+              </Text>
             </div>
 
-            <Space wrap>
+            <Space wrap style={{ justifyContent: isMobile ? "flex-start" : "flex-end" }}>
               <Tag color={statusColor(row.status)}>{row.status}</Tag>
               <Tag color={priorityColor(row.priority)}>{row.priority}</Tag>
             </Space>
@@ -173,14 +221,18 @@ export default function CaseDetailsPage() {
 
           <Divider style={{ margin: "12px 0" }} />
 
+          {/* Description */}
           <div style={{ display: "grid", gap: 10 }}>
             <Text strong>Description</Text>
-            <div style={{ whiteSpace: "pre-wrap" }}>{row.description || "—"}</div>
+            <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+              {row.description || "—"}
+            </div>
           </div>
 
           <Divider style={{ margin: "12px 0" }} />
 
-          <Card>
+          {/* Assignment */}
+          <Card style={{ borderRadius: 14 }}>
             <CaseAssignment
               caseId={row.id}
               orgId={row.org_id}
@@ -189,41 +241,66 @@ export default function CaseDetailsPage() {
             />
           </Card>
 
+          {/* Quick status */}
           <div>
             <Text strong>Quick status</Text>
-            <div style={{ marginTop: 8 }}>
-              <Space wrap>
-                {quickStatuses.map((s) => (
-                  <Button
-                    key={s.key}
-                    type={row.status === s.key ? "primary" : "default"}
-                    disabled={busyStatus}
-                    onClick={() => onChangeStatus(s.key)}
-                    icon={row.status === s.key ? <CheckOutlined /> : null}
-                  >
-                    {s.label}
-                  </Button>
-                ))}
-              </Space>
+
+            {/* במובייל: Grid של כפתורים כדי שלא יברחו לצדדים */}
+            <div
+              style={{
+                marginTop: 10,
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, max-content)",
+                gap: 8,
+                alignItems: "center",
+              }}
+            >
+              {quickStatuses.map((s) => (
+                <Button
+                  key={s.key}
+                  type={row.status === s.key ? "primary" : "default"}
+                  disabled={busyStatus}
+                  onClick={() => onChangeStatus(s.key)}
+                  icon={row.status === s.key ? <CheckOutlined /> : null}
+                  style={isMobile ? { width: "100%" } : undefined}
+                >
+                  {s.label}
+                </Button>
+              ))}
             </div>
+
+            {isMobile ? (
+              <Text type="secondary" style={{ fontSize: 12, display: "block", marginTop: 8 }}>
+                Tip: tap a status to update quickly
+              </Text>
+            ) : null}
           </div>
         </Space>
       </Card>
 
-      <Card title="Add note">
+      {/* Add note */}
+      <Card title="Add note" style={{ borderRadius: 16 }}>
         <Space orientation="vertical" size={10} style={{ width: "100%" }}>
           <Input.TextArea
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            rows={3}
+            rows={isMobile ? 4 : 3}
             placeholder="Write an internal note…"
           />
-          <Button type="primary" onClick={onAddNote} loading={busyNote} style={{ width: "fit-content" }}>
+          <Button
+            type="primary"
+            onClick={onAddNote}
+            loading={busyNote}
+            block={isMobile}
+            style={!isMobile ? { width: "fit-content" } : undefined}
+            disabled={!note.trim()}
+          >
             Add Note
           </Button>
         </Space>
       </Card>
 
+      {/* Timeline */}
       <Card title="Timeline" style={{ borderRadius: 16 }}>
         <CaseTimeline items={items} userMap={userMap} />
       </Card>
