@@ -69,9 +69,7 @@ function Feature({ icon, title, desc, token }) {
           borderRadius: 10,
           display: "grid",
           placeItems: "center",
-          border: `1px solid ${
-            token.colorBorderSecondary || token.colorBorder
-          }`,
+          border: `1px solid ${token.colorBorderSecondary || token.colorBorder}`,
           background:
             "radial-gradient(400px 180px at 20% 20%, rgba(22,119,255,0.18), transparent 55%), radial-gradient(360px 160px at 80% 30%, rgba(82,196,26,0.14), transparent 55%)",
           flex: "0 0 auto",
@@ -80,9 +78,7 @@ function Feature({ icon, title, desc, token }) {
         {icon}
       </div>
       <div style={{ minWidth: 0 }}>
-        <div
-          style={{ fontWeight: 700, color: token.colorText, lineHeight: 1.2 }}
-        >
+        <div style={{ fontWeight: 700, color: token.colorText, lineHeight: 1.2 }}>
           {title}
         </div>
         <div
@@ -169,17 +165,13 @@ export default function OnboardingPage() {
     const raw = (input || "").trim();
     if (!raw) return "";
 
-    // If user pasted a full URL, extract ?invite=
     if (raw.startsWith("http://") || raw.startsWith("https://")) {
       try {
         const u = new URL(raw);
         return (u.searchParams.get("invite") || "").trim();
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
 
-    // If user pasted something like "...invite=TOKEN"
     const m = raw.match(/invite=([a-zA-Z0-9\-_]+)/);
     if (m?.[1]) return m[1].trim();
 
@@ -235,9 +227,14 @@ export default function OnboardingPage() {
       const userId = sessionData?.session?.user?.id;
       if (!userId) throw new Error("Not authenticated");
 
+      // ✅ Create org with owner_user_id
       const { data: org, error: orgErr } = await supabase
         .from("organizations")
-        .insert({ name, created_by: userId }) // NOTE: ודא שיש created_by בטבלה
+        .insert({
+          name,
+          created_by: userId,
+          owner_user_id: userId, // ✅ Primary admin / owner
+        })
         .select("id, name")
         .single();
       if (orgErr) throw orgErr;
@@ -296,19 +293,13 @@ export default function OnboardingPage() {
   return (
     <div
       style={{
-        minHeight: "calc(100vh - 56px - 36px)", // header + padding באזור ה-Content שלך
+        minHeight: "calc(100vh - 56px - 36px)",
         display: "grid",
         placeItems: "center",
         padding: "18px 0",
       }}
     >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 1120,
-          padding: "0 2px",
-        }}
-      >
+      <div style={{ width: "100%", maxWidth: 1120, padding: "0 2px" }}>
         <Card
           style={{
             borderRadius: 20,
@@ -320,37 +311,25 @@ export default function OnboardingPage() {
           bodyStyle={{ padding: 0 }}
         >
           <Row gutter={0} style={{ minHeight: 520 }}>
-            {/* Left Hero */}
             <Col xs={24} lg={11} style={{ padding: 22 }}>
               <Space direction="vertical" size={14} style={{ width: "100%" }}>
                 <Space wrap size={8}>
-                  <Pill
-                    icon={<SafetyCertificateOutlined />}
-                    label="RLS-secured"
-                  />
+                  <Pill icon={<SafetyCertificateOutlined />} label="RLS-secured" />
                   <Pill icon={<ThunderboltOutlined />} label="Fast setup" />
                   <Pill icon={<TeamOutlined />} label="Multi-tenant" />
                 </Space>
 
                 <div>
                   <Title level={2} style={{ margin: 0, lineHeight: 1.15 }}>
-                    Welcome to{" "}
-                    <span style={{ color: token.colorPrimary }}>CaseFlow</span>
+                    Welcome to <span style={{ color: token.colorPrimary }}>CaseFlow</span>
                   </Title>
                   <Text type="secondary" style={{ fontSize: 14 }}>
-                    Create your workspace or join an existing organization with
-                    an invite. In less than a minute you’ll be inside the
-                    dashboard.
+                    Create your workspace or join an existing organization with an invite. In less than a minute you’ll be inside the dashboard.
                   </Text>
                 </div>
 
                 {error ? (
-                  <Alert
-                    type="error"
-                    showIcon
-                    message="Onboarding error"
-                    description={error}
-                  />
+                  <Alert type="error" showIcon message="Onboarding error" description={error} />
                 ) : null}
 
                 <Divider style={{ margin: "2px 0" }} />
@@ -358,27 +337,19 @@ export default function OnboardingPage() {
                 <Space direction="vertical" size={10} style={{ width: "100%" }}>
                   <Feature
                     token={token}
-                    icon={
-                      <InboxOutlined style={{ color: token.colorPrimary }} />
-                    }
+                    icon={<InboxOutlined style={{ color: token.colorPrimary }} />}
                     title="Case management"
                     desc="Open, track, and resolve requests with queues and priorities."
                   />
                   <Feature
                     token={token}
-                    icon={
-                      <TeamOutlined style={{ color: token.colorSuccess }} />
-                    }
+                    icon={<TeamOutlined style={{ color: token.colorSuccess }} />}
                     title="Teams & roles"
                     desc="Admins manage members. Agents handle cases. Viewers stay read-only."
                   />
                   <Feature
                     token={token}
-                    icon={
-                      <SafetyCertificateOutlined
-                        style={{ color: token.colorPrimary }}
-                      />
-                    }
+                    icon={<SafetyCertificateOutlined style={{ color: token.colorPrimary }} />}
                     title="Database-first security"
                     desc="Permissions are enforced in Supabase RLS—not only in the UI."
                   />
@@ -386,14 +357,12 @@ export default function OnboardingPage() {
 
                 <div style={{ marginTop: 6 }}>
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    Tip: If you were invited, paste the token on the right and
-                    you’ll see a preview before joining.
+                    Tip: If you were invited, paste the token on the right and you’ll see a preview before joining.
                   </Text>
                 </div>
               </Space>
             </Col>
 
-            {/* Right Actions */}
             <Col
               xs={24}
               lg={13}
@@ -404,13 +373,7 @@ export default function OnboardingPage() {
               }}
             >
               <Space direction="vertical" size={12} style={{ width: "100%" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    justifyContent: "space-between",
-                  }}
-                >
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
                   <Title level={4} style={{ margin: 0 }}>
                     Get started
                   </Title>
@@ -431,43 +394,23 @@ export default function OnboardingPage() {
                       style={{ borderRadius: 16, height: "100%" }}
                       bodyStyle={{ paddingTop: 10 }}
                     >
-                      <Text
-                        type="secondary"
-                        style={{ display: "block", marginBottom: 10 }}
-                      >
+                      <Text type="secondary" style={{ display: "block", marginBottom: 10 }}>
                         Start a new workspace and become admin.
                       </Text>
 
-                      <Form
-                        form={formOrg}
-                        layout="vertical"
-                        onFinish={createOrg}
-                        requiredMark={false}
-                      >
+                      <Form form={formOrg} layout="vertical" onFinish={createOrg} requiredMark={false}>
                         <Form.Item
                           name="name"
                           label="Organization name"
                           rules={[
-                            {
-                              required: true,
-                              message: "Enter an organization name",
-                            },
+                            { required: true, message: "Enter an organization name" },
                             { min: 2, message: "Too short" },
                           ]}
                         >
-                          <Input
-                            placeholder="e.g., Acme Support"
-                            disabled={busy}
-                          />
+                          <Input placeholder="e.g., Acme Support" disabled={busy} />
                         </Form.Item>
 
-                        <Button
-                          type="primary"
-                          icon={<PlusOutlined />}
-                          htmlType="submit"
-                          loading={busy}
-                          block
-                        >
+                        <Button type="primary" icon={<PlusOutlined />} htmlType="submit" loading={busy} block>
                           Create workspace
                         </Button>
 
@@ -491,10 +434,7 @@ export default function OnboardingPage() {
                       style={{ borderRadius: 16, height: "100%" }}
                       bodyStyle={{ paddingTop: 10 }}
                     >
-                      <Text
-                        type="secondary"
-                        style={{ display: "block", marginBottom: 10 }}
-                      >
+                      <Text type="secondary" style={{ display: "block", marginBottom: 10 }}>
                         Paste an invite token to join a team.
                       </Text>
 
@@ -505,12 +445,9 @@ export default function OnboardingPage() {
                         requiredMark={false}
                         onValuesChange={(changed) => {
                           if (changed.token !== undefined) {
-                            if (previewTimer.current)
-                              clearTimeout(previewTimer.current);
+                            if (previewTimer.current) clearTimeout(previewTimer.current);
                             previewTimer.current = setTimeout(() => {
-                              const normalized = normalizeInviteToken(
-                                changed.token
-                              );
+                              const normalized = normalizeInviteToken(changed.token);
                               formInvite.setFieldsValue({ token: normalized });
                               previewInvite(normalized);
                             }, 250);
@@ -520,14 +457,9 @@ export default function OnboardingPage() {
                         <Form.Item
                           name="token"
                           label="Invite token"
-                          rules={[
-                            { required: true, message: "Paste invite token" },
-                          ]}
+                          rules={[{ required: true, message: "Paste invite token" }]}
                         >
-                          <Input
-                            placeholder="Paste token here…"
-                            disabled={busy}
-                          />
+                          <Input placeholder="Paste token here…" disabled={busy} />
                         </Form.Item>
 
                         <div style={{ minHeight: 44, marginBottom: 8 }}>
@@ -545,26 +477,15 @@ export default function OnboardingPage() {
                               <Alert
                                 type="success"
                                 showIcon
-                                message={`Invite to: ${
-                                  invitePreview.org_name || invitePreview.org_id
-                                }`}
+                                message={`Invite to: ${invitePreview.org_name || invitePreview.org_id}`}
                                 description={
                                   <Space direction="vertical" size={2}>
-                                    <Text
-                                      type="secondary"
-                                      style={{ fontSize: 12 }}
-                                    >
+                                    <Text type="secondary" style={{ fontSize: 12 }}>
                                       Role: <b>{invitePreview.role}</b>
                                     </Text>
                                     {invitePreview.expires_at ? (
-                                      <Text
-                                        type="secondary"
-                                        style={{ fontSize: 12 }}
-                                      >
-                                        Expires:{" "}
-                                        {new Date(
-                                          invitePreview.expires_at
-                                        ).toLocaleString()}
+                                      <Text type="secondary" style={{ fontSize: 12 }}>
+                                        Expires: {new Date(invitePreview.expires_at).toLocaleString()}
                                       </Text>
                                     ) : null}
                                   </Space>
@@ -580,10 +501,7 @@ export default function OnboardingPage() {
                           htmlType="submit"
                           loading={busy}
                           block
-                          disabled={
-                            !formInvite.getFieldValue("token") ||
-                            invitePreview?._expired
-                          }
+                          disabled={!formInvite.getFieldValue("token") || invitePreview?._expired}
                         >
                           Accept invite
                         </Button>
@@ -601,8 +519,7 @@ export default function OnboardingPage() {
                 <Divider style={{ margin: "2px 0" }} />
 
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  Having trouble? Make sure you’re logged in, then paste the
-                  invite token again.
+                  Having trouble? Make sure you’re logged in, then paste the invite token again.
                 </Text>
               </Space>
             </Col>

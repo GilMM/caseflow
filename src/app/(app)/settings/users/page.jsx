@@ -46,6 +46,7 @@ import {
   CopyOutlined,
   StopOutlined,
   MailOutlined,
+  CrownOutlined,
 } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
@@ -57,8 +58,7 @@ function initials(nameOrEmail) {
   if (!s) return "?";
   const parts = s.split(/\s+/).filter(Boolean);
   const a = parts[0]?.[0] || "";
-  const b =
-    parts.length > 1 ? parts[parts.length - 1]?.[0] : parts[0]?.[1] || "";
+  const b = parts.length > 1 ? parts[parts.length - 1]?.[0] : parts[0]?.[1] || "";
   return (a + b).toUpperCase() || "?";
 }
 
@@ -76,15 +76,9 @@ function timeAgo(iso) {
   return `${d}d ago`;
 }
 
-/* ---------------- Invites Panel (fix for useForm warning) ---------------- */
+/* ---------------- Invites Panel ---------------- */
 
-function InvitesPanel({
-  workspace,
-  invites,
-  invitesLoading,
-  invitesColumns,
-  onCreateInvite,
-}) {
+function InvitesPanel({ invites, invitesLoading, invitesColumns, onCreateInvite }) {
   const [inviteForm] = Form.useForm();
 
   return (
@@ -109,11 +103,7 @@ function InvitesPanel({
               { type: "email", message: "Invalid email" },
             ]}
           >
-            <Input
-              prefix={<MailOutlined />}
-              placeholder="user@company.com"
-              style={{ width: 280 }}
-            />
+            <Input prefix={<MailOutlined />} placeholder="user@company.com" style={{ width: 280 }} />
           </Form.Item>
 
           <Form.Item name="role">
@@ -135,8 +125,7 @@ function InvitesPanel({
         <Divider style={{ margin: "12px 0" }} />
 
         <Text type="secondary" style={{ fontSize: 12 }}>
-          Tip: the link is copied automatically. The invited user must be
-          logged-in with the same email.
+          Tip: the link is copied automatically. The invited user must be logged-in with the same email.
         </Text>
       </Card>
 
@@ -168,6 +157,7 @@ export default function UsersManagementPage() {
   const [sessionUser, setSessionUser] = useState(null);
 
   const isAdmin = workspace?.role === "admin";
+  const ownerUserId = workspace?.ownerUserId || null; // ✅ from getActiveWorkspace()
 
   // Members
   const [members, setMembers] = useState([]);
@@ -324,53 +314,71 @@ export default function UsersManagementPage() {
       {
         title: "User",
         dataIndex: "email",
-        render: (_, r) => (
-          <Space>
-            <Avatar src={r.avatar_url || undefined}>
-              {initials(r.full_name || r.email)}
-            </Avatar>
-            <Space orientation="vertical" size={0}>
-              <Text strong>{r.full_name || r.email}</Text>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                {r.email}
-              </Text>
+        render: (_, r) => {
+          const label = ((r?.full_name || r?.email || "User")?.trim?.() || r?.email || "User");
+          const sub = r?.email || "—";
+          const isOwnerRow = !!ownerUserId && r?.user_id === ownerUserId;
+
+          return (
+            <Space>
+              <Avatar src={r?.avatar_url || undefined}>{initials(label)}</Avatar>
+
+              <Space orientation="vertical" size={0}>
+                <Space size={8} wrap>
+                  <Text strong>{label}</Text>
+                  {isOwnerRow ? (
+                    <Tag icon={<CrownOutlined />} color="gold">
+                      Owner
+                    </Tag>
+                  ) : null}
+                </Space>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {sub}
+                </Text>
+              </Space>
             </Space>
-          </Space>
-        ),
+          );
+        },
       },
       {
         title: "Role",
         dataIndex: "role",
-        width: 160,
-        render: (v, r) => (
-          <Select
-            value={v}
-            style={{ width: 140 }}
-            disabled={membersUpdating || r.user_id === sessionUser?.id}
-            options={[
-              { value: "admin", label: "Admin" },
-              { value: "agent", label: "Agent" },
-              { value: "viewer", label: "Viewer" },
-            ]}
-            onChange={(role) =>
-              onChangeMemberRole(workspace.orgId, r.user_id, role)
-            }
-          />
-        ),
+        width: 180,
+        render: (v, r) => {
+          const isOwnerRow = !!ownerUserId && r?.user_id === ownerUserId;
+          const disableEdit = membersUpdating || r.user_id === sessionUser?.id || isOwnerRow;
+
+          return (
+            <Select
+              value={v}
+              style={{ width: 160 }}
+              disabled={disableEdit}
+              options={[
+                { value: "admin", label: "Admin" },
+                { value: "agent", label: "Agent" },
+                { value: "viewer", label: "Viewer" },
+              ]}
+              onChange={(role) => onChangeMemberRole(workspace.orgId, r.user_id, role)}
+            />
+          );
+        },
       },
       {
         title: "Active",
         dataIndex: "is_active",
-        width: 120,
-        render: (v, r) => (
-          <Switch
-            checked={!!v}
-            disabled={membersUpdating || r.user_id === sessionUser?.id}
-            onChange={(checked) =>
-              onToggleMemberActive(workspace.orgId, r.user_id, checked)
-            }
-          />
-        ),
+        width: 140,
+        render: (v, r) => {
+          const isOwnerRow = !!ownerUserId && r?.user_id === ownerUserId;
+          const disableEdit = membersUpdating || r.user_id === sessionUser?.id || isOwnerRow;
+
+          return (
+            <Switch
+              checked={!!v}
+              disabled={disableEdit}
+              onChange={(checked) => onToggleMemberActive(workspace.orgId, r.user_id, checked)}
+            />
+          );
+        },
       },
       {
         title: "Joined",
@@ -379,7 +387,7 @@ export default function UsersManagementPage() {
         render: (v) => <Text type="secondary">{timeAgo(v)}</Text>,
       },
     ],
-    [membersUpdating, workspace?.orgId, sessionUser?.id]
+    [membersUpdating, workspace?.orgId, sessionUser?.id, ownerUserId]
   );
 
   const invitesColumns = useMemo(
@@ -442,12 +450,7 @@ export default function UsersManagementPage() {
                 disabled={disabled}
               >
                 <Tooltip title="Revoke invite">
-                  <Button
-                    size="small"
-                    danger
-                    icon={<StopOutlined />}
-                    disabled={disabled}
-                  />
+                  <Button size="small" danger icon={<StopOutlined />} disabled={disabled} />
                 </Tooltip>
               </Popconfirm>
             </Space>
@@ -471,8 +474,7 @@ export default function UsersManagementPage() {
       <Card
         style={{
           borderRadius: 16,
-          background:
-            "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
+          background: "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
         }}
       >
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
@@ -483,8 +485,11 @@ export default function UsersManagementPage() {
               </Title>
               <Space wrap size={8}>
                 <Tag icon={<TeamOutlined />}>Admin</Tag>
-                {workspace?.orgName ? (
-                  <Tag color="blue">{workspace.orgName}</Tag>
+                {workspace?.orgName ? <Tag color="blue">{workspace.orgName}</Tag> : null}
+                {!!workspace?.ownerUserId ? (
+                  <Tag icon={<CrownOutlined />} color="gold">
+                    Primary admin protected
+                  </Tag>
                 ) : null}
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   Manage members and invites for this organization
@@ -495,18 +500,11 @@ export default function UsersManagementPage() {
 
           <Col>
             <Space wrap>
-              <Button
-                icon={<ArrowLeftOutlined />}
-                onClick={() => router.push("/settings")}
-              >
+              <Button icon={<ArrowLeftOutlined />} onClick={() => router.push("/settings")}>
                 Back to Settings
               </Button>
 
-              <Button
-                icon={<ReloadOutlined />}
-                loading={refreshing}
-                onClick={() => boot({ silent: true })}
-              >
+              <Button icon={<ReloadOutlined />} loading={refreshing} onClick={() => boot({ silent: true })}>
                 Refresh
               </Button>
             </Space>
@@ -514,22 +512,10 @@ export default function UsersManagementPage() {
         </Row>
       </Card>
 
-      {error ? (
-        <Alert
-          type="error"
-          showIcon
-          title="Cannot open user management"
-          description={error}
-        />
-      ) : null}
+      {error ? <Alert type="error" showIcon title="Cannot open user management" description={error} /> : null}
 
       {!isAdmin ? (
-        <Alert
-          type="warning"
-          showIcon
-          title="Admin only"
-          description="You do not have permission to manage users."
-        />
+        <Alert type="warning" showIcon title="Admin only" description="You do not have permission to manage users." />
       ) : (
         <Card style={{ borderRadius: 16 }}>
           <Tabs
@@ -556,7 +542,6 @@ export default function UsersManagementPage() {
                 children: (
                   <div style={{ opacity: creatingInvite ? 0.8 : 1 }}>
                     <InvitesPanel
-                      workspace={workspace}
                       invites={invites}
                       invitesLoading={invitesLoading}
                       invitesColumns={invitesColumns}

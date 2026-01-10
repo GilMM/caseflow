@@ -14,11 +14,15 @@ export async function initializeWorkspace({
   const user = sessionData?.session?.user;
   if (!user) throw new Error("Not authenticated");
 
-  // 1) Create organization
+  // 1) Create organization (✅ includes owner_user_id)
   const { data: org, error: orgErr } = await supabase
     .from("organizations")
-    .insert({ name: orgName, created_by: user.id })
-    .select("id,name")
+    .insert({
+      name: orgName,
+      created_by: user.id,
+      owner_user_id: user.id, // ✅ primary admin / owner
+    })
+    .select("id,name,owner_user_id")
     .single();
 
   if (orgErr) throw orgErr;
@@ -55,13 +59,12 @@ export async function initializeWorkspace({
 export async function getMyWorkspaces() {
   const { data, error } = await supabase
     .from("org_memberships")
-    .select("org_id, role, is_active, organizations:org_id ( id, name )")
+    .select("org_id, role, is_active, organizations:org_id ( id, name, owner_user_id )")
     .order("created_at", { ascending: false });
 
   if (error) throw error;
   return data || [];
 }
-
 
 export async function createCase({
   orgId,
@@ -84,7 +87,7 @@ export async function createCase({
       description: description || null,
       priority,
       created_by: user.id,
-      requester_contact_id: requesterContactId || null, // ✅ here
+      requester_contact_id: requesterContactId || null,
     })
     .select("id")
     .single();
@@ -93,12 +96,13 @@ export async function createCase({
   return data.id;
 }
 
-
 /** Load one case */
 export async function getCaseById(caseId) {
   const { data, error } = await supabase
     .from("cases")
-    .select("id, org_id, title, description, status, priority, assigned_to, created_at, updated_at")
+    .select(
+      "id, org_id, title, description, status, priority, assigned_to, created_at, updated_at"
+    )
     .eq("id", caseId)
     .single();
 
@@ -149,7 +153,6 @@ export async function updateCaseStatus({ caseId, orgId, status }) {
 
   if (upErr) throw upErr;
 
-  // log timeline item
   const { error: actErr } = await supabase.from("case_activities").insert({
     org_id: orgId,
     case_id: caseId,
@@ -162,11 +165,14 @@ export async function updateCaseStatus({ caseId, orgId, status }) {
   if (actErr) throw actErr;
 }
 
-// Returns { orgId, role } for first workspace (MVP)
+/**
+ * Returns { orgId, orgName, role, ownerUserId } for active workspace (MVP)
+ * ✅ Added ownerUserId to support primary admin logic in UI
+ */
 export async function getActiveWorkspace() {
   const { data, error } = await supabase
     .from("org_memberships")
-    .select("org_id, role, is_active, organizations:org_id ( id, name )")
+    .select("org_id, role, is_active, organizations:org_id ( id, name, owner_user_id )")
     .eq("is_active", true)
     .order("created_at", { ascending: false })
     .limit(1);
@@ -179,11 +185,11 @@ export async function getActiveWorkspace() {
     orgId: m.org_id,
     orgName: m.organizations?.name || "Workspace",
     role: m.role,
+    ownerUserId: m.organizations?.owner_user_id || null, // ✅ important
   };
 }
 
 export async function getDashboardStats(orgId) {
-  // Pull recent cases and compute KPIs client-side (fast enough for MVP)
   const { data, error } = await supabase
     .from("cases")
     .select("id,status,priority,created_at,assigned_to")
@@ -200,7 +206,6 @@ export async function getDashboardStats(orgId) {
   startOfToday.setHours(0, 0, 0, 0);
 
   const startOfWeek = new Date(now);
-  // week starts Monday-ish; good enough for demo
   const day = (startOfWeek.getDay() + 6) % 7; // 0=Mon
   startOfWeek.setDate(startOfWeek.getDate() - day);
   startOfWeek.setHours(0, 0, 0, 0);
@@ -214,7 +219,6 @@ export async function getDashboardStats(orgId) {
     (c) => c.status === "resolved" && new Date(c.created_at) >= startOfWeek
   );
 
-  // Simple distribution for chart
   const byStatus = rows.reduce((acc, c) => {
     acc[c.status] = (acc[c.status] || 0) + 1;
     return acc;
@@ -256,8 +260,6 @@ export async function getRecentActivity(orgId) {
   return data || [];
 }
 
-
-
 // Get org members list for assignment UI
 export async function getOrgMembers(orgId) {
   const { data, error } = await supabase
@@ -270,16 +272,12 @@ export async function getOrgMembers(orgId) {
   return data || [];
 }
 
-
-
-
 // Assign case and log activity
 export async function assignCase({ caseId, orgId, toUserId }) {
   const { data: sessionData } = await supabase.auth.getSession();
   const user = sessionData?.session?.user;
   if (!user) throw new Error("Not authenticated");
 
-  // Read current assignment to log "from"
   const { data: current, error: curErr } = await supabase
     .from("cases")
     .select("assigned_to")
@@ -310,8 +308,6 @@ export async function assignCase({ caseId, orgId, toUserId }) {
   });
   if (actErr) throw actErr;
 }
-
-
 
 export async function addOrgMember({ orgId, userId, role = "viewer" }) {
   const { error } = await supabase.from("org_memberships").insert({
@@ -355,7 +351,6 @@ export async function getJoinRequests(orgId) {
 }
 
 export async function approveJoinRequest(request) {
-  // 1. Mark request approved
   const { error: updErr } = await supabase
     .from("org_join_requests")
     .update({
@@ -366,15 +361,12 @@ export async function approveJoinRequest(request) {
 
   if (updErr) throw updErr;
 
-  // 2. Add membership
-  const { error: memErr } = await supabase
-    .from("org_memberships")
-    .insert({
-      org_id: request.org_id,
-      user_id: request.requester_user_id,
-      role: "agent",
-      is_active: true,
-    });
+  const { error: memErr } = await supabase.from("org_memberships").insert({
+    org_id: request.org_id,
+    user_id: request.requester_user_id,
+    role: "agent",
+    is_active: true,
+  });
 
   if (memErr) throw memErr;
 }
@@ -406,7 +398,6 @@ export async function createOrgInvite({ orgId, email, role = "agent" }) {
   return row;
 }
 
-
 export async function getOrgInvites(orgId) {
   const { data, error } = await supabase.rpc("get_org_invites", {
     p_org_id: orgId,
@@ -431,7 +422,6 @@ export async function getInviteByToken(token) {
   if (error) throw error;
   return (Array.isArray(data) ? data[0] : data) || null;
 }
-
 
 export async function listOrgMembers(orgId) {
   const { data, error } = await supabase.rpc("list_org_members", {
