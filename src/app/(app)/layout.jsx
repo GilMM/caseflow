@@ -227,7 +227,7 @@ export default function AppLayout({ children }) {
   }
 
   return (
-    <Layout style={{ height: "100vh", overflow: "hidden", background: token.colorBgLayout }}>
+    <Layout style={{ height: "100dvh", overflow: "hidden", background: token.colorBgLayout }}>
       {/* Desktop Sider */}
       {!isMobile && (
         <Sider
@@ -372,6 +372,8 @@ export default function AppLayout({ children }) {
             overflowY: "auto",
             overflowX: "hidden",
             flex: "1 1 auto",
+            WebkitOverflowScrolling: "touch", // ✅ iOS smooth scrolling
+            overscrollBehavior: "contain",    // ✅ מונע “גלילה שנשפכת” ל-body
           }}
         >
           <div style={{ maxWidth: 1200, margin: "0 auto" }}>{children}</div>
