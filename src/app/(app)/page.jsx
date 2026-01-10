@@ -12,6 +12,10 @@ import {
   getOrgMembers,
 } from "@/lib/db";
 
+import { getStatusMeta, shortId, timeAgo, caseKey } from "@/lib/ui/status";
+import { getPriorityMeta } from "@/lib/ui/priority";
+import { getActivityMeta, activityBg } from "@/lib/ui/activity";
+
 import {
   Badge,
   Button,
@@ -41,46 +45,113 @@ import {
 
 const { Title, Text } = Typography;
 
-const statusColor = (s) =>
-  ({
-    new: "blue",
-    in_progress: "gold",
-    waiting_customer: "purple",
-    resolved: "green",
-    closed: "default",
-  }[s] || "default");
-
-const priorityColor = (p) =>
-  ({
-    urgent: "red",
-    high: "volcano",
-    normal: "default",
-    low: "cyan",
-  }[p] || "default");
-
-function shortId(id) {
-  if (!id) return "—";
-  return `${String(id).slice(0, 8)}…`;
-}
-
-function timeAgo(iso) {
-  const t = new Date(iso).getTime();
-  const now = Date.now();
-  const sec = Math.max(1, Math.floor((now - t) / 1000));
-  if (sec < 60) return `${sec}s ago`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const d = Math.floor(hr / 24);
-  return `${d}d ago`;
-}
-
 function greeting() {
   const h = new Date().getHours();
   if (h < 12) return "Good morning";
   if (h < 18) return "Good afternoon";
   return "Good evening";
+}
+function presetColorVar(color, level = 6) {
+  // AntD v5 exposes preset color CSS vars like --ant-color-blue-6
+  // fallback stays safe even אם אין var
+  if (!color || color === "default")
+    return "var(--ant-color-text, rgba(255,255,255,0.85))";
+  return `var(--ant-color-${color}-${level}, var(--ant-color-primary, #1677ff))`;
+}
+
+function renderActivityChange({ a, displayUser }) {
+  const t = String(a?.type || "").toLowerCase();
+  const meta = a?.meta || {};
+
+  // Helpers
+  const Arrow = (
+    <Text type="secondary" style={{ fontSize: 12 }}>
+      →
+    </Text>
+  );
+
+  // STATUS
+  if ((t === "status_change" || t === "status") && meta?.from && meta?.to) {
+    const fromM = getStatusMeta(meta.from);
+    const toM = getStatusMeta(meta.to);
+
+    return (
+      <Space size={6} wrap>
+        <Tag
+          color={fromM.color}
+          icon={fromM.Icon ? <fromM.Icon /> : null}
+          style={{ margin: 0 }}
+        >
+          {fromM.label}
+        </Tag>
+        {Arrow}
+        <Tag
+          color={toM.color}
+          icon={toM.Icon ? <toM.Icon /> : null}
+          style={{ margin: 0 }}
+        >
+          {toM.label}
+        </Tag>
+      </Space>
+    );
+  }
+
+  // PRIORITY
+  if ((t === "priority_change" || t === "priority") && meta?.from && meta?.to) {
+    const fromM = getPriorityMeta(meta.from);
+    const toM = getPriorityMeta(meta.to);
+
+    return (
+      <Space size={6} wrap>
+        <Tag
+          color={fromM.color}
+          icon={fromM.Icon ? <fromM.Icon /> : null}
+          style={{ margin: 0 }}
+        >
+          {fromM.label}
+        </Tag>
+        {Arrow}
+        <Tag
+          color={toM.color}
+          icon={toM.Icon ? <toM.Icon /> : null}
+          style={{ margin: 0 }}
+        >
+          {toM.label}
+        </Tag>
+      </Space>
+    );
+  }
+
+  // ASSIGNMENT
+  if (
+    (t === "assignment" || t === "assigned") &&
+    (meta?.from_user || meta?.to_user || meta?.from || meta?.to)
+  ) {
+    const fromU = meta?.from_user ?? meta?.from;
+    const toU = meta?.to_user ?? meta?.to;
+
+    if (!fromU && !toU) return null;
+
+    return (
+      <Space size={6} wrap>
+        {fromU ? (
+          <Tag style={{ margin: 0 }}>{displayUser(fromU)}</Tag>
+        ) : (
+          <Tag style={{ margin: 0 }}>Unassigned</Tag>
+        )}
+        {Arrow}
+        {toU ? (
+          <Tag color="cyan" style={{ margin: 0 }}>
+            {displayUser(toU)}
+          </Tag>
+        ) : (
+          <Tag style={{ margin: 0 }}>Unassigned</Tag>
+        )}
+      </Space>
+    );
+  }
+
+  return null;
 }
 
 export default function DashboardPage() {
@@ -91,7 +162,6 @@ export default function DashboardPage() {
   const [myCases, setMyCases] = useState([]);
   const [activity, setActivity] = useState([]);
 
-  // ✅ NEW: map userId -> full_name/email for pretty display
   const [userMap, setUserMap] = useState({});
 
   const [loading, setLoading] = useState(true);
@@ -120,11 +190,10 @@ export default function DashboardPage() {
         setStats(null);
         setMyCases([]);
         setActivity([]);
-        setUserMap({}); // ✅ important
+        setUserMap({});
         return;
       }
 
-      // ✅ Load dashboard data in parallel
       const [s, a] = await Promise.all([
         getDashboardStats(ws.orgId),
         getRecentActivity(ws.orgId),
@@ -133,16 +202,14 @@ export default function DashboardPage() {
       setStats(s);
       setActivity(a);
 
-      // ✅ Build userMap once per org (for names instead of UUID)
+      // Names map
       try {
         const members = await getOrgMembers(ws.orgId);
         const map = {};
-        for (const m of members) {
+        for (const m of members)
           map[m.user_id] = m.full_name || m.email || null;
-        }
         setUserMap(map);
-      } catch (e) {
-        // If members fetch fails due to RLS etc., we still keep dashboard working
+      } catch {
         setUserMap({});
       }
 
@@ -155,7 +222,7 @@ export default function DashboardPage() {
 
       setLastUpdated(new Date());
     } catch (e) {
-      message.error(e.message || "Failed to load dashboard");
+      message.error(e?.message || "Failed to load dashboard");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -165,7 +232,6 @@ export default function DashboardPage() {
   useEffect(() => {
     loadAll();
 
-    // Realtime updates
     const channel = supabase
       .channel("dashboard-live")
       .on(
@@ -190,7 +256,13 @@ export default function DashboardPage() {
   const statusChips = useMemo(() => {
     const map = stats?.byStatus || {};
     const entries = Object.entries(map);
-    const order = ["new", "in_progress", "waiting_customer", "resolved", "closed"];
+    const order = [
+      "new",
+      "in_progress",
+      "waiting_customer",
+      "resolved",
+      "closed",
+    ];
     entries.sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
     return entries;
   }, [stats]);
@@ -201,7 +273,9 @@ export default function DashboardPage() {
   const newTodayCount = stats?.newTodayCount || 0;
   const resolvedThisWeekCount = stats?.resolvedThisWeekCount || 0;
 
-  const urgentShare = openCount ? Math.round((urgentOpenCount / openCount) * 100) : 0;
+  const urgentShare = openCount
+    ? Math.round((urgentOpenCount / openCount) * 100)
+    : 0;
   const openShare = total ? Math.round((openCount / total) * 100) : 0;
 
   return (
@@ -211,7 +285,8 @@ export default function DashboardPage() {
         loading={loading}
         style={{
           borderRadius: 16,
-          background: "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
+          background:
+            "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
         }}
       >
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
@@ -219,7 +294,9 @@ export default function DashboardPage() {
             <Space orientation="vertical" size={2}>
               <Title level={3} style={{ margin: 0 }}>
                 {greeting()},{" "}
-                <span style={{ opacity: 0.9 }}>{workspace?.orgName || "CaseFlow"}</span>
+                <span style={{ opacity: 0.9 }}>
+                  {workspace?.orgName || "CaseFlow"}
+                </span>
               </Title>
               <Space wrap size={8}>
                 {workspace?.orgName ? (
@@ -227,12 +304,16 @@ export default function DashboardPage() {
                 ) : (
                   <Tag>Workspace: none</Tag>
                 )}
-                {workspace?.role ? <Tag color="geekblue">Role: {workspace.role}</Tag> : null}
+                {workspace?.role ? (
+                  <Tag color="geekblue">Role: {workspace.role}</Tag>
+                ) : null}
                 <Tag color="green" icon={<WifiOutlined />}>
                   Realtime
                 </Tag>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : "—"}
+                  {lastUpdated
+                    ? `Updated ${lastUpdated.toLocaleTimeString()}`
+                    : "—"}
                 </Text>
               </Space>
             </Space>
@@ -241,11 +322,19 @@ export default function DashboardPage() {
           <Col>
             <Space wrap>
               <Tooltip title="Refresh dashboard data">
-                <Button icon={<ReloadOutlined />} loading={refreshing} onClick={() => loadAll({ silent: true })}>
+                <Button
+                  icon={<ReloadOutlined />}
+                  loading={refreshing}
+                  onClick={() => loadAll({ silent: true })}
+                >
                   Refresh
                 </Button>
               </Tooltip>
-              <Button type="primary" icon={<InboxOutlined />} onClick={() => router.push("/cases")}>
+              <Button
+                type="primary"
+                icon={<InboxOutlined />}
+                onClick={() => router.push("/cases")}
+              >
                 Go to Cases
               </Button>
             </Space>
@@ -328,13 +417,19 @@ export default function DashboardPage() {
                     <FireOutlined />
                     <span>Urgent open</span>
                     <Tooltip title="Urgent cases as a % of open cases">
-                      <Tag color={urgentShare >= 20 ? "red" : "gold"}>{urgentShare}%</Tag>
+                      <Tag color={urgentShare >= 20 ? "red" : "gold"}>
+                        {urgentShare}%
+                      </Tag>
                     </Tooltip>
                   </Space>
                 }
                 value={urgentOpenCount}
               />
-              <Progress percent={urgentShare} showInfo={false} status={urgentShare >= 20 ? "exception" : "active"} />
+              <Progress
+                percent={urgentShare}
+                showInfo={false}
+                status={urgentShare >= 20 ? "exception" : "active"}
+              />
               <Text type="secondary" style={{ fontSize: 12 }}>
                 Priority = urgent • escalation signal
               </Text>
@@ -358,13 +453,25 @@ export default function DashboardPage() {
       >
         {statusChips.length ? (
           <Space wrap size={10}>
-            {statusChips.map(([k, v]) => (
-              <Badge key={k} count={v} overflowCount={999} style={{ backgroundColor: "#1677ff" }}>
-                <Tag color={statusColor(k)} style={{ marginInlineEnd: 8 }}>
-                  {k}
-                </Tag>
-              </Badge>
-            ))}
+            {statusChips.map(([k, v]) => {
+              const sm = getStatusMeta(k);
+              return (
+                <Badge
+                  key={k}
+                  count={v}
+                  overflowCount={999}
+                  style={{ backgroundColor: "#1677ff" }}
+                >
+                  <Tag
+                    color={sm.color}
+                    icon={sm.Icon ? <sm.Icon /> : null}
+                    style={{ marginInlineEnd: 8 }}
+                  >
+                    {sm.label}
+                  </Tag>
+                </Badge>
+              );
+            })}
           </Space>
         ) : (
           <Empty description="No data yet" />
@@ -379,7 +486,11 @@ export default function DashboardPage() {
             loading={loading}
             title="My work"
             extra={
-              <Button type="link" onClick={() => router.push("/cases")} style={{ padding: 0 }}>
+              <Button
+                type="link"
+                onClick={() => router.push("/cases")}
+                style={{ padding: 0 }}
+              >
                 View all →
               </Button>
             }
@@ -387,42 +498,68 @@ export default function DashboardPage() {
           >
             {myCases.length ? (
               <Space orientation="vertical" size={10} style={{ width: "100%" }}>
-                {myCases.map((c) => (
-                  <Card
-                    key={c.id}
-                    size="small"
-                    hoverable
-                    style={{ borderRadius: 14 }}
-                    onClick={() => router.push(`/cases/${c.id}`)}
-                  >
-                    <Row justify="space-between" align="top" gutter={[10, 10]}>
-                      <Col flex="auto">
-                        <Space orientation="vertical" size={4} style={{ width: "100%" }}>
-                          <Space wrap size={8}>
-                            <Text strong style={{ fontSize: 14 }}>
-                              {c.title}
-                            </Text>
-                            <Tag color={statusColor(c.status)}>{c.status}</Tag>
-                            <Tag color={priorityColor(c.priority)}>{c.priority}</Tag>
-                          </Space>
+                {myCases.map((c) => {
+                  const sm = getStatusMeta(c.status);
+                  const pm = getPriorityMeta(c.priority);
 
-                          <Space wrap size={10}>
-                            <Text type="secondary" style={{ fontSize: 12 }}>
-                              ID: {shortId(c.id)}
-                            </Text>
-                            <Text type="secondary" style={{ fontSize: 12 }}>
-                              Created {timeAgo(c.created_at)}
-                            </Text>
-                          </Space>
-                        </Space>
-                      </Col>
+                  return (
+                    <Card
+                      key={c.id}
+                      size="small"
+                      hoverable
+                      style={{ borderRadius: 14 }}
+                      onClick={() => router.push(`/cases/${c.id}`)}
+                    >
+                      <Row
+                        justify="space-between"
+                        align="top"
+                        gutter={[10, 10]}
+                      >
+                        <Col flex="auto">
+                          <Space
+                            orientation="vertical"
+                            size={4}
+                            style={{ width: "100%" }}
+                          >
+                            <Space wrap size={8}>
+                              <Text strong style={{ fontSize: 14 }}>
+                                {c.title}
+                              </Text>
 
-                      <Col>
-                        <Tag color="geekblue">Assigned</Tag>
-                      </Col>
-                    </Row>
-                  </Card>
-                ))}
+                              <Tag
+                                color={sm.color}
+                                icon={sm.Icon ? <sm.Icon /> : null}
+                              >
+                                {sm.label}
+                              </Tag>
+
+                              <Tag
+                                color={pm.color}
+                                icon={pm.Icon ? <pm.Icon /> : null}
+                              >
+                                {pm.label}
+                              </Tag>
+                            </Space>
+
+                            <Space wrap size={10}>
+                              <Text type="secondary" style={{ fontSize: 12 }}>
+                                Case {caseKey(c.id)}
+                              </Text>
+
+                              <Text type="secondary" style={{ fontSize: 12 }}>
+                                Created {timeAgo(c.created_at)}
+                              </Text>
+                            </Space>
+                          </Space>
+                        </Col>
+
+                        <Col>
+                          <Tag color="geekblue">Assigned</Tag>
+                        </Col>
+                      </Row>
+                    </Card>
+                  );
+                })}
               </Space>
             ) : (
               <Empty
@@ -431,7 +568,7 @@ export default function DashboardPage() {
                   <Space orientation="vertical" size={2}>
                     <Text>No assigned open cases</Text>
                     <Text type="secondary" style={{ fontSize: 12 }}>
-                      Tip: add “Assign” action next (we’ll do it)
+                      Tip: add “Assign” action next
                     </Text>
                   </Space>
                 }
@@ -456,56 +593,124 @@ export default function DashboardPage() {
           >
             {activity.length ? (
               <Space orientation="vertical" size={10} style={{ width: "100%" }}>
-                {activity.map((a) => (
-                  <Card
-                    key={a.id}
-                    size="small"
-                    hoverable
-                    style={{ borderRadius: 14 }}
-                    onClick={() => router.push(`/cases/${a.case_id}`)}
-                  >
-                    <Space orientation="vertical" size={6} style={{ width: "100%" }}>
-                      <Row justify="space-between" align="middle">
-                        <Col>
-                          <Space wrap size={8}>
-                            <Tag>{a.type}</Tag>
+                {activity.map((a) => {
+                  const am = getActivityMeta(a.type);
+                  const Accent = presetColorVar(am.color, 6);
 
-                            {/* ✅ HERE: show name instead of UUID */}
+                  return (
+                    <Card
+                      key={a.id}
+                      size="small"
+                      hoverable
+                      style={{
+                        borderRadius: 14,
+                        position: "relative",
+                        overflow: "hidden",
+                        border: "1px solid rgba(255,255,255,0.06)",
+                        background: `linear-gradient(135deg, ${activityBg(
+                          am.color
+                        )}, rgba(0,0,0,0))`,
+                      }}
+                      onClick={() => router.push(`/cases/${a.case_id}`)}
+                    >
+                      <div
+                        style={{
+                          position: "absolute",
+                          insetInlineStart: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: 4,
+                          background: Accent,
+                        }}
+                      />
+
+                      <Space
+                        orientation="vertical"
+                        size={8}
+                        style={{ width: "100%", paddingInlineStart: 8 }}
+                      >
+                        <Row
+                          justify="space-between"
+                          align="middle"
+                          gutter={[8, 8]}
+                        >
+                          <Col flex="auto" style={{ minWidth: 0 }}>
+                            <Space wrap size={8}>
+                              <Tag
+                                color={am.color}
+                                icon={am.Icon ? <am.Icon /> : null}
+                                style={{ margin: 0 }}
+                              >
+                                {am.label}
+                              </Tag>
+
+                              <Text type="secondary" style={{ fontSize: 12 }}>
+                                {displayUser(a.created_by)}
+                              </Text>
+
+                              <Tag style={{ margin: 0 }} color="default">
+                                Case {caseKey(a.case_id)}
+                              </Tag>
+                            </Space>
+                          </Col>
+
+                          <Col>
                             <Text type="secondary" style={{ fontSize: 12 }}>
-                              {displayUser(a.created_by)}
+                              {timeAgo(a.created_at)}
                             </Text>
-                          </Space>
-                        </Col>
+                          </Col>
+                        </Row>
 
-                        <Col>
-                          <Text type="secondary" style={{ fontSize: 12 }}>
-                            {timeAgo(a.created_at)}
-                          </Text>
-                        </Col>
-                      </Row>
-
-                      <Text style={{ whiteSpace: "pre-wrap" }}>{a.body || "—"}</Text>
-
-                      <Divider style={{ margin: "6px 0" }} />
-
-                      <Space style={{ justifyContent: "space-between", width: "100%" }}>
-                        <Text type="secondary" style={{ fontSize: 12 }}>
-                          Case: {shortId(a.case_id)}
-                        </Text>
-                        <Button
-                          type="link"
-                          style={{ padding: 0 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/cases/${a.case_id}`);
+                        <div
+                          style={{
+                            whiteSpace: "pre-wrap",
+                            lineHeight: 1.35,
+                            padding: "8px 10px",
+                            borderRadius: 12,
+                            background: "rgba(255,255,255,0.03)",
+                            border: "1px solid rgba(255,255,255,0.06)",
                           }}
                         >
-                          Open →
-                        </Button>
+                          <Text>{a.body || "—"}</Text>
+                        </div>
+
+                        <Divider style={{ margin: "6px 0" }} />
+
+                        {(() => {
+                          const change = renderActivityChange({
+                            a,
+                            displayUser,
+                          });
+
+                          return (
+                            <Space
+                              style={{
+                                justifyContent: "space-between",
+                                width: "100%",
+                                marginTop: 2,
+                              }}
+                            >
+                              {/* Left side: change chips if exist */}
+                              {change ? change : <span />}
+
+                              {/* Right side: always open */}
+                              <Button
+                                type="link"
+                                style={{ padding: 0 }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/cases/${a.case_id}`);
+                                }}
+                              >
+                                Open →
+                              </Button>
+                            </Space>
+                          );
+                        })()}
                       </Space>
-                    </Space>
-                  </Card>
-                ))}
+                    </Card>
+                  );
+                })}
               </Space>
             ) : (
               <Empty

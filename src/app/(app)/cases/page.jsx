@@ -171,31 +171,32 @@ console.log("FILTERS:", { q, status, priority, queueId });
         onNewCase={() => router.push("/cases/new")}
       />
 
-      <Row gutter={[12, 12]}>
-        <Col xs={24} lg={10}>
-          <CasesKpis total={total} openCount={openCount} urgentOpen={urgentOpen} />
-        </Col>
+<Row gutter={[12, 12]} align="stretch">
+  <Col xs={24} lg={10} style={{ height: "100%" }}>
+    <CasesKpis total={total} openCount={openCount} urgentOpen={urgentOpen} />
+  </Col>
 
-        <Col xs={24} lg={14}>
-          <CasesFilters
-            q={q}
-            onChangeQ={setQ}
-            status={status}
-            onChangeStatus={setStatus}
-            priority={priority}
-            onChangePriority={setPriority}
-            queueId={queueId}
-            queues={queues}
-            onChangeQueue={setQueueFilter}
-            onClear={() => {
-              setQ("");
-              setStatus("all");
-              setPriority("all");
-              setQueueFilter("all");
-            }}
-          />
-        </Col>
-      </Row>
+  <Col xs={24} lg={14} style={{ height: "100%" }}>
+    <CasesFilters
+      q={q}
+      onChangeQ={setQ}
+      status={status}
+      onChangeStatus={setStatus}
+      priority={priority}
+      onChangePriority={setPriority}
+      queueId={queueId}
+      queues={queues}
+      onChangeQueue={setQueueFilter}
+      onClear={() => {
+        setQ("");
+        setStatus("all");
+        setPriority("all");
+        setQueueFilter("all");
+      }}
+    />
+  </Col>
+</Row>
+
 
       {error ? (
         <Card style={{ borderRadius: 16, borderColor: "#ffccc7" }}>

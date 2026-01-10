@@ -19,7 +19,7 @@ export default function CasesFilters({
   onClear,
 }) {
   return (
-    <Card style={{ borderRadius: 16 }}>
+    <Card style={{ borderRadius: 16,height: "100%" }}>
       <Row gutter={[10, 10]} align="middle">
         <Col xs={24} md={8}>
           <Input

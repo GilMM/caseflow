@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Button,
@@ -19,6 +19,9 @@ import { ArrowLeftOutlined, CheckOutlined } from "@ant-design/icons";
 import CaseAssignment from "@/components/cases/CaseAssignment";
 import CaseTimeline from "@/components/cases/CaseTimeline";
 
+import { CASE_STATUSES, getStatusMeta } from "@/lib/ui/status";
+import { getPriorityMeta } from "@/lib/ui/priority";
+
 import {
   addCaseNote,
   getCaseActivities,
@@ -30,37 +33,11 @@ import {
 const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
 
-function statusColor(status) {
-  switch (status) {
-    case "new":
-      return "blue";
-    case "in_progress":
-      return "gold";
-    case "waiting_customer":
-      return "purple";
-    case "resolved":
-      return "green";
-    case "closed":
-      return "default";
-    default:
-      return "default";
-  }
+function presetColorVar(color, level = 6) {
+  if (!color || color === "default") return "var(--ant-color-text, rgba(255,255,255,0.85))";
+  return `var(--ant-color-${color}-${level}, var(--ant-color-primary, #1677ff))`;
 }
 
-function priorityColor(p) {
-  switch (p) {
-    case "urgent":
-      return "red";
-    case "high":
-      return "volcano";
-    case "normal":
-      return "default";
-    case "low":
-      return "cyan";
-    default:
-      return "default";
-  }
-}
 
 export default function CaseDetailsPage() {
   const router = useRouter();
@@ -69,7 +46,7 @@ export default function CaseDetailsPage() {
   const isMobile = !screens.md;
 
   const [row, setRow] = useState(null);
-  const [items, setItems] = useState([]); // activities
+  const [items, setItems] = useState([]);
   const [userMap, setUserMap] = useState({});
   const [loading, setLoading] = useState(true);
 
@@ -87,7 +64,6 @@ export default function CaseDetailsPage() {
       setRow(c);
       setItems(acts);
 
-      // ✅ Build userMap for Timeline (names instead of UUID)
       if (c?.org_id) {
         const members = await getOrgMembers(c.org_id);
         const map = {};
@@ -109,17 +85,6 @@ export default function CaseDetailsPage() {
     loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
-
-  const quickStatuses = useMemo(
-    () => [
-      { key: "new", label: "New" },
-      { key: "in_progress", label: "In Progress" },
-      { key: "waiting_customer", label: "Waiting Customer" },
-      { key: "resolved", label: "Resolved" },
-      { key: "closed", label: "Closed" },
-    ],
-    []
-  );
 
   async function onAddNote() {
     if (!row) return;
@@ -145,7 +110,11 @@ export default function CaseDetailsPage() {
 
     setBusyStatus(true);
     try {
-      await updateCaseStatus({ caseId: row.id, orgId: row.org_id, status: nextStatus });
+      await updateCaseStatus({
+        caseId: row.id,
+        orgId: row.org_id,
+        status: nextStatus,
+      });
       await loadAll();
       message.success(`Status updated to ${nextStatus}`);
     } catch (e) {
@@ -172,14 +141,23 @@ export default function CaseDetailsPage() {
           <Title level={4} style={{ margin: 0 }}>
             Not found
           </Title>
-          <Text type="secondary">This case does not exist or you don&apos;t have access.</Text>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => router.push("/cases")} style={{ width: "fit-content" }}>
+          <Text type="secondary">
+            This case does not exist or you don&apos;t have access.
+          </Text>
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.push("/cases")}
+            style={{ width: "fit-content" }}
+          >
             Back to Cases
           </Button>
         </Space>
       </Card>
     );
   }
+
+  const s = getStatusMeta(row.status);
+  const p = getPriorityMeta(row.priority);
 
   return (
     <Space orientation="vertical" size={14} style={{ width: "100%" }}>
@@ -194,7 +172,7 @@ export default function CaseDetailsPage() {
 
       <Card style={{ borderRadius: 16 }}>
         <Space orientation="vertical" size={10} style={{ width: "100%" }}>
-          {/* Header block */}
+          {/* Header */}
           <div
             style={{
               display: "flex",
@@ -214,8 +192,12 @@ export default function CaseDetailsPage() {
             </div>
 
             <Space wrap style={{ justifyContent: isMobile ? "flex-start" : "flex-end" }}>
-              <Tag color={statusColor(row.status)}>{row.status}</Tag>
-              <Tag color={priorityColor(row.priority)}>{row.priority}</Tag>
+              <Tag color={s.color} icon={s.Icon ? <s.Icon /> : null}>
+                {s.label}
+              </Tag>
+              <Tag color={p.color} icon={p.Icon ? <p.Icon /> : null}>
+                {p.label}
+              </Tag>
             </Space>
           </div>
 
@@ -245,7 +227,6 @@ export default function CaseDetailsPage() {
           <div>
             <Text strong>Quick status</Text>
 
-            {/* במובייל: Grid של כפתורים כדי שלא יברחו לצדדים */}
             <div
               style={{
                 marginTop: 10,
@@ -255,22 +236,38 @@ export default function CaseDetailsPage() {
                 alignItems: "center",
               }}
             >
-              {quickStatuses.map((s) => (
-                <Button
-                  key={s.key}
-                  type={row.status === s.key ? "primary" : "default"}
-                  disabled={busyStatus}
-                  onClick={() => onChangeStatus(s.key)}
-                  icon={row.status === s.key ? <CheckOutlined /> : null}
-                  style={isMobile ? { width: "100%" } : undefined}
-                >
-                  {s.label}
-                </Button>
-              ))}
+{CASE_STATUSES.map((st) => {
+  const sm = getStatusMeta(st.value);
+  const Accent = presetColorVar(sm.color, 6);
+  const active = row.status === st.value;
+
+  return (
+    <Button
+      key={st.value}
+      disabled={busyStatus}
+      onClick={() => onChangeStatus(st.value)}
+      icon={active ? <CheckOutlined /> : sm.Icon ? <sm.Icon /> : null}
+      type={active ? "primary" : "default"}
+      style={{
+        width: isMobile ? "100%" : undefined,
+        borderRadius: 10,
+        borderColor: Accent,
+        color: active ? "#fff" : Accent,
+        background: active ? Accent : "transparent",
+      }}
+    >
+      {st.label}
+    </Button>
+  );
+})}
+
             </div>
 
             {isMobile ? (
-              <Text type="secondary" style={{ fontSize: 12, display: "block", marginTop: 8 }}>
+              <Text
+                type="secondary"
+                style={{ fontSize: 12, display: "block", marginTop: 8 }}
+              >
                 Tip: tap a status to update quickly
               </Text>
             ) : null}

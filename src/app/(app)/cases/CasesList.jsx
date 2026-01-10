@@ -2,8 +2,9 @@
 
 import { Badge, Button, Card, Divider, Row, Col, Space, Tag, Typography } from "antd";
 import { ArrowRightOutlined } from "@ant-design/icons";
-import { statusColor, statusLabel, shortId, timeAgo } from "@/lib/ui/status";
-import { priorityColor, priorityLabel } from "@/lib/ui/priority";
+
+import { getStatusMeta, shortId, timeAgo, caseKey} from "@/lib/ui/status";
+import { getPriorityMeta } from "@/lib/ui/priority";
 
 const { Text } = Typography;
 
@@ -16,9 +17,12 @@ export default function CasesList({ filtered, onOpenCase }) {
       extra={<Text type="secondary">Showing {list.length}</Text>}
       style={{ borderRadius: 16 }}
     >
-      <Space orientation="vertical" size={12} style={{ width: "100%" }}>
+      <Space direction="vertical" size={12} style={{ width: "100%" }}>
         {list.map((c) => {
-          const isOpen = c.status !== "closed"; // אותו כלל שהיה לך ב-KPI (Open = not closed)
+          const sm = getStatusMeta(c.status);
+          const pm = getPriorityMeta(c.priority);
+
+          const isOpen = ["new", "in_progress", "waiting_customer"].includes(c.status);
 
           return (
             <Card
@@ -37,14 +41,19 @@ export default function CasesList({ filtered, onOpenCase }) {
                     </Text>
 
                     <Space wrap size={8}>
-                      <Tag color={statusColor(c.status)}>{statusLabel(c.status)}</Tag>
-                      <Tag color={priorityColor(c.priority)}>{priorityLabel(c.priority)}</Tag>
+                      <Tag color={sm.color} icon={sm.Icon ? <sm.Icon /> : null} style={{ margin: 0 }}>
+                        {sm.label}
+                      </Tag>
+                      <Tag color={pm.color} icon={pm.Icon ? <pm.Icon /> : null} style={{ margin: 0 }}>
+                        {pm.label}
+                      </Tag>
                     </Space>
 
                     <Space wrap size={10}>
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        ID: {shortId(c.id)}
-                      </Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+  Case {caseKey(c.id)}
+</Text>
+
                       <Text type="secondary" style={{ fontSize: 12 }}>
                         Created {timeAgo(c.created_at)}
                       </Text>
@@ -52,7 +61,7 @@ export default function CasesList({ filtered, onOpenCase }) {
                   </Space>
                 </Col>
 
-                {/* RIGHT (Open indicator) */}
+                {/* RIGHT */}
                 <Col>
                   <Space size={10} align="center">
                     <Badge status={isOpen ? "processing" : "default"} />
@@ -65,10 +74,9 @@ export default function CasesList({ filtered, onOpenCase }) {
 
               <Row justify="space-between" align="middle">
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  Open in details
+                  Open case
                 </Text>
 
-                {/* חשוב: לעצור bubble כדי שלא יפעיל גם onClick של כל הכרטיס */}
                 <Button
                   type="link"
                   style={{ padding: 0 }}

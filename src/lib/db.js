@@ -140,30 +140,50 @@ export async function addCaseNote({ caseId, orgId, body }) {
   if (error) throw error;
 }
 
-/** Update status + log activity */
+/** Update status + log activity (with from/to meta) */
 export async function updateCaseStatus({ caseId, orgId, status }) {
-  const { data: sessionData } = await supabase.auth.getSession();
+  const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+  if (sessionErr) throw sessionErr;
+
   const user = sessionData?.session?.user;
   if (!user) throw new Error("Not authenticated");
 
+  // 1) Read current status (to build "from -> to")
+  const { data: current, error: curErr } = await supabase
+    .from("cases")
+    .select("status")
+    .eq("id", caseId)
+    .single();
+
+  if (curErr) throw curErr;
+
+  const fromStatus = current?.status || null;
+  const toStatus = String(status || "").toLowerCase();
+
+  // No-op guard (optional but recommended)
+  if (fromStatus === toStatus) return;
+
+  // 2) Update case status
   const { error: upErr } = await supabase
     .from("cases")
-    .update({ status })
+    .update({ status: toStatus })
     .eq("id", caseId);
 
   if (upErr) throw upErr;
 
+  // 3) Insert activity with structured meta
   const { error: actErr } = await supabase.from("case_activities").insert({
     org_id: orgId,
     case_id: caseId,
     type: "status_change",
-    body: `Status changed to ${status}`,
-    meta: { status },
+    body: `Status changed to ${toStatus}`,
+    meta: { from: fromStatus, to: toStatus },
     created_by: user.id,
   });
 
   if (actErr) throw actErr;
 }
+
 
 /**
  * Returns { orgId, orgName, role, ownerUserId } for active workspace (MVP)
@@ -251,7 +271,7 @@ export async function getMyOpenCases(orgId, userId) {
 export async function getRecentActivity(orgId) {
   const { data, error } = await supabase
     .from("case_activities")
-    .select("id, case_id, type, body, created_at, created_by")
+    .select("id, case_id, type, body, meta, created_at, created_by")
     .eq("org_id", orgId)
     .order("created_at", { ascending: false })
     .limit(12);
@@ -272,40 +292,47 @@ export async function getOrgMembers(orgId) {
   return data || [];
 }
 
-// Assign case and log activity
+/** Assign case + log activity (with from_user/to_user meta) */
 export async function assignCase({ caseId, orgId, toUserId }) {
-  const { data: sessionData } = await supabase.auth.getSession();
+  const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+  if (sessionErr) throw sessionErr;
+
   const user = sessionData?.session?.user;
   if (!user) throw new Error("Not authenticated");
 
+  // 1) Read current assignee (for from_user)
   const { data: current, error: curErr } = await supabase
     .from("cases")
     .select("assigned_to")
     .eq("id", caseId)
     .single();
+
   if (curErr) throw curErr;
 
   const fromUserId = current?.assigned_to || null;
+  const toUser = toUserId || null;
 
+  // No-op guard (optional but recommended)
+  if (fromUserId === toUser) return;
+
+  // 2) Update assignment on case
   const { error: upErr } = await supabase
     .from("cases")
-    .update({ assigned_to: toUserId })
+    .update({ assigned_to: toUser })
     .eq("id", caseId);
+
   if (upErr) throw upErr;
 
-  const body =
-    toUserId === user.id
-      ? "Assigned to me"
-      : `Assigned to ${String(toUserId).slice(0, 8)}…`;
-
+  // 3) Insert activity
   const { error: actErr } = await supabase.from("case_activities").insert({
     org_id: orgId,
     case_id: caseId,
     type: "assignment",
-    body,
-    meta: { from: fromUserId, to: toUserId },
+    body: toUser ? "Assignment updated" : "Unassigned",
+    meta: { from_user: fromUserId, to_user: toUser },
     created_by: user.id,
   });
+
   if (actErr) throw actErr;
 }
 
