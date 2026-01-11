@@ -14,8 +14,12 @@ import { getStatusMeta, CASE_STATUSES } from "@/lib/ui/status";
 import { getPriorityMeta, PRIORITY_OPTIONS } from "@/lib/ui/priority";
 import { supabase } from "@/lib/supabase/client";
 
-import { assignCase, getOrgMembers, updateCaseStatus } from "@/lib/db";
-// import { updateCasePriority } from "@/lib/db"; // add later
+import {
+  assignCase,
+  getOrgMembers,
+  updateCaseStatus,
+  updateCasePriority,
+} from "@/lib/db";
 
 const { Text } = Typography;
 
@@ -129,7 +133,8 @@ export default function CaseInlineActions({
 
     setBusy(true);
     try {
-      await updateCaseStatus({ caseId, orgId, status: next });
+      // db signature is ({ caseId, status }) but extra fields won't hurt
+      await updateCaseStatus({ caseId, status: next });
       message.success("Status updated");
       onChanged?.();
     } catch (e) {
@@ -143,7 +148,7 @@ export default function CaseInlineActions({
     if (!caseId || !orgId) return;
     setBusy(true);
     try {
-      await assignCase({ caseId, orgId, toUserId: nextUserId || null });
+      await assignCase({ caseId, toUserId: nextUserId || null });
       message.success("Assignment updated");
       onChanged?.();
     } catch (e) {
@@ -154,8 +159,19 @@ export default function CaseInlineActions({
   }
 
   async function doPriority(next) {
-    // enable when you add updateCasePriority
-    message.info("Priority change: add updateCasePriority() to enable");
+    if (!caseId || !orgId) return;
+    if (String(next) === String(priority)) return;
+
+    setBusy(true);
+    try {
+      await updateCasePriority({ caseId, priority: next }); // ✅ FIX
+      message.success("Priority updated");
+      onChanged?.();
+    } catch (e) {
+      message.error(e?.message || "Failed to update priority");
+    } finally {
+      setBusy(false);
+    }
   }
 
   /** Important: stop propagation from menu click too */
@@ -324,7 +340,12 @@ export default function CaseInlineActions({
           placement="bottomLeft"
           dropdownRender={(menu) => (
             <div onClick={stop} onMouseDown={stop}>
-              <div style={{ padding: 10, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <div
+                style={{
+                  padding: 10,
+                  borderBottom: "1px solid rgba(255,255,255,0.06)",
+                }}
+              >
                 <Input
                   placeholder="Search member…"
                   value={assigneeSearch}
@@ -383,7 +404,12 @@ export default function CaseInlineActions({
         disabled={busy || !orgId}
         dropdownRender={(menu) => (
           <div onClick={stop} onMouseDown={stop}>
-            <div style={{ padding: 10, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <div
+              style={{
+                padding: 10,
+                borderBottom: "1px solid rgba(255,255,255,0.06)",
+              }}
+            >
               <Input
                 placeholder="Search member…"
                 value={assigneeSearch}

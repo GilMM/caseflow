@@ -154,7 +154,7 @@ export default function RegisterPage() {
         </Card>
 
         <div style={{ textAlign: "center", marginTop: 14, opacity: 0.75, fontSize: 12 }}>
-          CaseFlow • Secure multi-tenant CRM demo
+          CaseFlow • By GilM
         </div>
       </div>
     </div>

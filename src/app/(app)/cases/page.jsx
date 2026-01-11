@@ -72,7 +72,7 @@ export default function CasesPage() {
       let query = supabase
         .from("cases")
         .select(
-          "id,org_id,title,status,priority,created_at,queue_id,assigned_to"
+          "id,org_id,title,status,priority,created_at,queue_id,assigned_to, queues(name)"
         )
         .eq("org_id", ws.orgId)
         .order("created_at", { ascending: false })
@@ -150,6 +150,7 @@ export default function CasesPage() {
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname);
   }
+  
 
   if (loading) {
     return (

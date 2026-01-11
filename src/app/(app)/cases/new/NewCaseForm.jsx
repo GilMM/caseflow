@@ -1,6 +1,17 @@
 "use client";
 
-import { Alert, Avatar, Button, Card, Form, Input, Select, Space, Tag, Typography } from "antd";
+import {
+  Alert,
+  Avatar,
+  Button,
+  Card,
+  Form,
+  Input,
+  Select,
+  Space,
+  Tag,
+  Typography,
+} from "antd";
 import { PlusOutlined, ThunderboltOutlined, UserOutlined } from "@ant-design/icons";
 import { initials } from "@/lib/ui/initials";
 import { priorityColor, PRIORITY_OPTIONS } from "@/lib/ui/priority";
@@ -58,29 +69,39 @@ export default function NewCaseForm({
           type="warning"
           showIcon
           message="No queues found"
-          description="Create at least one queue (and set default if you want), then you can create cases."
+          description="Create at least one queue, then you can create cases."
         />
       ) : (
         <Form
           form={form}
           layout="vertical"
           onFinish={onSubmit}
-          initialValues={{ priority: "normal", queue_id: queueId }}
+          // ✅ Don't preselect queue automatically (force manual choice)
+          initialValues={{ priority: "normal" }}
         >
           <Form.Item
-            label="Queue"
+            label={
+              <Space size={8}>
+                <span>Queue</span>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  (required)
+                </Text>
+              </Space>
+            }
             name="queue_id"
             rules={[{ required: true, message: "Please select a queue" }]}
           >
             <Select
               loading={queuesLoading}
               options={queueOptions}
-              value={queueId}
-              onChange={(v) => {
-                setQueueId(v);
-                form.setFieldsValue({ queue_id: v });
-              }}
               placeholder="Select a queue"
+              disabled={busy}
+              onChange={(v) => {
+                setQueueId?.(v); // keep your external state in sync (optional)
+                // Form will already store the value because this field is bound to name="queue_id"
+              }}
+              onClear={() => setQueueId?.(null)}
+              allowClear
             />
           </Form.Item>
 
@@ -92,6 +113,7 @@ export default function NewCaseForm({
               placeholder="Select an employee (optional)"
               options={requesterOptions}
               filterOption={filterOption}
+              disabled={busy}
               optionRender={(opt) => {
                 const c = opt.data.raw || {};
                 const isActive = (c.is_active ?? true) !== false;
@@ -108,6 +130,7 @@ export default function NewCaseForm({
                         {c.department ? <Tag color="geekblue">{c.department}</Tag> : null}
                         {!isActive ? <Tag>Inactive</Tag> : null}
                       </Space>
+
                       <Text type="secondary" style={{ fontSize: 12 }}>
                         {[c.email, c.phone].filter(Boolean).join(" • ") || "No email/phone"}
                       </Text>
@@ -155,7 +178,11 @@ export default function NewCaseForm({
           </Form.Item>
 
           <Form.Item label="Description" name="description">
-            <TextArea placeholder="Add context, steps to reproduce..." rows={6} disabled={busy} />
+            <TextArea
+              placeholder="Add context, steps to reproduce..."
+              rows={6}
+              disabled={busy}
+            />
           </Form.Item>
 
           <Form.Item
@@ -187,7 +214,14 @@ export default function NewCaseForm({
             <Button onClick={() => router.push("/cases")} disabled={busy}>
               Cancel
             </Button>
-            <Button type="primary" htmlType="submit" loading={busy} icon={<PlusOutlined />}>
+
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={busy}
+              icon={<PlusOutlined />}
+              disabled={!orgId || !hasQueues}
+            >
               Create case
             </Button>
           </Space>

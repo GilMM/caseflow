@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { queueColor } from "@/lib/ui/queue";
 
 import { supabase } from "@/lib/supabase/client";
 import {
@@ -33,6 +34,7 @@ import {
   message,
   Grid,
 } from "antd";
+
 import {
   ReloadOutlined,
   InboxOutlined,
@@ -42,10 +44,14 @@ import {
   ArrowUpOutlined,
   ArrowRightOutlined,
   WifiOutlined,
+  AppstoreOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
+
+/* ---------------- helpers ---------------- */
 
 function greeting() {
   const h = new Date().getHours();
@@ -59,6 +65,86 @@ function presetColorVar(color, level = 6) {
     return "var(--ant-color-text, rgba(255,255,255,0.85))";
   }
   return `var(--ant-color-${color}-${level}, var(--ant-color-primary, #1677ff))`;
+}
+
+/**
+ * ✅ Tag style like "solution #1":
+ * - No Tag icon prop
+ * - Manual icon span with lineHeight:0
+ * - Fixed height + inline-flex => perfect alignment
+ */
+const tagBaseStyle = {
+  margin: 0,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  height: 26,
+  lineHeight: "26px",
+  paddingInline: 10,
+  borderRadius: 999,
+  verticalAlign: "middle",
+};
+
+function TagIcon({ children }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        lineHeight: 0,
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function QueueTag({ name, isDefault = false }) {
+  console.log("DASH QUEUE:", JSON.stringify(name), isDefault, queueColor(name, isDefault));
+
+  return (
+    <Tag
+      color={queueColor(name, isDefault)}
+      style={{
+        ...tagBaseStyle,
+        maxWidth: 220,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+      }}
+      
+    >
+      
+      <TagIcon>
+        <AppstoreOutlined style={{ fontSize: 12 }} />
+      </TagIcon>
+      {name || "No queue"}
+    </Tag>
+  );
+  
+}
+
+
+function StatusTag({ meta }) {
+  return (
+    <Tag color={meta.color} style={tagBaseStyle}>
+      <TagIcon>
+        {meta.Icon ? <meta.Icon style={{ fontSize: 12 }} /> : null}
+      </TagIcon>
+      {meta.label}
+    </Tag>
+  );
+}
+
+function PriorityTag({ meta }) {
+  return (
+    <Tag color={meta.color} style={tagBaseStyle}>
+      <TagIcon>
+        {meta.Icon ? <meta.Icon style={{ fontSize: 12 }} /> : null}
+      </TagIcon>
+      {meta.label}
+    </Tag>
+  );
 }
 
 /** Renders a consistent "change chips" row for live activity (status/priority/assignment) */
@@ -78,22 +164,10 @@ function renderActivityChange({ a, displayUser }) {
     const toM = getStatusMeta(meta.to);
 
     return (
-      <Space size={6} wrap>
-        <Tag
-          color={fromM.color}
-          icon={fromM.Icon ? <fromM.Icon /> : null}
-          style={{ margin: 0 }}
-        >
-          {fromM.label}
-        </Tag>
+      <Space size={6} wrap align="center">
+        <StatusTag meta={fromM} />
         {Arrow}
-        <Tag
-          color={toM.color}
-          icon={toM.Icon ? <toM.Icon /> : null}
-          style={{ margin: 0 }}
-        >
-          {toM.label}
-        </Tag>
+        <StatusTag meta={toM} />
       </Space>
     );
   }
@@ -104,22 +178,10 @@ function renderActivityChange({ a, displayUser }) {
     const toM = getPriorityMeta(meta.to);
 
     return (
-      <Space size={6} wrap>
-        <Tag
-          color={fromM.color}
-          icon={fromM.Icon ? <fromM.Icon /> : null}
-          style={{ margin: 0 }}
-        >
-          {fromM.label}
-        </Tag>
+      <Space size={6} wrap align="center">
+        <PriorityTag meta={fromM} />
         {Arrow}
-        <Tag
-          color={toM.color}
-          icon={toM.Icon ? <toM.Icon /> : null}
-          style={{ margin: 0 }}
-        >
-          {toM.label}
-        </Tag>
+        <PriorityTag meta={toM} />
       </Space>
     );
   }
@@ -132,23 +194,21 @@ function renderActivityChange({ a, displayUser }) {
     const fromU = meta?.from_user ?? meta?.from;
     const toU = meta?.to_user ?? meta?.to;
 
-    if (!fromU && !toU) return null;
-
     return (
-      <Space size={6} wrap>
-        {fromU ? (
-          <Tag style={{ margin: 0 }}>{displayUser(fromU)}</Tag>
-        ) : (
-          <Tag style={{ margin: 0 }}>Unassigned</Tag>
-        )}
+      <Space size={6} wrap align="center">
+        <Tag style={tagBaseStyle}>
+          <TagIcon>
+            <UserOutlined style={{ fontSize: 12 }} />
+          </TagIcon>
+          {fromU ? displayUser(fromU) : "Unassigned"}
+        </Tag>
         {Arrow}
-        {toU ? (
-          <Tag color="cyan" style={{ margin: 0 }}>
-            {displayUser(toU)}
-          </Tag>
-        ) : (
-          <Tag style={{ margin: 0 }}>Unassigned</Tag>
-        )}
+        <Tag color="cyan" style={tagBaseStyle}>
+          <TagIcon>
+            <UserOutlined style={{ fontSize: 12 }} />
+          </TagIcon>
+          {toU ? displayUser(toU) : "Unassigned"}
+        </Tag>
       </Space>
     );
   }
@@ -170,10 +230,7 @@ function KpiCard({
   return (
     <Card
       loading={loading}
-      style={{
-        borderRadius: 16,
-        width: "100%",
-      }}
+      style={{ borderRadius: 16, width: "100%" }}
       styles={{
         body: {
           minHeight: compact ? 108 : 140,
@@ -203,14 +260,21 @@ function KpiCard({
             {value}
           </Text>
         ) : (
-          <Statistic value={value} valueStyle={{ fontSize: 34, lineHeight: 1.15 }} />
+          <Statistic
+            value={value}
+            valueStyle={{ fontSize: 34, lineHeight: 1.15 }}
+          />
         )}
       </div>
 
       {/* Progress / footer */}
       <div style={{ marginTop: compact ? 8 : 10 }}>
         {typeof progress === "number" ? (
-          <Progress percent={progress} showInfo={false} size={compact ? "small" : "default"} />
+          <Progress
+            percent={progress}
+            showInfo={false}
+            size={compact ? "small" : "default"}
+          />
         ) : null}
 
         {footer ? (
@@ -222,6 +286,8 @@ function KpiCard({
     </Card>
   );
 }
+
+/* ---------------- page ---------------- */
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -266,7 +332,7 @@ export default function DashboardPage() {
 
       const [s, a] = await Promise.all([
         getDashboardStats(ws.orgId),
-        getRecentActivity(ws.orgId),
+        getRecentActivity(ws.orgId), // ✅ must include cases -> queues join
       ]);
 
       setStats(s);
@@ -276,14 +342,15 @@ export default function DashboardPage() {
       try {
         const members = await getOrgMembers(ws.orgId);
         const map = {};
-        for (const m of members) map[m.user_id] = m.full_name || m.email || null;
+        for (const m of members)
+          map[m.user_id] = m.full_name || m.email || null;
         setUserMap(map);
       } catch {
         setUserMap({});
       }
 
       if (user?.id) {
-        const mine = await getMyOpenCases(ws.orgId, user.id);
+        const mine = await getMyOpenCases(ws.orgId, user.id); // ✅ must include queues join
         setMyCases(mine);
       } else {
         setMyCases([]);
@@ -325,7 +392,13 @@ export default function DashboardPage() {
   const statusChips = useMemo(() => {
     const map = stats?.byStatus || {};
     const entries = Object.entries(map);
-    const order = ["new", "in_progress", "waiting_customer", "resolved", "closed"];
+    const order = [
+      "new",
+      "in_progress",
+      "waiting_customer",
+      "resolved",
+      "closed",
+    ];
     entries.sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
     return entries;
   }, [stats]);
@@ -336,7 +409,9 @@ export default function DashboardPage() {
   const newTodayCount = stats?.newTodayCount || 0;
   const resolvedThisWeekCount = stats?.resolvedThisWeekCount || 0;
 
-  const urgentShare = openCount ? Math.round((urgentOpenCount / openCount) * 100) : 0;
+  const urgentShare = openCount
+    ? Math.round((urgentOpenCount / openCount) * 100)
+    : 0;
   const openShare = total ? Math.round((openCount / total) * 100) : 0;
 
   return (
@@ -346,7 +421,8 @@ export default function DashboardPage() {
         loading={loading}
         style={{
           borderRadius: 16,
-          background: "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
+          background:
+            "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
         }}
       >
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
@@ -354,20 +430,40 @@ export default function DashboardPage() {
             <Space orientation="vertical" size={2}>
               <Title level={3} style={{ margin: 0 }}>
                 {greeting()},{" "}
-                <span style={{ opacity: 0.9 }}>{workspace?.orgName || "CaseFlow"}</span>
+                <span style={{ opacity: 0.9 }}>
+                  {workspace?.orgName || "CaseFlow"}
+                </span>
               </Title>
-              <Space wrap size={8}>
+
+              <Space wrap size={8} align="center">
                 {workspace?.orgName ? (
-                  <Tag color="blue">Workspace: {workspace.orgName}</Tag>
+                  <Tag color="blue" style={tagBaseStyle}>
+                    <TagIcon>
+                      <AppstoreOutlined style={{ fontSize: 12 }} />
+                    </TagIcon>
+                    Workspace: {workspace.orgName}
+                  </Tag>
                 ) : (
-                  <Tag>Workspace: none</Tag>
+                  <Tag style={tagBaseStyle}>Workspace: none</Tag>
                 )}
-                {workspace?.role ? <Tag color="geekblue">Role: {workspace.role}</Tag> : null}
-                <Tag color="green" icon={<WifiOutlined />}>
+
+                {workspace?.role ? (
+                  <Tag color="geekblue" style={tagBaseStyle}>
+                    Role: {workspace.role}
+                  </Tag>
+                ) : null}
+
+                <Tag color="green" style={tagBaseStyle}>
+                  <TagIcon>
+                    <WifiOutlined style={{ fontSize: 12 }} />
+                  </TagIcon>
                   Realtime
                 </Tag>
+
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : "—"}
+                  {lastUpdated
+                    ? `Updated ${lastUpdated.toLocaleTimeString()}`
+                    : "—"}
                 </Text>
               </Space>
             </Space>
@@ -384,7 +480,12 @@ export default function DashboardPage() {
                   Refresh
                 </Button>
               </Tooltip>
-              <Button type="primary" icon={<InboxOutlined />} onClick={() => router.push("/cases")}>
+
+              <Button
+                type="primary"
+                icon={<InboxOutlined />}
+                onClick={() => router.push("/cases")}
+              >
                 Go to Cases
               </Button>
             </Space>
@@ -392,10 +493,7 @@ export default function DashboardPage() {
         </Row>
       </Card>
 
-      {/* KPI Cards
-          ✅ Mobile: 2x2 (xs=12)
-          ✅ Desktop: 4 in a row (lg=6)
-      */}
+      {/* KPI Cards */}
       <Row gutter={[12, 12]} align="stretch">
         <Col xs={12} sm={12} lg={6} style={{ display: "flex" }}>
           <KpiCard
@@ -406,11 +504,22 @@ export default function DashboardPage() {
             value={openCount}
             extra={
               <Tooltip title="Share of open cases out of all cases in the workspace">
-                <Tag style={{ margin: 0 }}>{openShare}%</Tag>
+                <Tag
+                  style={{
+                    ...tagBaseStyle,
+                    height: 24,
+                    lineHeight: "24px",
+                    paddingInline: 8,
+                  }}
+                >
+                  {openShare}%
+                </Tag>
               </Tooltip>
             }
             progress={openShare}
-            footer={isMobile ? "Not closed" : "Not closed • quick workload indicator"}
+            footer={
+              isMobile ? "Not closed" : "Not closed • quick workload indicator"
+            }
           />
         </Col>
 
@@ -422,11 +531,26 @@ export default function DashboardPage() {
             icon={<ThunderboltOutlined />}
             value={newTodayCount}
             extra={
-              <Tag color="blue" icon={<ArrowUpOutlined />} style={{ margin: 0 }}>
+              <Tag
+                color="blue"
+                style={{
+                  ...tagBaseStyle,
+                  height: 24,
+                  lineHeight: "24px",
+                  paddingInline: 8,
+                }}
+              >
+                <TagIcon>
+                  <ArrowUpOutlined style={{ fontSize: 12 }} />
+                </TagIcon>
                 live
               </Tag>
             }
-            footer={isMobile ? "Since 00:00" : "Created since 00:00 • triage queue candidate"}
+            footer={
+              isMobile
+                ? "Since 00:00"
+                : "Created since 00:00 • triage queue candidate"
+            }
           />
         </Col>
 
@@ -437,7 +561,11 @@ export default function DashboardPage() {
             title="Resolved"
             icon={<ArrowRightOutlined />}
             value={resolvedThisWeekCount}
-            footer={isMobile ? "This week" : "Simple weekly throughput • good for demos"}
+            footer={
+              isMobile
+                ? "This week"
+                : "Simple weekly throughput • good for demos"
+            }
           />
         </Col>
 
@@ -450,13 +578,25 @@ export default function DashboardPage() {
             value={urgentOpenCount}
             extra={
               <Tooltip title="Urgent cases as a % of open cases">
-                <Tag color={urgentShare >= 20 ? "red" : "gold"} style={{ margin: 0 }}>
+                <Tag
+                  color={urgentShare >= 20 ? "red" : "gold"}
+                  style={{
+                    ...tagBaseStyle,
+                    height: 24,
+                    lineHeight: "24px",
+                    paddingInline: 8,
+                  }}
+                >
                   {urgentShare}%
                 </Tag>
               </Tooltip>
             }
             progress={urgentShare}
-            footer={isMobile ? "Priority: urgent" : "Priority = urgent • escalation signal"}
+            footer={
+              isMobile
+                ? "Priority: urgent"
+                : "Priority = urgent • escalation signal"
+            }
           />
         </Col>
       </Row>
@@ -465,7 +605,7 @@ export default function DashboardPage() {
       <Card
         loading={loading}
         title={
-          <Space size={8}>
+          <Space size={8} align="center">
             <span>Status distribution</span>
             <Text type="secondary" style={{ fontSize: 12 }}>
               ({total} total)
@@ -475,16 +615,23 @@ export default function DashboardPage() {
         style={{ borderRadius: 16 }}
       >
         {statusChips.length ? (
-          <Space wrap size={10}>
+          <Space wrap size={10} align="center">
             {statusChips.map(([k, v]) => {
               const sm = getStatusMeta(k);
               return (
-                <Badge key={k} count={v} overflowCount={999} style={{ backgroundColor: "#1677ff" }}>
+                <Badge
+                  key={k}
+                  count={v}
+                  overflowCount={999}
+                  style={{ backgroundColor: "#1677ff" }}
+                >
                   <Tag
                     color={sm.color}
-                    icon={sm.Icon ? <sm.Icon /> : null}
-                    style={{ marginInlineEnd: 8 }}
+                    style={{ ...tagBaseStyle, marginInlineEnd: 8 }}
                   >
+                    <TagIcon>
+                      {sm.Icon ? <sm.Icon style={{ fontSize: 12 }} /> : null}
+                    </TagIcon>
                     {sm.label}
                   </Tag>
                 </Badge>
@@ -504,7 +651,11 @@ export default function DashboardPage() {
             loading={loading}
             title="My work"
             extra={
-              <Button type="link" onClick={() => router.push("/cases")} style={{ padding: 0 }}>
+              <Button
+                type="link"
+                onClick={() => router.push("/cases")}
+                style={{ padding: 0 }}
+              >
                 View all →
               </Button>
             }
@@ -516,51 +667,130 @@ export default function DashboardPage() {
                   const sm = getStatusMeta(c.status);
                   const pm = getPriorityMeta(c.priority);
 
+                  const queueName = c?.queues?.name || "No queue";
+                  const queueIsDefault = !!c?.queues?.is_default;
+
+                  const isOpen = [
+                    "new",
+                    "in_progress",
+                    "waiting_customer",
+                  ].includes(c.status);
+
+                  const accentColor = isOpen
+                    ? "var(--ant-color-primary, #1677ff)"
+                    : "transparent";
+
+                  const cardBg = isOpen
+                    ? "linear-gradient(90deg, rgba(22,119,255,0.06), rgba(22,119,255,0.00) 40%)"
+                    : "rgba(255,255,255,0.015)";
+
                   return (
                     <Card
                       key={c.id}
                       size="small"
                       hoverable
-                      style={{ borderRadius: 14 }}
+                      style={{
+                        borderRadius: 14,
+                        position: "relative",
+                        overflow: "hidden",
+                        background: cardBg,
+                      }}
+                      styles={{ body: { padding: 12 } }}
                       onClick={() => router.push(`/cases/${c.id}`)}
                     >
-                      <Row justify="space-between" align="top" gutter={[10, 10]}>
-                        <Col flex="auto">
-                          <Space orientation="vertical" size={4} style={{ width: "100%" }}>
-                            <Space wrap size={8}>
+                      {/* Accent bar (clipped) */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          insetBlock: 0,
+                          insetInlineStart: 0,
+                          width: 3,
+                          background: accentColor,
+                          borderTopLeftRadius: 14,
+                          borderBottomLeftRadius: 14,
+                          opacity: isOpen ? 1 : 0,
+                          pointerEvents: "none",
+                        }}
+                      />
+
+                      <Row
+                        justify="space-between"
+                        align="top"
+                        gutter={[10, 10]}
+                      >
+                        {/* LEFT */}
+                        <Col flex="auto" style={{ minWidth: 0 }}>
+                          <Space
+                            orientation="vertical"
+                            size={6}
+                            style={{ width: "100%" }}
+                          >
+                            {/* Title + CaseKey */}
+                            <Space
+                              size={10}
+                              align="baseline"
+                              wrap
+                              style={{ width: "100%" }}
+                            >
                               <Text strong style={{ fontSize: 14 }}>
-                                {c.title}
+                                {c.title || "Untitled"}
                               </Text>
 
-                              <Tag color={sm.color} icon={sm.Icon ? <sm.Icon /> : null}>
-                                {sm.label}
-                              </Tag>
-
-                              <Tag color={pm.color} icon={pm.Icon ? <pm.Icon /> : null}>
-                                {pm.label}
-                              </Tag>
-                            </Space>
-
-                            <Space wrap size={10}>
                               <Text
                                 type="secondary"
                                 style={{
                                   fontSize: 12,
-                                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                                  fontFamily:
+                                    "ui-monospace, SFMono-Regular, Menlo, monospace",
                                 }}
                               >
                                 {caseKey(c.id)}
                               </Text>
+                            </Space>
 
-                              <Text type="secondary" style={{ fontSize: 12 }}>
-                                Created {timeAgo(c.created_at)}
-                              </Text>
+                            {/* Tags row */}
+                            <Space wrap size={8} align="center">
+                              <StatusTag meta={sm} />
+                              <PriorityTag meta={pm} />
+                              <QueueTag
+                                name={queueName}
+                                isDefault={queueIsDefault}
+                                
+                              />
                             </Space>
                           </Space>
                         </Col>
 
+                        {/* RIGHT */}
                         <Col>
-                          <Tag color="geekblue">Assigned</Tag>
+                          <Space direction="vertical" size={6} align="end">
+                            <Text
+                              type="secondary"
+                              style={{ fontSize: 12, whiteSpace: "nowrap" }}
+                            >
+                              Created {timeAgo(c.created_at)}
+                            </Text>
+
+                            <Space size={10} align="center">
+                              <Badge
+                                status={isOpen ? "processing" : "default"}
+                              />
+                              <Text type="secondary">
+                                {isOpen ? "Open" : "Closed"}
+                              </Text>
+                            </Space>
+
+                            <Tag
+                              color="geekblue"
+                              style={{
+                                ...tagBaseStyle,
+                                height: 24,
+                                lineHeight: "24px",
+                              }}
+                            >
+                              Assigned
+                            </Tag>
+                          </Space>
                         </Col>
                       </Row>
                     </Card>
@@ -588,9 +818,12 @@ export default function DashboardPage() {
           <Card
             loading={loading}
             title={
-              <Space size={8}>
+              <Space size={8} align="center">
                 <span>Live activity</span>
-                <Tag color="green" icon={<WifiOutlined />}>
+                <Tag color="green" style={tagBaseStyle}>
+                  <TagIcon>
+                    <WifiOutlined style={{ fontSize: 12 }} />
+                  </TagIcon>
                   realtime
                 </Tag>
               </Space>
@@ -603,6 +836,9 @@ export default function DashboardPage() {
                   const am = getActivityMeta(a.type);
                   const Accent = presetColorVar(am.color, 6);
 
+                  const queueName = a?.cases?.queues?.name || "No queue";
+                  const queueIsDefault = !!a?.cases?.queues?.is_default;
+
                   return (
                     <Card
                       key={a.id}
@@ -613,7 +849,9 @@ export default function DashboardPage() {
                         position: "relative",
                         overflow: "hidden",
                         border: "1px solid rgba(255,255,255,0.06)",
-                        background: `linear-gradient(135deg, ${activityBg(am.color)}, rgba(0,0,0,0))`,
+                        background: `linear-gradient(135deg, ${activityBg(
+                          am.color
+                        )}, rgba(0,0,0,0))`,
                       }}
                       onClick={() => router.push(`/cases/${a.case_id}`)}
                     >
@@ -629,15 +867,31 @@ export default function DashboardPage() {
                         }}
                       />
 
-                      <Space orientation="vertical" size={8} style={{ width: "100%", paddingInlineStart: 8 }}>
-                        <Row justify="space-between" align="middle" gutter={[8, 8]}>
+                      <Space
+                        orientation="vertical"
+                        size={8}
+                        style={{ width: "100%", paddingInlineStart: 8 }}
+                      >
+                        <Row
+                          justify="space-between"
+                          align="middle"
+                          gutter={[8, 8]}
+                        >
                           <Col flex="auto" style={{ minWidth: 0 }}>
-                            <Space wrap size={8}>
-                              <Tag
-                                color={am.color}
-                                icon={am.icon ? am.icon : null}
-                                style={{ margin: 0 }}
-                              >
+                            <Space wrap size={8} align="center">
+                              <Tag color={am.color} style={tagBaseStyle}>
+                                <TagIcon>
+                                  {am.icon ? (
+                                    <span
+                                      style={{
+                                        display: "inline-flex",
+                                        lineHeight: 0,
+                                      }}
+                                    >
+                                      {am.icon}
+                                    </span>
+                                  ) : null}
+                                </TagIcon>
                                 {am.label}
                               </Tag>
 
@@ -646,14 +900,21 @@ export default function DashboardPage() {
                               </Text>
 
                               <Tag
-                                style={{
-                                  margin: 0,
-                                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                                }}
                                 color="default"
+                                style={{
+                                  ...tagBaseStyle,
+                                  fontFamily:
+                                    "ui-monospace, SFMono-Regular, Menlo, monospace",
+                                }}
                               >
                                 {caseKey(a.case_id)}
                               </Tag>
+
+                              <QueueTag
+                              
+                                name={queueName}
+                                isDefault={queueIsDefault}
+                              />
                             </Space>
                           </Col>
 
@@ -679,26 +940,26 @@ export default function DashboardPage() {
 
                         <Divider style={{ margin: "6px 0" }} />
 
-                        {(() => {
-                          const change = renderActivityChange({ a, displayUser });
+                        <Space
+                          style={{
+                            justifyContent: "space-between",
+                            width: "100%",
+                            marginTop: 2,
+                          }}
+                        >
+                          {renderActivityChange({ a, displayUser }) || <span />}
 
-                          return (
-                            <Space style={{ justifyContent: "space-between", width: "100%", marginTop: 2 }}>
-                              {change ? change : <span />}
-
-                              <Button
-                                type="link"
-                                style={{ padding: 0 }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  router.push(`/cases/${a.case_id}`);
-                                }}
-                              >
-                                Open →
-                              </Button>
-                            </Space>
-                          );
-                        })()}
+                          <Button
+                            type="link"
+                            style={{ padding: 0 }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/cases/${a.case_id}`);
+                            }}
+                          >
+                            Open →
+                          </Button>
+                        </Space>
                       </Space>
                     </Card>
                   );

@@ -11,13 +11,19 @@ import {
   Tag,
   Typography,
 } from "antd";
-import { ArrowRightOutlined } from "@ant-design/icons";
-import CaseInlineActions from "@/app/(app)/cases/CaseInlineActions";
+import { ArrowRightOutlined, AppstoreOutlined } from "@ant-design/icons";
+import { queueColor } from "@/lib/ui/queue";
 
-import { getStatusMeta, shortId, timeAgo, caseKey } from "@/lib/ui/status";
+import CaseInlineActions from "@/app/(app)/cases/CaseInlineActions";
+import { getStatusMeta, timeAgo, caseKey } from "@/lib/ui/status";
 import { getPriorityMeta } from "@/lib/ui/priority";
 
 const { Text } = Typography;
+
+/* ------------------------------------------------------------ */
+/* Queue color helper (nice + consistent) */
+/* ------------------------------------------------------------ */
+
 
 export default function CasesList({ filtered, onOpenCase, onRefresh }) {
   const list = filtered || [];
@@ -28,53 +34,89 @@ export default function CasesList({ filtered, onOpenCase, onRefresh }) {
       extra={<Text type="secondary">Showing {list.length}</Text>}
       style={{ borderRadius: 16 }}
     >
-      <Space direction="vertical" size={12} style={{ width: "100%" }}>
+      <Space orientation="vertical" size={12} style={{ width: "100%" }}>
         {list.map((c) => {
           const sm = getStatusMeta(c.status);
           const pm = getPriorityMeta(c.priority);
 
+          const queueName = c?.queues?.name || "No queue";
+          const queueIsDefault = Boolean(c?.queues?.is_default);
+          const qColor = queueColor(queueName, queueIsDefault);
+console.log("CASES QUEUE:", JSON.stringify(queueName), queueIsDefault, qColor);
+
           const isOpen = ["new", "in_progress", "waiting_customer"].includes(
             c.status
           );
+          const accentColor = isOpen
+            ? "var(--ant-color-primary, #1677ff)"
+            : "transparent";
+
+          const cardBg = isOpen
+            ? "linear-gradient(90deg, rgba(22,119,255,0.06), rgba(22,119,255,0.00) 40%)"
+            : "rgba(255,255,255,0.015)";
+
+          const tagBaseStyle = {
+            margin: 0,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            height: 26,
+            lineHeight: "26px",
+            paddingInline: 10,
+            borderRadius: 3,
+            verticalAlign: "middle",
+          };
+          const titleOpacity = isOpen ? 1 : 0.65;
 
           return (
             <Card
               key={c.id}
               hoverable
-              style={{ borderRadius: 14 }}
-              styles={{ body: { padding: 16 } }} // ✅
+              style={{
+                borderRadius: 14,
+                position: "relative",
+                overflow: "hidden", // ✅ גורם לפס להיחתך לפי הרדיוס
+                background: cardBg,
+              }}
+              styles={{ body: { padding: 16 } }}
               onClick={() => onOpenCase?.(c.id)}
             >
-              <Row justify="space-between" align="middle" gutter={[12, 12]}>
+              {" "}
+              <div
+                style={{
+                  position: "absolute",
+                  insetBlock: 0, // top/bottom = 0
+                  insetInlineStart: 0, // left = 0
+                  width: 3,
+                  background: accentColor,
+                  borderTopLeftRadius: 14,
+                  borderBottomLeftRadius: 14,
+                  opacity: isOpen ? 1 : 0,
+                  pointerEvents: "none",
+                }}
+              />
+              <Row justify="space-between" align="top" gutter={[12, 12]}>
                 {/* LEFT */}
                 <Col flex="auto">
                   <Space
-                    direction="vertical"
+                    orientation="vertical"
                     size={6}
                     style={{ width: "100%" }}
                   >
-                    <Text strong style={{ fontSize: 16 }}>
-                      {c.title || "Untitled"}
-                    </Text>
-
-                    <Space wrap size={8}>
-                      <Tag
-                        color={sm.color}
-                        icon={sm.Icon ? <sm.Icon /> : null}
-                        style={{ margin: 0 }}
+                    {/* Title row: Title + CaseKey inline */}
+                    <Space
+                      size={10}
+                      align="baseline"
+                      wrap
+                      style={{ width: "100%" }}
+                    >
+                      <Text
+                        strong
+                        style={{ fontSize: 16, opacity: titleOpacity }}
                       >
-                        {sm.label}
-                      </Tag>
-                      <Tag
-                        color={pm.color}
-                        icon={pm.Icon ? <pm.Icon /> : null}
-                        style={{ margin: 0 }}
-                      >
-                        {pm.label}
-                      </Tag>
-                    </Space>
+                        {c.title || "Untitled"}
+                      </Text>
 
-                    <Space wrap size={10}>
                       <Text
                         type="secondary"
                         style={{
@@ -85,25 +127,90 @@ export default function CasesList({ filtered, onOpenCase, onRefresh }) {
                       >
                         {caseKey(c.id)}
                       </Text>
+                    </Space>
 
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        Created {timeAgo(c.created_at)}
-                      </Text>
+                    {/* Tags */}
+                    <Space wrap size={8} align="center">
+                      <Tag color={sm.color} style={tagBaseStyle}>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            lineHeight: 0,
+                          }}
+                        >
+                          {sm.Icon ? (
+                            <sm.Icon style={{ fontSize: 12 }} />
+                          ) : null}
+                        </span>
+                        {sm.label}
+                      </Tag>
+
+                      <Tag color={pm.color} style={tagBaseStyle}>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            lineHeight: 0,
+                          }}
+                        >
+                          {pm.Icon ? (
+                            <pm.Icon style={{ fontSize: 12 }} />
+                          ) : null}
+                        </span>
+                        {pm.label}
+                      </Tag>
+
+                      <Tag
+                        color={qColor}
+                        style={{
+                          ...tagBaseStyle,
+                          maxWidth: 220,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            lineHeight: 0,
+                          }}
+                        >
+                          <AppstoreOutlined style={{ fontSize: 12 }} />
+                        </span>
+                        {queueName}
+                      </Tag>
                     </Space>
                   </Space>
                 </Col>
 
                 {/* RIGHT */}
                 <Col>
-                  <Space size={10} align="center">
-                    <Badge status={isOpen ? "processing" : "default"} />
-                    <Text type="secondary">{isOpen ? "Open" : "Closed"}</Text>
+                  <Space
+                    direction="vertical"
+                    size={6}
+                    align="end"
+                    style={{ width: "100%" }}
+                  >
+                    {/* Created time on top-right */}
+                    <Text
+                      type="secondary"
+                      style={{ fontSize: 12, whiteSpace: "nowrap" }}
+                    >
+                      Created {timeAgo(c.created_at)}
+                    </Text>
+
+                    {/* Open/Closed */}
+                    <Space size={10} align="center">
+                      <Badge status={isOpen ? "processing" : "default"} />
+                      <Text type="secondary">{isOpen ? "Open" : "Closed"}</Text>
+                    </Space>
                   </Space>
                 </Col>
               </Row>
-
               <Divider style={{ margin: "12px 0" }} />
-
               <Row justify="space-between" align="middle" gutter={[12, 12]}>
                 <Col flex="auto">
                   <div

@@ -117,7 +117,7 @@ export default function LoginPage() {
         </Card>
 
         <div style={{ textAlign: "center", marginTop: 14, opacity: 0.75, fontSize: 12 }}>
-          CaseFlow • Dynamics-style mini CRM
+          CaseFlow • By GilM
         </div>
       </div>
     </div>

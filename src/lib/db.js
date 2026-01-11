@@ -59,7 +59,9 @@ export async function initializeWorkspace({
 export async function getMyWorkspaces() {
   const { data, error } = await supabase
     .from("org_memberships")
-    .select("org_id, role, is_active, organizations:org_id ( id, name, owner_user_id )")
+    .select(
+      "org_id, role, is_active, organizations:org_id ( id, name, owner_user_id )"
+    )
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -74,6 +76,8 @@ export async function createCase({
   priority,
   requesterContactId,
 }) {
+  if (!queueId) throw new Error("Queue is required");
+
   const { data: sessionData } = await supabase.auth.getSession();
   const user = sessionData?.session?.user;
   if (!user) throw new Error("Not authenticated");
@@ -82,7 +86,7 @@ export async function createCase({
     .from("cases")
     .insert({
       org_id: orgId,
-      queue_id: queueId || null,
+      queue_id: queueId, // ✅ no null
       title,
       description: description || null,
       priority,
@@ -158,7 +162,6 @@ export async function updateCaseStatus({ caseId, status }) {
   if (upErr) throw upErr;
 }
 
-
 /**
  * Returns { orgId, orgName, role, ownerUserId } for active workspace (MVP)
  * ✅ Added ownerUserId to support primary admin logic in UI
@@ -166,7 +169,9 @@ export async function updateCaseStatus({ caseId, status }) {
 export async function getActiveWorkspace() {
   const { data, error } = await supabase
     .from("org_memberships")
-    .select("org_id, role, is_active, organizations:org_id ( id, name, owner_user_id )")
+    .select(
+      "org_id, role, is_active, organizations:org_id ( id, name, owner_user_id )"
+    )
     .eq("is_active", true)
     .order("created_at", { ascending: false })
     .limit(1);
@@ -231,7 +236,9 @@ export async function getDashboardStats(orgId) {
 export async function getMyOpenCases(orgId, userId) {
   const { data, error } = await supabase
     .from("cases")
-    .select("id,title,status,priority,created_at")
+    .select(
+      "id,title,status,priority,created_at, queue_id, queues(name,is_default)"
+    )
     .eq("org_id", orgId)
     .eq("assigned_to", userId)
     .neq("status", "closed")
@@ -245,7 +252,9 @@ export async function getMyOpenCases(orgId, userId) {
 export async function getRecentActivity(orgId) {
   const { data, error } = await supabase
     .from("case_activities")
-    .select("id, case_id, type, body, meta, created_at, created_by")
+    .select(
+      "id, case_id, type, body, meta, created_at, created_by, cases:case_id ( id, queue_id, queues(name,is_default) )"
+    )
     .eq("org_id", orgId)
     .order("created_at", { ascending: false })
     .limit(12);
