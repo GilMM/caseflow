@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 import {
   Layout,
@@ -194,29 +195,50 @@ export default function AppLayout({ children }) {
     []
   );
 
-  const Brand = ({ compact = false }) => (
-    <div
+const Brand = ({ compact = false }) => (
+  <div
+    style={{
+      padding: compact ? "0 12px" : 16,
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      height: compact ? 56 : "auto",
+    }}
+  >
+    <span
       style={{
-        padding: compact ? "0 8px" : 16,
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        height: compact ? 56 : "auto",
+        width: 26,
+        height: 26,
+        borderRadius: 8,
+        background: "rgba(22,119,255,0.12)",
+        border: `1px solid ${token.colorBorder}`,
+        display: "grid",
+        placeItems: "center",
+        flexShrink: 0,
       }}
     >
-      <AppstoreOutlined style={{ color: token.colorPrimary, fontSize: 18 }} />
-      <div
-        style={{
-          fontWeight: 800,
-          letterSpacing: 0.2,
-          color: token.colorText,
-          whiteSpace: "nowrap",
-        }}
-      >
-        CaseFlow
-      </div>
+      <Image
+        src="/caseflow-icon-512.png"
+        alt="CaseFlow"
+        width={16}
+        height={16}
+        priority
+      />
+    </span>
+
+    <div
+      style={{
+        fontWeight: 800,
+        letterSpacing: 0.2,
+        color: token.colorText,
+        whiteSpace: "nowrap",
+      }}
+    >
+      CaseFlow
     </div>
-  );
+  </div>
+);
+
 
   if (loading) {
     return (

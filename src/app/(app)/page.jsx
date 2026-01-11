@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { queueColor } from "@/lib/ui/queue";
+import Image from "next/image";
 
 import { supabase } from "@/lib/supabase/client";
 import {
@@ -437,12 +438,18 @@ export default function DashboardPage() {
 
               <Space wrap size={8} align="center">
                 {workspace?.orgName ? (
-                  <Tag color="blue" style={tagBaseStyle}>
-                    <TagIcon>
-                      <AppstoreOutlined style={{ fontSize: 12 }} />
-                    </TagIcon>
-                    Workspace: {workspace.orgName}
-                  </Tag>
+<Tag color="blue" style={tagBaseStyle}>
+  <TagIcon>
+    <Image
+      src="/caseflow-icon-512.png"
+      alt="CaseFlow"
+      width={14}
+      height={14}
+      style={{ borderRadius: 4 }}
+    />
+  </TagIcon>
+  Workspace: {workspace.orgName}
+</Tag>
                 ) : (
                   <Tag style={tagBaseStyle}>Workspace: none</Tag>
                 )}
