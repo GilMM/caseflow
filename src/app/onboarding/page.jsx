@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { getActiveWorkspace } from "@/lib/db";
+import { App } from "antd";
 
 import {
   Alert,
@@ -112,7 +113,11 @@ export default function OnboardingPage() {
 
   const [formOrg] = Form.useForm();
   const [formInvite] = Form.useForm();
-
+  const { message } = App.useApp();
+if (process.env.NODE_ENV === "development") {
+  console.log("useForm created here ↓");
+  console.log(new Error().stack);
+}
   const previewTimer = useRef(null);
 
   useEffect(() => {
@@ -308,11 +313,11 @@ export default function OnboardingPage() {
             background:
               "radial-gradient(1200px 600px at 20% 10%, rgba(22,119,255,0.14), transparent 60%), radial-gradient(1000px 500px at 80% 20%, rgba(82,196,26,0.12), transparent 55%)",
           }}
-          bodyStyle={{ padding: 0 }}
+          styles={{ body: { padding: 0 } }}
         >
           <Row gutter={0} style={{ minHeight: 520 }}>
             <Col xs={24} lg={11} style={{ padding: 22 }}>
-              <Space direction="vertical" size={14} style={{ width: "100%" }}>
+              <Space orientation="vertical" size={14} style={{ width: "100%" }}>
                 <Space wrap size={8}>
                   <Pill icon={<SafetyCertificateOutlined />} label="RLS-secured" />
                   <Pill icon={<ThunderboltOutlined />} label="Fast setup" />
@@ -329,12 +334,12 @@ export default function OnboardingPage() {
                 </div>
 
                 {error ? (
-                  <Alert type="error" showIcon message="Onboarding error" description={error} />
+                  <Alert type="error" showIcon title="Onboarding error" description={error} />
                 ) : null}
 
                 <Divider style={{ margin: "2px 0" }} />
 
-                <Space direction="vertical" size={10} style={{ width: "100%" }}>
+                <Space orientation="vertical" size={10} style={{ width: "100%" }}>
                   <Feature
                     token={token}
                     icon={<InboxOutlined style={{ color: token.colorPrimary }} />}
@@ -372,7 +377,7 @@ export default function OnboardingPage() {
                 borderLeft: `1px solid ${token.colorBorder}`,
               }}
             >
-              <Space direction="vertical" size={12} style={{ width: "100%" }}>
+              <Space orientation="vertical" size={12} style={{ width: "100%" }}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
                   <Title level={4} style={{ margin: 0 }}>
                     Get started
@@ -392,7 +397,7 @@ export default function OnboardingPage() {
                         </Space>
                       }
                       style={{ borderRadius: 16, height: "100%" }}
-                      bodyStyle={{ paddingTop: 10 }}
+                      styles={{ paddingTop: 10 }}
                     >
                       <Text type="secondary" style={{ display: "block", marginBottom: 10 }}>
                         Start a new workspace and become admin.
@@ -432,7 +437,7 @@ export default function OnboardingPage() {
                         </Space>
                       }
                       style={{ borderRadius: 16, height: "100%" }}
-                      bodyStyle={{ paddingTop: 10 }}
+                      styles={{ paddingTop: 10 }}
                     >
                       <Text type="secondary" style={{ display: "block", marginBottom: 10 }}>
                         Paste an invite token to join a team.
@@ -470,16 +475,16 @@ export default function OnboardingPage() {
                               <Alert
                                 type="warning"
                                 showIcon
-                                message="Invite expired"
+                                title="Invite expired"
                                 description="Ask an admin to send a new invite."
                               />
                             ) : (
                               <Alert
                                 type="success"
                                 showIcon
-                                message={`Invite to: ${invitePreview.org_name || invitePreview.org_id}`}
+                                title={`Invite to: ${invitePreview.org_name || invitePreview.org_id}`}
                                 description={
-                                  <Space direction="vertical" size={2}>
+                                  <Space orientation="vertical" size={2}>
                                     <Text type="secondary" style={{ fontSize: 12 }}>
                                       Role: <b>{invitePreview.role}</b>
                                     </Text>

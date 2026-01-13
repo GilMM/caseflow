@@ -17,7 +17,10 @@ export default function NewCasePage() {
   const search = useSearchParams();
   const { message } = App.useApp();
   const [form] = Form.useForm();
-
+if (process.env.NODE_ENV === "development") {
+  console.log("useForm created here ↓");
+  console.log(new Error().stack);
+}
   // optional prefill
   const requesterFromUrl = search.get("requester");
   const queueFromUrl = search.get("queue");

@@ -89,7 +89,7 @@ export default function CaseAssignment({ caseId, orgId, assignedTo, onChanged })
     (value ? shortId(value) : "Unassigned");
 
   return (
-    <Space direction="vertical" size={10} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={10} style={{ width: "100%" }}>
       <div
         style={{
           display: "flex",

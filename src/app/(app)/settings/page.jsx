@@ -4,7 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { supabase } from "@/lib/supabase/client";
-import { getActiveWorkspace, updateOrgSettings, diagnosticsOrgAccess } from "@/lib/db";
+import {
+  getActiveWorkspace,
+  updateOrgSettings,
+  diagnosticsOrgAccess,
+} from "@/lib/db";
 
 import {
   Alert,
@@ -49,31 +53,20 @@ function initials(nameOrEmail) {
   if (!s) return "?";
   const parts = s.split(/\s+/).filter(Boolean);
   const a = parts[0]?.[0] || "";
-  const b = parts.length > 1 ? parts[parts.length - 1]?.[0] : parts[0]?.[1] || "";
+  const b =
+    parts.length > 1 ? parts[parts.length - 1]?.[0] : parts[0]?.[1] || "";
   return (a + b).toUpperCase() || "?";
 }
 
 /* ---------------- child cards ---------------- */
 
-function ProfileCard({ sessionUser, onSaveProfile, isMobile }) {
-  const [profileForm] = Form.useForm();
+function ProfileCard({ sessionUser, onSaveProfile, isMobile, form }) {
+  const profileForm = form;
 
-  // MVP prefill (placeholder)
-  useEffect(() => {
-    profileForm.setFieldsValue({
-      full_name: "",
-      avatar_url: "",
-    });
-  }, [profileForm]);
+  const name = Form.useWatch("full_name", profileForm);
+  const avatarUrl = Form.useWatch("avatar_url", profileForm);
 
-  const userLabel = useMemo(() => {
-    const name = profileForm.getFieldValue("full_name");
-    const email = sessionUser?.email;
-    return name || email || "Account";
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionUser]);
-
-  const avatarUrl = profileForm.getFieldValue("avatar_url") || undefined;
+  const userLabel = name || sessionUser?.email || "Account";
 
   return (
     <Card
@@ -85,14 +78,17 @@ function ProfileCard({ sessionUser, onSaveProfile, isMobile }) {
       }
       style={{ borderRadius: 16 }}
       extra={
-        <Text type="secondary" style={{ fontSize: 12, wordBreak: "break-word" }}>
+        <Text
+          type="secondary"
+          style={{ fontSize: 12, wordBreak: "break-word" }}
+        >
           {sessionUser?.email || ""}
         </Text>
       }
     >
       <Row gutter={[12, 12]} align="middle">
         <Col>
-          <Avatar size={56} src={avatarUrl}>
+          <Avatar size={56} src={avatarUrl || undefined}>
             {initials(userLabel)}
           </Avatar>
         </Col>
@@ -110,7 +106,12 @@ function ProfileCard({ sessionUser, onSaveProfile, isMobile }) {
 
       <Divider style={{ margin: "12px 0" }} />
 
-      <Form form={profileForm} layout="vertical" onFinish={onSaveProfile}>
+      <Form
+        form={profileForm}
+        layout="vertical"
+        onFinish={onSaveProfile}
+        initialValues={{ full_name: "", avatar_url: "" }}
+      >
         <Form.Item label="Display name" name="full_name">
           <Input placeholder="e.g., Gil Meshou" />
         </Form.Item>
@@ -134,7 +135,10 @@ function ProfileCard({ sessionUser, onSaveProfile, isMobile }) {
 
 function OrgSettingsCard({ workspace, savingOrg, onSaveOrg, isMobile }) {
   const [orgForm] = Form.useForm();
-
+  if (process.env.NODE_ENV === "development") {
+    console.log("useForm created here ↓");
+    console.log(new Error().stack);
+  }
   useEffect(() => {
     if (!workspace?.orgId) return;
     orgForm.setFieldsValue({
@@ -170,7 +174,12 @@ function OrgSettingsCard({ workspace, savingOrg, onSaveOrg, isMobile }) {
           <Input placeholder="https://…" />
         </Form.Item>
 
-        <Button type="primary" htmlType="submit" loading={savingOrg} block={isMobile}>
+        <Button
+          type="primary"
+          htmlType="submit"
+          loading={savingOrg}
+          block={isMobile}
+        >
           Save organization
         </Button>
 
@@ -209,6 +218,12 @@ export default function SettingsPage() {
   const [diag, setDiag] = useState(null);
   const [diagLoading, setDiagLoading] = useState(false);
 
+  const [profileForm] = Form.useForm();
+  // const [orgForm] = Form.useForm();
+  if (process.env.NODE_ENV === "development") {
+    console.log("useForm created here ↓");
+    console.log(new Error().stack);
+  }
   async function loadAll({ silent = false } = {}) {
     try {
       setError("");
@@ -298,7 +313,8 @@ export default function SettingsPage() {
         <Card
           style={{
             borderRadius: 16,
-            background: "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
+            background:
+              "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
           }}
         >
           <Row justify="space-between" align="middle" gutter={[12, 12]}>
@@ -317,7 +333,9 @@ export default function SettingsPage() {
                     <Tag>Workspace: none</Tag>
                   )}
 
-                  {workspace?.role ? <Tag color="geekblue">Role: {workspace.role}</Tag> : null}
+                  {workspace?.role ? (
+                    <Tag color="geekblue">Role: {workspace.role}</Tag>
+                  ) : null}
 
                   <Tag color="green" icon={<WifiOutlined />}>
                     Realtime enabled
@@ -343,7 +361,12 @@ export default function SettingsPage() {
                   </Button>
                 </Tooltip>
 
-                <Button danger icon={<LogoutOutlined />} onClick={logout} block={isMobile}>
+                <Button
+                  danger
+                  icon={<LogoutOutlined />}
+                  onClick={logout}
+                  block={isMobile}
+                >
                   Logout
                 </Button>
               </Space>
@@ -353,14 +376,24 @@ export default function SettingsPage() {
 
         {error ? (
           <Card style={{ borderRadius: 16, borderColor: "#ffccc7" }}>
-            <Alert type="error" showIcon message="Couldn’t load settings" description={error} />
+            <Alert
+              type="error"
+              showIcon
+              title="Couldn’t load settings"
+              description={error}
+            />
           </Card>
         ) : null}
 
         <Row gutter={[12, 12]}>
           {/* LEFT COLUMN */}
           <Col xs={24} lg={12}>
-            <ProfileCard sessionUser={sessionUser} onSaveProfile={onSaveProfile} isMobile={isMobile} />
+            <ProfileCard
+              sessionUser={sessionUser}
+              onSaveProfile={onSaveProfile}
+              isMobile={isMobile}
+              form={profileForm}
+            />
           </Col>
 
           {/* RIGHT COLUMN */}
@@ -376,7 +409,11 @@ export default function SettingsPage() {
               style={{ borderRadius: 16 }}
             >
               {workspace?.orgId ? (
-                <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+                <Space
+                  orientation="vertical"
+                  size={10}
+                  style={{ width: "100%" }}
+                >
                   <Space wrap size={8}>
                     <Tag color="blue">Org</Tag>
                     <Text strong style={{ wordBreak: "break-word" }}>
@@ -403,10 +440,14 @@ export default function SettingsPage() {
                   {/* Actions */}
                   <Space
                     wrap={!isMobile}
-                    direction={isMobile ? "vertical" : "horizontal"}
+                    orientation={isMobile ? "vertical" : "horizontal"}
                     style={{ width: "100%" }}
                   >
-                    <Tooltip title={isAdmin ? "Manage members & invites" : "Admins only"}>
+                    <Tooltip
+                      title={
+                        isAdmin ? "Manage members & invites" : "Admins only"
+                      }
+                    >
                       <Button
                         type="primary"
                         icon={<TeamOutlined />}
@@ -424,7 +465,9 @@ export default function SettingsPage() {
                     {!isAdmin ? (
                       <Button
                         onClick={() =>
-                          message.info("Only workspace admins can manage members and invitations.")
+                          message.info(
+                            "Only workspace admins can manage members and invitations."
+                          )
                         }
                         block={isMobile}
                       >
@@ -443,7 +486,7 @@ export default function SettingsPage() {
                 <Alert
                   type="warning"
                   showIcon
-                  message="No active workspace"
+                  title="No active workspace"
                   description="Create an organization + membership first. Then settings will show org context."
                 />
               )}
@@ -468,11 +511,16 @@ export default function SettingsPage() {
                 </Space>
 
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  Data is scoped by org membership using Row Level Security (RLS).
+                  Data is scoped by org membership using Row Level Security
+                  (RLS).
                 </Text>
 
                 {isAdmin && workspace?.orgId ? (
-                  <Space direction="vertical" size={10} style={{ width: "100%" }}>
+                  <Space
+                    orientation="vertical"
+                    size={10}
+                    style={{ width: "100%" }}
+                  >
                     <Button
                       icon={<ReloadOutlined />}
                       loading={diagLoading}
@@ -486,22 +534,38 @@ export default function SettingsPage() {
                       {diag ? (
                         <>
                           <Tag
-                            icon={diag.is_member ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
+                            icon={
+                              diag.is_member ? (
+                                <CheckCircleOutlined />
+                              ) : (
+                                <CloseCircleOutlined />
+                              )
+                            }
                             color={diag.is_member ? "green" : "red"}
                           >
                             Member
                           </Tag>
 
                           <Tag
-                            icon={diag.is_admin ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
+                            icon={
+                              diag.is_admin ? (
+                                <CheckCircleOutlined />
+                              ) : (
+                                <CloseCircleOutlined />
+                              )
+                            }
                             color={diag.is_admin ? "green" : "red"}
                           >
                             Admin
                           </Tag>
 
-                          {diag.member_role ? <Tag color="blue">role: {diag.member_role}</Tag> : null}
+                          {diag.member_role ? (
+                            <Tag color="blue">role: {diag.member_role}</Tag>
+                          ) : null}
                           {typeof diag.active_members_count === "number" ? (
-                            <Tag>active members: {diag.active_members_count}</Tag>
+                            <Tag>
+                              active members: {diag.active_members_count}
+                            </Tag>
                           ) : null}
                         </>
                       ) : (
@@ -513,7 +577,7 @@ export default function SettingsPage() {
                   <Alert
                     type="info"
                     showIcon
-                    message="Diagnostics available for admins"
+                    title="Diagnostics available for admins"
                     description="Create an organization and make sure you are an admin."
                   />
                 )}
@@ -527,8 +591,8 @@ export default function SettingsPage() {
           <Space orientation="vertical" size={6}>
             <Text strong>Next settings upgrades</Text>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              • Persist profile in <Text code>profiles</Text> (self update RLS) • Workspace switcher • Notifications • SLA
-              per queue
+              • Persist profile in <Text code>profiles</Text> (self update RLS)
+              • Workspace switcher • Notifications • SLA per queue
             </Text>
           </Space>
         </Card>

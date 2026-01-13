@@ -189,7 +189,7 @@ console.log("CASES QUEUE:", JSON.stringify(queueName), queueIsDefault, qColor);
                 {/* RIGHT */}
                 <Col>
                   <Space
-                    direction="vertical"
+                    orientation="vertical"
                     size={6}
                     align="end"
                     style={{ width: "100%" }}

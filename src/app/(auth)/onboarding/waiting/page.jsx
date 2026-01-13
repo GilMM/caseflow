@@ -67,7 +67,7 @@ export default function WaitingApprovalPage() {
               "radial-gradient(900px 450px at 20% 10%, rgba(22,119,255,0.10), transparent 60%), radial-gradient(800px 400px at 80% 20%, rgba(82,196,26,0.08), transparent 55%)",
           }}
         >
-          <Space direction="vertical" size={14} style={{ width: "100%" }}>
+          <Space orientation="vertical" size={14} style={{ width: "100%" }}>
             <Space style={{ justifyContent: "space-between", width: "100%" }}>
               <Tag
                 icon={<SafetyCertificateOutlined />}
@@ -83,7 +83,7 @@ export default function WaitingApprovalPage() {
               ) : null}
             </Space>
 
-            <Space direction="vertical" size={6} style={{ width: "100%" }}>
+            <Space orientation="vertical" size={6} style={{ width: "100%" }}>
               <Title level={4} style={{ margin: 0 }}>
                 Waiting for admin approval
               </Title>

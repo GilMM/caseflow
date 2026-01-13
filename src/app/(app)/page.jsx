@@ -82,7 +82,7 @@ const tagBaseStyle = {
   height: 26,
   lineHeight: "26px",
   paddingInline: 10,
-  borderRadius: 999,
+  borderRadius: 3,
   verticalAlign: "middle",
 };
 
@@ -101,7 +101,12 @@ function TagIcon({ children }) {
 }
 
 function QueueTag({ name, isDefault = false }) {
-  console.log("DASH QUEUE:", JSON.stringify(name), isDefault, queueColor(name, isDefault));
+  console.log(
+    "DASH QUEUE:",
+    JSON.stringify(name),
+    isDefault,
+    queueColor(name, isDefault)
+  );
 
   return (
     <Tag
@@ -113,18 +118,14 @@ function QueueTag({ name, isDefault = false }) {
         textOverflow: "ellipsis",
         whiteSpace: "nowrap",
       }}
-      
     >
-      
       <TagIcon>
         <AppstoreOutlined style={{ fontSize: 12 }} />
       </TagIcon>
       {name || "No queue"}
     </Tag>
   );
-  
 }
-
 
 function StatusTag({ meta }) {
   return (
@@ -263,7 +264,7 @@ function KpiCard({
         ) : (
           <Statistic
             value={value}
-            valueStyle={{ fontSize: 34, lineHeight: 1.15 }}
+            styles={{ content: { fontSize: 34, lineHeight: 1.15 } }}
           />
         )}
       </div>
@@ -438,18 +439,18 @@ export default function DashboardPage() {
 
               <Space wrap size={8} align="center">
                 {workspace?.orgName ? (
-<Tag color="blue" style={tagBaseStyle}>
-  <TagIcon>
-    <Image
-      src="/caseflow-icon-512.png"
-      alt="CaseFlow"
-      width={14}
-      height={14}
-      style={{ borderRadius: 4 }}
-    />
-  </TagIcon>
-  Workspace: {workspace.orgName}
-</Tag>
+                  <Tag color="blue" style={tagBaseStyle}>
+                    <TagIcon>
+                      <Image
+                        src="/caseflow-icon-512.png"
+                        alt="CaseFlow"
+                        width={14}
+                        height={14}
+                        style={{ borderRadius: 4 }}
+                      />
+                    </TagIcon>
+                    Workspace: {workspace.orgName}
+                  </Tag>
                 ) : (
                   <Tag style={tagBaseStyle}>Workspace: none</Tag>
                 )}
@@ -762,7 +763,6 @@ export default function DashboardPage() {
                               <QueueTag
                                 name={queueName}
                                 isDefault={queueIsDefault}
-                                
                               />
                             </Space>
                           </Space>
@@ -770,7 +770,7 @@ export default function DashboardPage() {
 
                         {/* RIGHT */}
                         <Col>
-                          <Space direction="vertical" size={6} align="end">
+                          <Space orientation="vertical" size={6} align="end">
                             <Text
                               type="secondary"
                               style={{ fontSize: 12, whiteSpace: "nowrap" }}
@@ -918,7 +918,6 @@ export default function DashboardPage() {
                               </Tag>
 
                               <QueueTag
-                              
                                 name={queueName}
                                 isDefault={queueIsDefault}
                               />

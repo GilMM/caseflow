@@ -47,7 +47,7 @@ export default function NewCaseForm({
         <Alert
           type="error"
           showIcon
-          message="Couldn’t create case"
+          title="Couldn’t create case"
           description={error}
           style={{ marginBottom: 12 }}
         />
@@ -57,7 +57,7 @@ export default function NewCaseForm({
         <Alert
           type="warning"
           showIcon
-          message="No workspace found"
+          title="No workspace found"
           description="Create an organization + membership first, then come back to create cases."
         />
       ) : queuesLoading ? (
@@ -68,7 +68,7 @@ export default function NewCaseForm({
         <Alert
           type="warning"
           showIcon
-          message="No queues found"
+          title="No queues found"
           description="Create at least one queue, then you can create cases."
         />
       ) : (
