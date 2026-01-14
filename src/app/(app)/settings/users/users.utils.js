@@ -24,10 +24,10 @@ export function timeAgo(iso) {
   return `${d}d ago`;
 }
 
-export function inviteLinkFromToken(token) {
-  // called only client-side
-  return `${window.location.origin}/onboarding?invite=${token}`;
-}
+// export function inviteLinkFromToken(token) {
+//   // called only client-side
+//   return `${window.location.origin}/onboarding?invite=${token}`;
+// }
 
 export function inviteStatusTag(inv) {
   const now = Date.now();
@@ -35,4 +35,24 @@ export function inviteStatusTag(inv) {
   if (inv.accepted_at) return <Tag color="green">Accepted</Tag>;
   if (exp && exp < now) return <Tag>Expired</Tag>;
   return <Tag color="blue">Pending</Tag>;
+}
+
+
+export function appOrigin() {
+  const env = (process.env.NEXT_PUBLIC_APP_URL || "").trim();
+
+  // canonical in prod
+  if (env) return env.replace(/\/+$/, "");
+
+  // preview + dev + localhost
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return window.location.origin;
+  }
+
+  // server-side fallback (rarely used here)
+  return "http://localhost:3000";
+}
+
+export function inviteLinkFromToken(token) {
+  return `${appOrigin()}/i/${encodeURIComponent(token)}`;
 }

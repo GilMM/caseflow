@@ -16,7 +16,7 @@ export default function SecurityCard({
 }) {
   return (
     <Card style={{ borderRadius: 16, marginTop: 12 }}>
-      <Space direction="vertical" size={10} style={{ width: "100%" }}>
+      <Space orientation ="vertical" size={10} style={{ width: "100%" }}>
         <Space size={8}>
           <SafetyOutlined />
           <Text strong>Security (RLS)</Text>
@@ -27,7 +27,7 @@ export default function SecurityCard({
         </Text>
 
         {isAdmin && orgId ? (
-          <Space direction="vertical" size={10} style={{ width: "100%" }}>
+          <Space orientation ="vertical" size={10} style={{ width: "100%" }}>
             <Button
               icon={<ReloadOutlined />}
               loading={diagLoading}
@@ -69,7 +69,7 @@ export default function SecurityCard({
           <Alert
             type="info"
             showIcon
-            message="Diagnostics available for admins"
+            title ="Diagnostics available for admins"
             description="Create an organization and make sure you are an admin."
           />
         )}

@@ -46,7 +46,7 @@ export default function ProfileCard({ sessionUser, profile, onSaveProfile, onUpl
           </Avatar>
         </Col>
         <Col flex="auto" style={{ minWidth: 0 }}>
-          <Space direction="vertical" size={0} style={{ width: "100%" }}>
+          <Space orientation ="vertical" size={0} style={{ width: "100%" }}>
             <Text strong style={{ fontSize: 14, wordBreak: "break-word" }}>
               {userLabel}
             </Text>

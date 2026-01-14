@@ -284,7 +284,7 @@ export default function SettingsPage() {
 
   return (
     <Spin spinning={loading} size="large">
-      <Space direction="vertical" size={14} style={{ width: "100%" }}>
+      <Space orientation ="vertical" size={14} style={{ width: "100%" }}>
         {/* Header */}
         <Card
           style={{
@@ -294,7 +294,7 @@ export default function SettingsPage() {
         >
           <Row justify="space-between" align="middle" gutter={[12, 12]}>
             <Col xs={24} md="auto">
-              <Space direction="vertical" size={2} style={{ width: "100%" }}>
+              <Space orientation ="vertical" size={2} style={{ width: "100%" }}>
                 <Title level={isMobile ? 4 : 3} style={{ margin: 0 }}>
                   Settings
                 </Title>
@@ -403,7 +403,7 @@ export default function SettingsPage() {
 
         {/* Roadmap */}
         <Card style={{ borderRadius: 16 }}>
-          <Space direction="vertical" size={6}>
+          <Space orientation ="vertical" size={6}>
             <Text strong>Next settings upgrades</Text>
             <Text type="secondary" style={{ fontSize: 12 }}>
               • Persist profile in <Text code>profiles</Text> • Workspace switcher • Notifications • SLA
