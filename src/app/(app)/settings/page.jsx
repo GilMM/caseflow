@@ -1,7 +1,7 @@
 // src/app/(app)/settings/page.jsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { supabase } from "@/lib/supabase/client";
@@ -15,276 +15,34 @@ import {
 import {
   Alert,
   App,
-  Avatar,
   Button,
   Card,
   Col,
-  Divider,
   Form,
   Grid,
-  Input,
   Row,
   Space,
   Spin,
   Tag,
   Tooltip,
   Typography,
-  Upload,
 } from "antd";
 
 import {
   SettingOutlined,
   ReloadOutlined,
   WifiOutlined,
-  UserOutlined,
   LogoutOutlined,
-  AppstoreOutlined,
-  SafetyOutlined,
-  TeamOutlined,
-  EditOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  UploadOutlined,
 } from "@ant-design/icons";
+
+import ProfileCard from "./_components/ProfileCard";
+import OrgSettingsCard from "./_components/OrgSettingsCard";
+import WorkspaceCard from "./_components/WorkspaceCard";
+import SecurityCard from "./_components/SecurityCard";
+import { getExt } from "./_components/helpers";
 
 const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
-
-/* ---------------- helpers ---------------- */
-
-function initials(nameOrEmail) {
-  const s = (nameOrEmail || "").trim();
-  if (!s) return "?";
-  const parts = s.split(/\s+/).filter(Boolean);
-  const a = parts[0]?.[0] || "";
-  const b =
-    parts.length > 1 ? parts[parts.length - 1]?.[0] : parts[0]?.[1] || "";
-  return (a + b).toUpperCase() || "?";
-}
-
-function safeSrc(url, bust) {
-  const u = (url || "").trim();
-  if (!u) return null;
-  const v = bust ? String(bust) : String(Date.now());
-  const sep = u.includes("?") ? "&" : "?";
-  return `${u}${sep}v=${encodeURIComponent(v)}`;
-}
-
-
-function getExt(filename) {
-  const parts = String(filename || "").split(".");
-  const ext = parts.length > 1 ? parts.pop() : "png";
-  return String(ext || "png").toLowerCase();
-}
-
-
-
-/* ---------------- child cards ---------------- */
-
-function ProfileCard({
-  sessionUser,
-  profile,
-  onSaveProfile,
-  onUploadAvatar,
-  isMobile,
-  form,
-}) {
-  const profileForm = form;
-
-  useEffect(() => {
-    profileForm?.setFieldsValue({
-      full_name: profile?.full_name || "",
-    });
-  }, [profileForm, profile?.full_name]);
-
-  const userLabel = useMemo(() => {
-    const name = profileForm?.getFieldValue("full_name");
-    const email = sessionUser?.email;
-    return name || email || "Account";
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionUser, profile?.full_name]);
-
-const avatarUrl = safeSrc(profile?.avatar_url, profile?.updated_at);
-
-  return (
-    <Card
-      title={
-        <Space size={8}>
-          <UserOutlined />
-          <span>Profile</span>
-        </Space>
-      }
-      style={{ borderRadius: 16 }}
-      extra={
-        <Text type="secondary" style={{ fontSize: 12, wordBreak: "break-word" }}>
-          {sessionUser?.email || ""}
-        </Text>
-      }
-    >
-      <Row gutter={[12, 12]} align="middle">
-        <Col>
-          <Avatar size={56} src={avatarUrl}>
-            {initials(userLabel)}
-          </Avatar>
-        </Col>
-        <Col flex="auto" style={{ minWidth: 0 }}>
-          <Space orientation="vertical" size={0} style={{ width: "100%" }}>
-            <Text strong style={{ fontSize: 14, wordBreak: "break-word" }}>
-              {userLabel}
-            </Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              Update your display name and avatar.
-            </Text>
-          </Space>
-        </Col>
-      </Row>
-
-      <Divider style={{ margin: "12px 0" }} />
-
-      <Form
-        form={profileForm}
-        layout="vertical"
-        onFinish={onSaveProfile}
-        requiredMark={false}
-      >
-        <Form.Item
-          label="Display name"
-          name="full_name"
-          rules={[{ min: 2, message: "Too short" }]}
-        >
-          <Input placeholder="e.g., Gil Meshulami" />
-        </Form.Item>
-
-        <Form.Item label="Avatar">
-          <Upload
-            accept="image/*"
-            showUploadList={false}
-            customRequest={async ({ file, onSuccess, onError }) => {
-              try {
-                await onUploadAvatar(file);
-                onSuccess?.("ok");
-              } catch (e) {
-                onError?.(e);
-              }
-            }}
-          >
-            <Button icon={<UploadOutlined />} block={isMobile}>
-              Upload avatar
-            </Button>
-          </Upload>
-
-          <div style={{ marginTop: 8 }}>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              Stored in Supabase Storage bucket <Text code>avatars</Text>.
-            </Text>
-          </div>
-        </Form.Item>
-
-        <Space wrap style={{ width: "100%" }}>
-          <Button onClick={() => profileForm.resetFields()} block={isMobile}>
-            Reset
-          </Button>
-          <Button type="primary" htmlType="submit" block={isMobile}>
-            Save
-          </Button>
-        </Space>
-      </Form>
-    </Card>
-  );
-}
-
-function OrgSettingsCard({
-  workspace,
-  orgLogoUrl,
-  savingOrg,
-  onUploadLogo,
-  isMobile,
-  form,
-  onSaveOrg,
-  isOwner,
-  logoBust
-}) {
-  const orgForm = form;
-
-  useEffect(() => {
-    if (!workspace?.orgId) return;
-    orgForm.setFieldsValue({ name: workspace?.orgName || "" });
-  }, [orgForm, workspace?.orgId, workspace?.orgName]);
-
-  const logoSrc = safeSrc(orgLogoUrl, logoBust);
-
-  return (
-    <Card
-      style={{ borderRadius: 16, marginTop: 12 }}
-      title={
-        <Space size={8}>
-          <EditOutlined />
-          <span>Organization</span>
-        </Space>
-      }
-      extra={<Tag color={isOwner ? "gold" : "blue"}>{isOwner ? "Owner" : "Admin"}</Tag>}
-    >
-      <Row gutter={[12, 12]} align="middle">
-        <Col>
-          <Avatar shape="square" size={56} src={logoSrc}>
-            {initials(workspace?.orgName || "Org")}
-          </Avatar>
-        </Col>
-        <Col flex="auto" style={{ minWidth: 0 }}>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            Upload an organization logo and update the name.
-          </Text>
-        </Col>
-      </Row>
-
-      <Divider style={{ margin: "12px 0" }} />
-
-      <Form form={orgForm} layout="vertical" onFinish={onSaveOrg} requiredMark={false}>
-        <Form.Item
-          name="name"
-          label="Organization name"
-          rules={[
-            { required: true, message: "Name is required" },
-            { min: 2, message: "Too short" },
-          ]}
-        >
-          <Input placeholder="e.g., Acme Support" />
-        </Form.Item>
-
-        <Form.Item label="Logo">
-          <Upload
-            accept="image/*"
-            showUploadList={false}
-            customRequest={async ({ file, onSuccess, onError }) => {
-              try {
-                await onUploadLogo(file);
-                onSuccess?.("ok");
-              } catch (e) {
-                onError?.(e);
-              }
-            }}
-          >
-            <Button icon={<UploadOutlined />} loading={savingOrg} block={isMobile}>
-              Upload logo
-            </Button>
-          </Upload>
-
-          <div style={{ marginTop: 8 }}>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              Stored in Supabase Storage bucket <Text code>org-logos</Text>.
-            </Text>
-          </div>
-        </Form.Item>
-
-        <Button type="primary" htmlType="submit" loading={savingOrg} block={isMobile}>
-          Save organization
-        </Button>
-      </Form>
-    </Card>
-  );
-}
-
-/* ---------------- page ---------------- */
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -310,14 +68,15 @@ export default function SettingsPage() {
 
   const [profileForm] = Form.useForm();
   const [orgForm] = Form.useForm();
-const [logoBust, setLogoBust] = useState(0);
+
+  // used to bust org logo cache
+  const [logoBust, setLogoBust] = useState(0);
 
   const isOwner =
     !!workspace?.ownerUserId && !!sessionUser?.id
       ? workspace.ownerUserId === sessionUser.id
       : false;
 
-  // ✅ אין "owner" ב-enum. Owner נקבע ע"י owner_user_id
   const isAdmin = workspace?.role === "admin" || isOwner;
 
   async function loadAll({ silent = false } = {}) {
@@ -345,6 +104,7 @@ const [logoBust, setLogoBust] = useState(0);
         .select("id, full_name, avatar_url, updated_at, created_at")
         .eq("id", user.id)
         .maybeSingle();
+
       if (pErr) throw pErr;
       setProfile(p || { id: user.id, full_name: "", avatar_url: null });
 
@@ -355,6 +115,7 @@ const [logoBust, setLogoBust] = useState(0);
           .select("logo_url, name")
           .eq("id", ws.orgId)
           .maybeSingle();
+
         if (orgErr) throw orgErr;
 
         setOrgLogoUrl(org?.logo_url || null);
@@ -415,96 +176,83 @@ const [logoBust, setLogoBust] = useState(0);
     }
   }
 
-async function onUploadAvatar(file) {
-  const userId = sessionUser?.id;
-  if (!userId) throw new Error("Not authenticated");
+  async function onUploadAvatar(file) {
+    const userId = sessionUser?.id;
+    if (!userId) throw new Error("Not authenticated");
 
-  try {
-    const ext = getExt(file?.name);
-    const path = `${userId}.${ext}`;
+    try {
+      const ext = getExt(file?.name);
+      const path = `${userId}.${ext}`;
 
-    // upload
-    const { error: upErr } = await supabase.storage
-      .from("avatars")
-      .upload(path, file, { upsert: true, cacheControl: "3600", contentType: file?.type });
+      const { error: upErr } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, {
+          upsert: true,
+          cacheControl: "3600",
+          contentType: file?.type || undefined,
+        });
 
-    if (upErr) {
-      console.error("[avatars.upload] ", upErr);
-      throw upErr;
+      if (upErr) throw upErr;
+
+      const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+      const url = pub?.publicUrl || null;
+
+      await upsertMyProfile({
+        fullName: profileForm.getFieldValue("full_name") || profile?.full_name || null,
+        avatarUrl: url,
+      });
+
+      message.success("Avatar updated");
+      await loadAll({ silent: true });
+    } catch (e) {
+      message.error(e?.message || "Avatar upload failed");
+      throw e;
     }
-
-    const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
-    const url = pub?.publicUrl || null;
-
-    console.log("[avatars.publicUrl]", url);
-
-    // update profile
-    await upsertMyProfile({
-      fullName: profileForm.getFieldValue("full_name") || profile?.full_name || null,
-      avatarUrl: url,
-    });
-
-    message.success("Avatar updated");
-    await loadAll({ silent: true });
-  } catch (e) {
-    console.error("[onUploadAvatar] ", e);
-    message.error(e?.message || "Avatar upload failed");
-    throw e;
   }
-}
 
+  async function onUploadOrgLogo(file) {
+    if (!workspace?.orgId) throw new Error("No org");
+    if (!isAdmin) throw new Error("Admins only");
 
-async function onUploadOrgLogo(file) {
-  if (!workspace?.orgId) throw new Error("No org");
-  if (!isAdmin) throw new Error("Admins only");
+    setSavingOrg(true);
+    try {
+      const ext = getExt(file?.name);
+      const path = `${workspace.orgId}.${ext}`;
 
-  setSavingOrg(true);
-  try {
-    const ext = getExt(file?.name);
-    const path = `${workspace.orgId}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("org-logos")
+        .upload(path, file, {
+          upsert: true,
+          cacheControl: "3600",
+          contentType: file?.type || undefined,
+        });
 
-    const { error: upErr } = await supabase.storage
-      .from("org-logos")
-      .upload(path, file, { upsert: true, cacheControl: "3600", contentType: file?.type });
+      if (upErr) throw upErr;
 
-    if (upErr) {
-      console.error("[org-logos.upload] ", upErr);
-      throw upErr;
+      const { data: pub } = supabase.storage.from("org-logos").getPublicUrl(path);
+      const url = pub?.publicUrl || null;
+
+      const name = (orgForm.getFieldValue("name") || workspace?.orgName || "").trim();
+
+      await updateOrgSettings({
+        orgId: workspace.orgId,
+        name: name || workspace?.orgName || "Workspace",
+        logoUrl: url,
+      });
+
+      // ✅ bust AFTER success
+      setLogoBust(Date.now());
+
+      message.success("Organization logo updated");
+      await loadAll({ silent: true });
+      await runDiagnostics(workspace.orgId);
+    } catch (e) {
+      message.error(e?.message || "Logo upload failed");
+      throw e;
+    } finally {
+      setSavingOrg(false);
     }
-
-    const { data: pub } = supabase.storage.from("org-logos").getPublicUrl(path);
-    const url = pub?.publicUrl || null;
-
-    console.log("[org-logos.publicUrl]", url);
-
-    const name = (orgForm.getFieldValue("name") || workspace?.orgName || "").trim();
-    await updateOrgSettings({
-      orgId: workspace.orgId,
-      name: name || workspace?.orgName || "Workspace",
-      logoUrl: url,
-    });
-
-    message.success("Organization logo updated");
-    await loadAll({ silent: true });
-    await runDiagnostics(workspace.orgId);
-  } catch (e) {
-    console.error("[onUploadOrgLogo] ", e);
-    message.error(e?.message || "Logo upload failed");
-    throw e;
-  } finally {
-    setSavingOrg(false);
   }
-  setLogoBust(Date.now());
-const { data: checkOrg, error: checkErr } = await supabase
-  .from("organizations")
-  .select("logo_url")
-  .eq("id", workspace.orgId)
-  .single();
-
-console.log("[org.logo_url after update]", checkOrg?.logo_url, checkErr);
-
-}
-
 
   async function onSaveOrg(values) {
     if (!workspace?.orgId) return;
@@ -518,7 +266,6 @@ console.log("[org.logo_url after update]", checkOrg?.logo_url, checkErr);
 
     setSavingOrg(true);
     try {
-      // שומר שם + משאיר לוגו כמו שהוא (אם קיים)
       await updateOrgSettings({
         orgId: workspace.orgId,
         name,
@@ -537,7 +284,7 @@ console.log("[org.logo_url after update]", checkOrg?.logo_url, checkErr);
 
   return (
     <Spin spinning={loading} size="large">
-      <Space orientation="vertical" size={14} style={{ width: "100%" }}>
+      <Space direction="vertical" size={14} style={{ width: "100%" }}>
         {/* Header */}
         <Card
           style={{
@@ -547,13 +294,12 @@ console.log("[org.logo_url after update]", checkOrg?.logo_url, checkErr);
         >
           <Row justify="space-between" align="middle" gutter={[12, 12]}>
             <Col xs={24} md="auto">
-              <Space orientation="vertical" size={2} style={{ width: "100%" }}>
+              <Space direction="vertical" size={2} style={{ width: "100%" }}>
                 <Title level={isMobile ? 4 : 3} style={{ margin: 0 }}>
                   Settings
                 </Title>
 
                 <Space wrap size={8}>
-                  <Tag icon={<SettingOutlined />}>Configuration</Tag>
 
                   {workspace?.orgName ? (
                     <Tag color="blue">Workspace: {workspace.orgName}</Tag>
@@ -561,9 +307,9 @@ console.log("[org.logo_url after update]", checkOrg?.logo_url, checkErr);
                     <Tag>Workspace: none</Tag>
                   )}
 
-                  {workspace?.role ? <Tag color="geekblue">Role: {workspace.role}</Tag> : null}
-
+                  <Tag icon={<SettingOutlined />}>Configuration</Tag>
                   {isOwner ? <Tag color="gold">Owner</Tag> : null}
+                  {workspace?.role ? <Tag color="geekblue">Role: {workspace.role}</Tag> : null}
 
                   <Tag color="green" icon={<WifiOutlined />}>
                     Realtime enabled
@@ -618,86 +364,16 @@ console.log("[org.logo_url after update]", checkOrg?.logo_url, checkErr);
 
           {/* RIGHT */}
           <Col xs={24} lg={12}>
-            <Card
-              title={
-                <Space size={8}>
-                  <AppstoreOutlined />
-                  <span>Workspace</span>
-                </Space>
+            <WorkspaceCard
+              workspace={workspace}
+              isAdmin={isAdmin}
+              isOwner={isOwner}
+              isMobile={isMobile}
+              onManageUsers={() => router.push("/settings/users")}
+              onRequestAccess={() =>
+                message.info("Only workspace admins can manage members and invitations.")
               }
-              style={{ borderRadius: 16 }}
-            >
-              {workspace?.orgId ? (
-                <Space orientation="vertical" size={10} style={{ width: "100%" }}>
-                  <Space wrap size={8}>
-                    <Tag color="blue">Org</Tag>
-                    <Text strong style={{ wordBreak: "break-word" }}>
-                      {workspace.orgName || workspace.orgId}
-                    </Text>
-                  </Space>
-
-                  <Space wrap size={8}>
-                    <Tag color="geekblue">Role</Tag>
-                    <Text>{workspace.role || "—"}</Text>
-                    {isOwner ? <Tag color="gold">Owner</Tag> : null}
-                  </Space>
-
-                  <Space wrap size={8}>
-                    <Tag color="green" icon={<WifiOutlined />}>
-                      Realtime
-                    </Tag>
-                    <Text type="secondary">Subscribed to activity streams (postgres_changes)</Text>
-                  </Space>
-
-                  <Divider style={{ margin: "10px 0" }} />
-
-                  <Space
-                    wrap={!isMobile}
-                    orientation={isMobile ? "vertical" : "horizontal"}
-                    style={{ width: "100%" }}
-                  >
-                    <Tooltip title={isAdmin ? "Manage members & invites" : "Admins only"}>
-                      <Button
-                        type="primary"
-                        icon={<TeamOutlined />}
-                        disabled={!isAdmin}
-                        onClick={() => {
-                          if (!isAdmin) return;
-                          router.push("/settings/users");
-                        }}
-                        block={isMobile}
-                      >
-                        Manage users
-                      </Button>
-                    </Tooltip>
-
-                    {!isAdmin ? (
-                      <Button
-                        onClick={() =>
-                          message.info("Only workspace admins can manage members and invitations.")
-                        }
-                        block={isMobile}
-                      >
-                        Request access
-                      </Button>
-                    ) : null}
-                  </Space>
-
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    {isAdmin
-                      ? "Manage members and invites for this workspace."
-                      : "This area is available to admins only."}
-                  </Text>
-                </Space>
-              ) : (
-                <Alert
-                  type="warning"
-                  showIcon
-                  message="No active workspace"
-                  description="Create an organization + membership first. Then settings will show org context."
-                />
-              )}
-            </Card>
+            />
 
             {/* Admin: Organization */}
             {isAdmin && workspace?.orgId ? (
@@ -710,77 +386,24 @@ console.log("[org.logo_url after update]", checkOrg?.logo_url, checkErr);
                 form={orgForm}
                 onSaveOrg={onSaveOrg}
                 isOwner={isOwner}
-                  logoBust={logoBust}
-
+                logoBust={logoBust}
               />
             ) : null}
 
-            {/* Security diagnostics */}
-            <Card style={{ borderRadius: 16, marginTop: 12 }}>
-              <Space orientation="vertical" size={10} style={{ width: "100%" }}>
-                <Space size={8}>
-                  <SafetyOutlined />
-                  <Text strong>Security (RLS)</Text>
-                </Space>
-
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  Data is scoped by org membership using Row Level Security (RLS).
-                </Text>
-
-                {isAdmin && workspace?.orgId ? (
-                  <Space orientation="vertical" size={10} style={{ width: "100%" }}>
-                    <Button
-                      icon={<ReloadOutlined />}
-                      loading={diagLoading}
-                      onClick={() => runDiagnostics(workspace.orgId)}
-                      block={isMobile}
-                    >
-                      Run diagnostics
-                    </Button>
-
-                    <Space wrap size={8}>
-                      {diag ? (
-                        <>
-                          <Tag
-                            icon={diag.is_member ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
-                            color={diag.is_member ? "green" : "red"}
-                          >
-                            Member
-                          </Tag>
-
-                          <Tag
-                            icon={diag.is_admin ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
-                            color={diag.is_admin ? "green" : "red"}
-                          >
-                            Admin
-                          </Tag>
-
-                          {diag.member_role ? <Tag color="blue">role: {diag.member_role}</Tag> : null}
-                          {typeof diag.active_members_count === "number" ? (
-                            <Tag>active members: {diag.active_members_count}</Tag>
-                          ) : null}
-                        </>
-                      ) : (
-                        <Tag>Not loaded</Tag>
-                      )}
-                    </Space>
-                  </Space>
-                ) : (
-                  <Alert
-                    type="info"
-                    showIcon
-                    message="Diagnostics available for admins"
-                    description="Create an organization and make sure you are an admin."
-                  />
-                )}
-              </Space>
-            </Card>
+            <SecurityCard
+              isAdmin={isAdmin}
+              orgId={workspace?.orgId || null}
+              diag={diag}
+              diagLoading={diagLoading}
+              onRunDiagnostics={() => runDiagnostics(workspace.orgId)}
+              isMobile={isMobile}
+            />
           </Col>
         </Row>
 
         {/* Roadmap */}
         <Card style={{ borderRadius: 16 }}>
-          <Space orientation="vertical" size={6}>
+          <Space direction="vertical" size={6}>
             <Text strong>Next settings upgrades</Text>
             <Text type="secondary" style={{ fontSize: 12 }}>
               • Persist profile in <Text code>profiles</Text> • Workspace switcher • Notifications • SLA
