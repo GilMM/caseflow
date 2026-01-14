@@ -29,7 +29,6 @@ export default function QueuesHeader({
             </Title>
 
             <Space wrap size={8}>
-              <Tag icon={<AppstoreOutlined />}>Routing</Tag>
 
               {workspace?.orgName ? (
                 <Tag color="blue">Workspace: {workspace.orgName}</Tag>
@@ -37,6 +36,7 @@ export default function QueuesHeader({
                 <Tag>Workspace: none</Tag>
               )}
 
+              <Tag icon={<AppstoreOutlined />}>Routing</Tag>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {shownCount} shown • {total} total
               </Text>

@@ -19,7 +19,6 @@ import {
   Spin,
   Tag,
   Typography,
-  message,
   theme,
 } from "antd";
 import {
@@ -31,6 +30,7 @@ import {
   ThunderboltOutlined,
   TeamOutlined,
   InboxOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
@@ -101,6 +101,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const search = useSearchParams();
   const { token } = theme.useToken();
+  const { message } = App.useApp();
 
   const [booting, setBooting] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -113,11 +114,7 @@ export default function OnboardingPage() {
 
   const [formOrg] = Form.useForm();
   const [formInvite] = Form.useForm();
-  const { message } = App.useApp();
-if (process.env.NODE_ENV === "development") {
-  console.log("useForm created here ↓");
-  console.log(new Error().stack);
-}
+
   const previewTimer = useRef(null);
 
   useEffect(() => {
@@ -143,6 +140,7 @@ if (process.env.NODE_ENV === "development") {
           return;
         }
 
+        // Optional: prefill invite token from URL
         if (tokenFromUrl) {
           formInvite.setFieldsValue({ token: tokenFromUrl });
           await previewInvite(tokenFromUrl);
@@ -225,23 +223,35 @@ if (process.env.NODE_ENV === "development") {
     setError("");
 
     try {
-      const name = values.name?.trim();
-      if (!name) throw new Error("Enter organization name");
+      const orgName = values.name?.trim();
+      if (!orgName) throw new Error("Enter organization name");
+
+      const firstName = (values.first_name || "").trim();
+      if (!firstName) throw new Error("Enter your first name");
 
       const { data: sessionData } = await supabase.auth.getSession();
       const userId = sessionData?.session?.user?.id;
       if (!userId) throw new Error("Not authenticated");
 
+      // ✅ Save first name in Auth metadata (MVP)
+      {
+        const { error: metaErr } = await supabase.auth.updateUser({
+          data: { first_name: firstName },
+        });
+        if (metaErr) throw metaErr;
+      }
+
       // ✅ Create org with owner_user_id
       const { data: org, error: orgErr } = await supabase
         .from("organizations")
         .insert({
-          name,
+          name: orgName,
           created_by: userId,
-          owner_user_id: userId, // ✅ Primary admin / owner
+          owner_user_id: userId,
         })
         .select("id, name")
         .single();
+
       if (orgErr) throw orgErr;
 
       const { error: memErr } = await supabase.from("org_memberships").insert({
@@ -269,7 +279,6 @@ if (process.env.NODE_ENV === "development") {
     try {
       const tokenVal = normalizeInviteToken(values.token);
       if (!tokenVal) throw new Error("Paste invite token");
-
       if (invitePreview?._expired) throw new Error("Invite expired");
 
       const { error } = await supabase.rpc("accept_org_invite", {
@@ -326,15 +335,22 @@ if (process.env.NODE_ENV === "development") {
 
                 <div>
                   <Title level={2} style={{ margin: 0, lineHeight: 1.15 }}>
-                    Welcome to <span style={{ color: token.colorPrimary }}>CaseFlow</span>
+                    Welcome to{" "}
+                    <span style={{ color: token.colorPrimary }}>CaseFlow</span>
                   </Title>
                   <Text type="secondary" style={{ fontSize: 14 }}>
-                    Create your workspace or join an existing organization with an invite. In less than a minute you’ll be inside the dashboard.
+                    Create your workspace or join an existing organization with an
+                    invite. In less than a minute you’ll be inside the dashboard.
                   </Text>
                 </div>
 
                 {error ? (
-                  <Alert type="error" showIcon title="Onboarding error" description={error} />
+                  <Alert
+                    type="error"
+                    showIcon
+                    title="Onboarding error"
+                    description={error}
+                  />
                 ) : null}
 
                 <Divider style={{ margin: "2px 0" }} />
@@ -354,7 +370,9 @@ if (process.env.NODE_ENV === "development") {
                   />
                   <Feature
                     token={token}
-                    icon={<SafetyCertificateOutlined style={{ color: token.colorPrimary }} />}
+                    icon={
+                      <SafetyCertificateOutlined style={{ color: token.colorPrimary }} />
+                    }
                     title="Database-first security"
                     desc="Permissions are enforced in Supabase RLS—not only in the UI."
                   />
@@ -362,7 +380,8 @@ if (process.env.NODE_ENV === "development") {
 
                 <div style={{ marginTop: 6 }}>
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    Tip: If you were invited, paste the token on the right and you’ll see a preview before joining.
+                    Tip: If you were invited, paste the token on the right and
+                    you’ll see a preview before joining.
                   </Text>
                 </div>
               </Space>
@@ -378,7 +397,13 @@ if (process.env.NODE_ENV === "development") {
               }}
             >
               <Space orientation="vertical" size={12} style={{ width: "100%" }}>
-                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    justifyContent: "space-between",
+                  }}
+                >
                   <Title level={4} style={{ margin: 0 }}>
                     Get started
                   </Title>
@@ -399,11 +424,35 @@ if (process.env.NODE_ENV === "development") {
                       style={{ borderRadius: 16, height: "100%" }}
                       styles={{ paddingTop: 10 }}
                     >
-                      <Text type="secondary" style={{ display: "block", marginBottom: 10 }}>
+                      <Text
+                        type="secondary"
+                        style={{ display: "block", marginBottom: 10 }}
+                      >
                         Start a new workspace and become admin.
                       </Text>
 
-                      <Form form={formOrg} layout="vertical" onFinish={createOrg} requiredMark={false}>
+                      <Form
+                        form={formOrg}
+                        layout="vertical"
+                        onFinish={createOrg}
+                        requiredMark={false}
+                      >
+                        <Form.Item
+                          name="first_name"
+                          label="First name"
+                          rules={[
+                            { required: true, message: "Enter your first name" },
+                            { min: 2, message: "Too short" },
+                          ]}
+                        >
+                          <Input
+                            prefix={<UserOutlined />}
+                            placeholder="e.g., Gil"
+                            disabled={busy}
+                            autoComplete="given-name"
+                          />
+                        </Form.Item>
+
                         <Form.Item
                           name="name"
                           label="Organization name"
@@ -412,10 +461,20 @@ if (process.env.NODE_ENV === "development") {
                             { min: 2, message: "Too short" },
                           ]}
                         >
-                          <Input placeholder="e.g., Acme Support" disabled={busy} />
+                          <Input
+                            placeholder="e.g., Acme Support"
+                            disabled={busy}
+                            autoComplete="organization"
+                          />
                         </Form.Item>
 
-                        <Button type="primary" icon={<PlusOutlined />} htmlType="submit" loading={busy} block>
+                        <Button
+                          type="primary"
+                          icon={<PlusOutlined />}
+                          htmlType="submit"
+                          loading={busy}
+                          block
+                        >
                           Create workspace
                         </Button>
 
@@ -439,7 +498,10 @@ if (process.env.NODE_ENV === "development") {
                       style={{ borderRadius: 16, height: "100%" }}
                       styles={{ paddingTop: 10 }}
                     >
-                      <Text type="secondary" style={{ display: "block", marginBottom: 10 }}>
+                      <Text
+                        type="secondary"
+                        style={{ display: "block", marginBottom: 10 }}
+                      >
                         Paste an invite token to join a team.
                       </Text>
 
@@ -490,7 +552,8 @@ if (process.env.NODE_ENV === "development") {
                                     </Text>
                                     {invitePreview.expires_at ? (
                                       <Text type="secondary" style={{ fontSize: 12 }}>
-                                        Expires: {new Date(invitePreview.expires_at).toLocaleString()}
+                                        Expires:{" "}
+                                        {new Date(invitePreview.expires_at).toLocaleString()}
                                       </Text>
                                     ) : null}
                                   </Space>
@@ -506,7 +569,9 @@ if (process.env.NODE_ENV === "development") {
                           htmlType="submit"
                           loading={busy}
                           block
-                          disabled={!formInvite.getFieldValue("token") || invitePreview?._expired}
+                          disabled={
+                            !formInvite.getFieldValue("token") || invitePreview?._expired
+                          }
                         >
                           Accept invite
                         </Button>
@@ -524,7 +589,8 @@ if (process.env.NODE_ENV === "development") {
                 <Divider style={{ margin: "2px 0" }} />
 
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  Having trouble? Make sure you’re logged in, then paste the invite token again.
+                  Having trouble? Make sure you’re logged in, then paste the invite
+                  token again.
                 </Text>
               </Space>
             </Col>

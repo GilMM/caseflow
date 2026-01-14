@@ -68,12 +68,6 @@ function presetColorVar(color, level = 6) {
   return `var(--ant-color-${color}-${level}, var(--ant-color-primary, #1677ff))`;
 }
 
-/**
- * ✅ Tag style like "solution #1":
- * - No Tag icon prop
- * - Manual icon span with lineHeight:0
- * - Fixed height + inline-flex => perfect alignment
- */
 const tagBaseStyle = {
   margin: 0,
   display: "inline-flex",
@@ -101,13 +95,6 @@ function TagIcon({ children }) {
 }
 
 function QueueTag({ name, isDefault = false }) {
-  console.log(
-    "DASH QUEUE:",
-    JSON.stringify(name),
-    isDefault,
-    queueColor(name, isDefault)
-  );
-
   return (
     <Tag
       color={queueColor(name, isDefault)}
@@ -130,9 +117,7 @@ function QueueTag({ name, isDefault = false }) {
 function StatusTag({ meta }) {
   return (
     <Tag color={meta.color} style={tagBaseStyle}>
-      <TagIcon>
-        {meta.Icon ? <meta.Icon style={{ fontSize: 12 }} /> : null}
-      </TagIcon>
+      <TagIcon>{meta.Icon ? <meta.Icon style={{ fontSize: 12 }} /> : null}</TagIcon>
       {meta.label}
     </Tag>
   );
@@ -141,15 +126,12 @@ function StatusTag({ meta }) {
 function PriorityTag({ meta }) {
   return (
     <Tag color={meta.color} style={tagBaseStyle}>
-      <TagIcon>
-        {meta.Icon ? <meta.Icon style={{ fontSize: 12 }} /> : null}
-      </TagIcon>
+      <TagIcon>{meta.Icon ? <meta.Icon style={{ fontSize: 12 }} /> : null}</TagIcon>
       {meta.label}
     </Tag>
   );
 }
 
-/** Renders a consistent "change chips" row for live activity (status/priority/assignment) */
 function renderActivityChange({ a, displayUser }) {
   const t = String(a?.type || "").toLowerCase();
   const meta = a?.meta || {};
@@ -160,7 +142,6 @@ function renderActivityChange({ a, displayUser }) {
     </Text>
   );
 
-  // STATUS
   if ((t === "status_change" || t === "status") && meta?.from && meta?.to) {
     const fromM = getStatusMeta(meta.from);
     const toM = getStatusMeta(meta.to);
@@ -174,7 +155,6 @@ function renderActivityChange({ a, displayUser }) {
     );
   }
 
-  // PRIORITY
   if ((t === "priority_change" || t === "priority") && meta?.from && meta?.to) {
     const fromM = getPriorityMeta(meta.from);
     const toM = getPriorityMeta(meta.to);
@@ -188,7 +168,6 @@ function renderActivityChange({ a, displayUser }) {
     );
   }
 
-  // ASSIGNMENT
   if (
     (t === "assignment" || t === "assigned") &&
     (meta?.from_user || meta?.to_user || meta?.from || meta?.to)
@@ -218,7 +197,6 @@ function renderActivityChange({ a, displayUser }) {
   return null;
 }
 
-/** KPI card (responsive compact/normal) */
 function KpiCard({
   loading,
   title,
@@ -243,7 +221,6 @@ function KpiCard({
         },
       }}
     >
-      {/* Header line */}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <Space size={6}>
           {icon}
@@ -255,28 +232,19 @@ function KpiCard({
         <div style={{ marginInlineStart: "auto" }}>{extra}</div>
       </div>
 
-      {/* Value */}
       <div style={{ marginTop: compact ? 6 : 10 }}>
         {compact ? (
           <Text style={{ fontSize: 28, fontWeight: 600, lineHeight: 1.1 }}>
             {value}
           </Text>
         ) : (
-          <Statistic
-            value={value}
-            styles={{ content: { fontSize: 34, lineHeight: 1.15 } }}
-          />
+          <Statistic value={value} styles={{ content: { fontSize: 34, lineHeight: 1.15 } }} />
         )}
       </div>
 
-      {/* Progress / footer */}
       <div style={{ marginTop: compact ? 8 : 10 }}>
         {typeof progress === "number" ? (
-          <Progress
-            percent={progress}
-            showInfo={false}
-            size={compact ? "small" : "default"}
-          />
+          <Progress percent={progress} showInfo={false} size={compact ? "small" : "default"} />
         ) : null}
 
         {footer ? (
@@ -302,6 +270,9 @@ export default function DashboardPage() {
   const [activity, setActivity] = useState([]);
   const [userMap, setUserMap] = useState({});
 
+  // ✅ new
+  const [firstName, setFirstName] = useState("");
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -321,6 +292,9 @@ export default function DashboardPage() {
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData?.session?.user;
 
+      // ✅ read first name from metadata
+      setFirstName(user?.user_metadata?.first_name || "");
+
       const ws = await getActiveWorkspace();
       setWorkspace(ws);
 
@@ -334,25 +308,23 @@ export default function DashboardPage() {
 
       const [s, a] = await Promise.all([
         getDashboardStats(ws.orgId),
-        getRecentActivity(ws.orgId), // ✅ must include cases -> queues join
+        getRecentActivity(ws.orgId),
       ]);
 
       setStats(s);
       setActivity(a);
 
-      // Names map
       try {
         const members = await getOrgMembers(ws.orgId);
         const map = {};
-        for (const m of members)
-          map[m.user_id] = m.full_name || m.email || null;
+        for (const m of members) map[m.user_id] = m.full_name || m.email || null;
         setUserMap(map);
       } catch {
         setUserMap({});
       }
 
       if (user?.id) {
-        const mine = await getMyOpenCases(ws.orgId, user.id); // ✅ must include queues join
+        const mine = await getMyOpenCases(ws.orgId, user.id);
         setMyCases(mine);
       } else {
         setMyCases([]);
@@ -372,19 +344,15 @@ export default function DashboardPage() {
 
     const channel = supabase
       .channel("dashboard-live")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "case_activities" },
-        () => {
-          loadAll({ silent: true });
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "case_activities" }, () => {
+        loadAll({ silent: true });
 
-          const now = Date.now();
-          if (now - lastToastRef.current > 8000) {
-            lastToastRef.current = now;
-            message.success({ content: "Live update received", duration: 1.2 });
-          }
+        const now = Date.now();
+        if (now - lastToastRef.current > 8000) {
+          lastToastRef.current = now;
+          message.success({ content: "Live update received", duration: 1.2 });
         }
-      )
+      })
       .subscribe();
 
     return () => supabase.removeChannel(channel);
@@ -394,13 +362,7 @@ export default function DashboardPage() {
   const statusChips = useMemo(() => {
     const map = stats?.byStatus || {};
     const entries = Object.entries(map);
-    const order = [
-      "new",
-      "in_progress",
-      "waiting_customer",
-      "resolved",
-      "closed",
-    ];
+    const order = ["new", "in_progress", "waiting_customer", "resolved", "closed"];
     entries.sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
     return entries;
   }, [stats]);
@@ -411,14 +373,14 @@ export default function DashboardPage() {
   const newTodayCount = stats?.newTodayCount || 0;
   const resolvedThisWeekCount = stats?.resolvedThisWeekCount || 0;
 
-  const urgentShare = openCount
-    ? Math.round((urgentOpenCount / openCount) * 100)
-    : 0;
+  const urgentShare = openCount ? Math.round((urgentOpenCount / openCount) * 100) : 0;
   const openShare = total ? Math.round((openCount / total) * 100) : 0;
+
+  // ✅ what to show after greeting
+  const greetName = firstName || workspace?.orgName || "CaseFlow";
 
   return (
     <Space orientation="vertical" size={14} style={{ width: "100%" }}>
-      {/* Header */}
       <Card
         loading={loading}
         style={{
@@ -432,9 +394,7 @@ export default function DashboardPage() {
             <Space orientation="vertical" size={2}>
               <Title level={3} style={{ margin: 0 }}>
                 {greeting()},{" "}
-                <span style={{ opacity: 0.9 }}>
-                  {workspace?.orgName || "CaseFlow"}
-                </span>
+                <span style={{ opacity: 0.9 }}>{greetName}</span>
               </Title>
 
               <Space wrap size={8} align="center">
@@ -469,9 +429,7 @@ export default function DashboardPage() {
                 </Tag>
 
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  {lastUpdated
-                    ? `Updated ${lastUpdated.toLocaleTimeString()}`
-                    : "—"}
+                  {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : "—"}
                 </Text>
               </Space>
             </Space>
@@ -525,9 +483,7 @@ export default function DashboardPage() {
               </Tooltip>
             }
             progress={openShare}
-            footer={
-              isMobile ? "Not closed" : "Not closed • quick workload indicator"
-            }
+            footer={isMobile ? "Not closed" : "Not closed • quick workload indicator"}
           />
         </Col>
 
@@ -554,11 +510,7 @@ export default function DashboardPage() {
                 live
               </Tag>
             }
-            footer={
-              isMobile
-                ? "Since 00:00"
-                : "Created since 00:00 • triage queue candidate"
-            }
+            footer={isMobile ? "Since 00:00" : "Created since 00:00 • triage queue candidate"}
           />
         </Col>
 
@@ -569,11 +521,7 @@ export default function DashboardPage() {
             title="Resolved"
             icon={<ArrowRightOutlined />}
             value={resolvedThisWeekCount}
-            footer={
-              isMobile
-                ? "This week"
-                : "Simple weekly throughput • good for demos"
-            }
+            footer={isMobile ? "This week" : "Simple weekly throughput • good for demos"}
           />
         </Col>
 
@@ -600,11 +548,7 @@ export default function DashboardPage() {
               </Tooltip>
             }
             progress={urgentShare}
-            footer={
-              isMobile
-                ? "Priority: urgent"
-                : "Priority = urgent • escalation signal"
-            }
+            footer={isMobile ? "Priority: urgent" : "Priority = urgent • escalation signal"}
           />
         </Col>
       </Row>
@@ -627,19 +571,9 @@ export default function DashboardPage() {
             {statusChips.map(([k, v]) => {
               const sm = getStatusMeta(k);
               return (
-                <Badge
-                  key={k}
-                  count={v}
-                  overflowCount={999}
-                  style={{ backgroundColor: "#1677ff" }}
-                >
-                  <Tag
-                    color={sm.color}
-                    style={{ ...tagBaseStyle, marginInlineEnd: 8 }}
-                  >
-                    <TagIcon>
-                      {sm.Icon ? <sm.Icon style={{ fontSize: 12 }} /> : null}
-                    </TagIcon>
+                <Badge key={k} count={v} overflowCount={999} style={{ backgroundColor: "#1677ff" }}>
+                  <Tag color={sm.color} style={{ ...tagBaseStyle, marginInlineEnd: 8 }}>
+                    <TagIcon>{sm.Icon ? <sm.Icon style={{ fontSize: 12 }} /> : null}</TagIcon>
                     {sm.label}
                   </Tag>
                 </Badge>
@@ -659,11 +593,7 @@ export default function DashboardPage() {
             loading={loading}
             title="My work"
             extra={
-              <Button
-                type="link"
-                onClick={() => router.push("/cases")}
-                style={{ padding: 0 }}
-              >
+              <Button type="link" onClick={() => router.push("/cases")} style={{ padding: 0 }}>
                 View all →
               </Button>
             }
@@ -678,15 +608,9 @@ export default function DashboardPage() {
                   const queueName = c?.queues?.name || "No queue";
                   const queueIsDefault = !!c?.queues?.is_default;
 
-                  const isOpen = [
-                    "new",
-                    "in_progress",
-                    "waiting_customer",
-                  ].includes(c.status);
+                  const isOpen = ["new", "in_progress", "waiting_customer"].includes(c.status);
 
-                  const accentColor = isOpen
-                    ? "var(--ant-color-primary, #1677ff)"
-                    : "transparent";
+                  const accentColor = isOpen ? "var(--ant-color-primary, #1677ff)" : "transparent";
 
                   const cardBg = isOpen
                     ? "linear-gradient(90deg, rgba(22,119,255,0.06), rgba(22,119,255,0.00) 40%)"
@@ -706,7 +630,6 @@ export default function DashboardPage() {
                       styles={{ body: { padding: 12 } }}
                       onClick={() => router.push(`/cases/${c.id}`)}
                     >
-                      {/* Accent bar (clipped) */}
                       <div
                         style={{
                           position: "absolute",
@@ -721,25 +644,10 @@ export default function DashboardPage() {
                         }}
                       />
 
-                      <Row
-                        justify="space-between"
-                        align="top"
-                        gutter={[10, 10]}
-                      >
-                        {/* LEFT */}
+                      <Row justify="space-between" align="top" gutter={[10, 10]}>
                         <Col flex="auto" style={{ minWidth: 0 }}>
-                          <Space
-                            orientation="vertical"
-                            size={6}
-                            style={{ width: "100%" }}
-                          >
-                            {/* Title + CaseKey */}
-                            <Space
-                              size={10}
-                              align="baseline"
-                              wrap
-                              style={{ width: "100%" }}
-                            >
+                          <Space orientation="vertical" size={6} style={{ width: "100%" }}>
+                            <Space size={10} align="baseline" wrap style={{ width: "100%" }}>
                               <Text strong style={{ fontSize: 14 }}>
                                 {c.title || "Untitled"}
                               </Text>
@@ -748,43 +656,30 @@ export default function DashboardPage() {
                                 type="secondary"
                                 style={{
                                   fontSize: 12,
-                                  fontFamily:
-                                    "ui-monospace, SFMono-Regular, Menlo, monospace",
+                                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                                 }}
                               >
                                 {caseKey(c.id)}
                               </Text>
                             </Space>
 
-                            {/* Tags row */}
                             <Space wrap size={8} align="center">
                               <StatusTag meta={sm} />
                               <PriorityTag meta={pm} />
-                              <QueueTag
-                                name={queueName}
-                                isDefault={queueIsDefault}
-                              />
+                              <QueueTag name={queueName} isDefault={queueIsDefault} />
                             </Space>
                           </Space>
                         </Col>
 
-                        {/* RIGHT */}
                         <Col>
                           <Space orientation="vertical" size={6} align="end">
-                            <Text
-                              type="secondary"
-                              style={{ fontSize: 12, whiteSpace: "nowrap" }}
-                            >
+                            <Text type="secondary" style={{ fontSize: 12, whiteSpace: "nowrap" }}>
                               Created {timeAgo(c.created_at)}
                             </Text>
 
                             <Space size={10} align="center">
-                              <Badge
-                                status={isOpen ? "processing" : "default"}
-                              />
-                              <Text type="secondary">
-                                {isOpen ? "Open" : "Closed"}
-                              </Text>
+                              <Badge status={isOpen ? "processing" : "default"} />
+                              <Text type="secondary">{isOpen ? "Open" : "Closed"}</Text>
                             </Space>
 
                             <Tag
@@ -856,9 +751,7 @@ export default function DashboardPage() {
                         position: "relative",
                         overflow: "hidden",
                         border: "1px solid rgba(255,255,255,0.06)",
-                        background: `linear-gradient(135deg, ${activityBg(
-                          am.color
-                        )}, rgba(0,0,0,0))`,
+                        background: `linear-gradient(135deg, ${activityBg(am.color)}, rgba(0,0,0,0))`,
                       }}
                       onClick={() => router.push(`/cases/${a.case_id}`)}
                     >
@@ -874,27 +767,14 @@ export default function DashboardPage() {
                         }}
                       />
 
-                      <Space
-                        orientation="vertical"
-                        size={8}
-                        style={{ width: "100%", paddingInlineStart: 8 }}
-                      >
-                        <Row
-                          justify="space-between"
-                          align="middle"
-                          gutter={[8, 8]}
-                        >
+                      <Space orientation="vertical" size={8} style={{ width: "100%", paddingInlineStart: 8 }}>
+                        <Row justify="space-between" align="middle" gutter={[8, 8]}>
                           <Col flex="auto" style={{ minWidth: 0 }}>
                             <Space wrap size={8} align="center">
                               <Tag color={am.color} style={tagBaseStyle}>
                                 <TagIcon>
                                   {am.icon ? (
-                                    <span
-                                      style={{
-                                        display: "inline-flex",
-                                        lineHeight: 0,
-                                      }}
-                                    >
+                                    <span style={{ display: "inline-flex", lineHeight: 0 }}>
                                       {am.icon}
                                     </span>
                                   ) : null}
@@ -910,17 +790,13 @@ export default function DashboardPage() {
                                 color="default"
                                 style={{
                                   ...tagBaseStyle,
-                                  fontFamily:
-                                    "ui-monospace, SFMono-Regular, Menlo, monospace",
+                                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                                 }}
                               >
                                 {caseKey(a.case_id)}
                               </Tag>
 
-                              <QueueTag
-                                name={queueName}
-                                isDefault={queueIsDefault}
-                              />
+                              <QueueTag name={queueName} isDefault={queueIsDefault} />
                             </Space>
                           </Col>
 
@@ -946,13 +822,7 @@ export default function DashboardPage() {
 
                         <Divider style={{ margin: "6px 0" }} />
 
-                        <Space
-                          style={{
-                            justifyContent: "space-between",
-                            width: "100%",
-                            marginTop: 2,
-                          }}
-                        >
+                        <Space style={{ justifyContent: "space-between", width: "100%", marginTop: 2 }}>
                           {renderActivityChange({ a, displayUser }) || <span />}
 
                           <Button

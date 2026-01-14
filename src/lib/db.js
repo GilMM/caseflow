@@ -163,30 +163,33 @@ export async function updateCaseStatus({ caseId, status }) {
 }
 
 /**
- * Returns { orgId, orgName, role, ownerUserId } for active workspace (MVP)
- * ✅ Added ownerUserId to support primary admin logic in UI
+ * Active workspace for current user.
+ * Returns orgId, orgName, role, ownerUserId, orgLogoUrl
  */
 export async function getActiveWorkspace() {
   const { data, error } = await supabase
     .from("org_memberships")
     .select(
-      "org_id, role, is_active, organizations:org_id ( id, name, owner_user_id )"
+      "org_id, role, is_active, created_at, organizations:org_id ( id, name, logo_url, owner_user_id )"
     )
     .eq("is_active", true)
     .order("created_at", { ascending: false })
     .limit(1);
 
   if (error) throw error;
+
   const m = data?.[0];
   if (!m) return null;
 
   return {
     orgId: m.org_id,
     orgName: m.organizations?.name || "Workspace",
+    orgLogoUrl: m.organizations?.logo_url || null,
     role: m.role,
-    ownerUserId: m.organizations?.owner_user_id || null, // ✅ important
+    ownerUserId: m.organizations?.owner_user_id || null,
   };
 }
+
 
 export async function getDashboardStats(orgId) {
   const { data, error } = await supabase
@@ -431,14 +434,28 @@ export async function setMemberActive({ orgId, userId, isActive }) {
   if (error) throw error;
 }
 
+/**
+ * Update org settings (name + logo_url)
+ */
 export async function updateOrgSettings({ orgId, name, logoUrl = null }) {
-  const { error } = await supabase.rpc("update_org_settings", {
-    p_org_id: orgId,
-    p_name: name,
-    p_logo_url: logoUrl,
-  });
+  if (!orgId) throw new Error("Missing orgId");
+
+  const payload = {
+    name,
+    logo_url: logoUrl,
+  };
+
+  // avoid overwriting with undefined
+  Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+
+  const { error } = await supabase
+    .from("organizations")
+    .update(payload)
+    .eq("id", orgId);
+
   if (error) throw error;
 }
+
 
 export async function diagnosticsOrgAccess(orgId) {
   const { data, error } = await supabase.rpc("diagnostics_org_access", {
@@ -463,3 +480,54 @@ export async function updateCasePriority({ caseId, priority }) {
 
   if (upErr) throw upErr;
 }
+
+
+/* ---------------- profiles ---------------- */
+
+
+export async function getMyProfile() {
+  const { data: s, error: sErr } = await supabase.auth.getSession();
+  if (sErr) throw sErr;
+
+  const user = s?.session?.user;
+  if (!user) throw new Error("Not authenticated");
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url, created_at, updated_at")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  // if missing row, return empty object (UI can still work)
+  return data || { id: user.id, full_name: "", avatar_url: null };
+}
+/**
+ * Profile upsert (profiles.id = auth.users.id)
+ */
+export async function upsertMyProfile({ fullName = null, avatarUrl = null } = {}) {
+  const { data: s, error: sErr } = await supabase.auth.getSession();
+  if (sErr) throw sErr;
+
+  const user = s?.session?.user;
+  if (!user) throw new Error("Not authenticated");
+
+  const payload = {
+    id: user.id,
+    full_name: fullName,
+    avatar_url: avatarUrl,
+    updated_at: new Date().toISOString(),
+  };
+
+  // avoid overwriting with undefined
+  Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+
+  const { error } = await supabase
+    .from("profiles")
+    .upsert(payload, { onConflict: "id" });
+
+  if (error) throw error;
+}
+
+
