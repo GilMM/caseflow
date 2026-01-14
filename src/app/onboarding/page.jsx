@@ -70,7 +70,9 @@ function Feature({ icon, title, desc, token }) {
           borderRadius: 10,
           display: "grid",
           placeItems: "center",
-          border: `1px solid ${token.colorBorderSecondary || token.colorBorder}`,
+          border: `1px solid ${
+            token.colorBorderSecondary || token.colorBorder
+          }`,
           background:
             "radial-gradient(400px 180px at 20% 20%, rgba(22,119,255,0.18), transparent 55%), radial-gradient(360px 160px at 80% 30%, rgba(82,196,26,0.14), transparent 55%)",
           flex: "0 0 auto",
@@ -79,7 +81,9 @@ function Feature({ icon, title, desc, token }) {
         {icon}
       </div>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontWeight: 700, color: token.colorText, lineHeight: 1.2 }}>
+        <div
+          style={{ fontWeight: 700, color: token.colorText, lineHeight: 1.2 }}
+        >
           {title}
         </div>
         <div
@@ -328,7 +332,10 @@ export default function OnboardingPage() {
             <Col xs={24} lg={11} style={{ padding: 22 }}>
               <Space orientation="vertical" size={14} style={{ width: "100%" }}>
                 <Space wrap size={8}>
-                  <Pill icon={<SafetyCertificateOutlined />} label="RLS-secured" />
+                  <Pill
+                    icon={<SafetyCertificateOutlined />}
+                    label="RLS-secured"
+                  />
                   <Pill icon={<ThunderboltOutlined />} label="Fast setup" />
                   <Pill icon={<TeamOutlined />} label="Multi-tenant" />
                 </Space>
@@ -339,8 +346,9 @@ export default function OnboardingPage() {
                     <span style={{ color: token.colorPrimary }}>CaseFlow</span>
                   </Title>
                   <Text type="secondary" style={{ fontSize: 14 }}>
-                    Create your workspace or join an existing organization with an
-                    invite. In less than a minute you’ll be inside the dashboard.
+                    Create your workspace or join an existing organization with
+                    an invite. In less than a minute you’ll be inside the
+                    dashboard.
                   </Text>
                 </div>
 
@@ -355,23 +363,33 @@ export default function OnboardingPage() {
 
                 <Divider style={{ margin: "2px 0" }} />
 
-                <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+                <Space
+                  orientation="vertical"
+                  size={10}
+                  style={{ width: "100%" }}
+                >
                   <Feature
                     token={token}
-                    icon={<InboxOutlined style={{ color: token.colorPrimary }} />}
+                    icon={
+                      <InboxOutlined style={{ color: token.colorPrimary }} />
+                    }
                     title="Case management"
                     desc="Open, track, and resolve requests with queues and priorities."
                   />
                   <Feature
                     token={token}
-                    icon={<TeamOutlined style={{ color: token.colorSuccess }} />}
+                    icon={
+                      <TeamOutlined style={{ color: token.colorSuccess }} />
+                    }
                     title="Teams & roles"
                     desc="Admins manage members. Agents handle cases. Viewers stay read-only."
                   />
                   <Feature
                     token={token}
                     icon={
-                      <SafetyCertificateOutlined style={{ color: token.colorPrimary }} />
+                      <SafetyCertificateOutlined
+                        style={{ color: token.colorPrimary }}
+                      />
                     }
                     title="Database-first security"
                     desc="Permissions are enforced in Supabase RLS—not only in the UI."
@@ -441,7 +459,10 @@ export default function OnboardingPage() {
                           name="first_name"
                           label="First name"
                           rules={[
-                            { required: true, message: "Enter your first name" },
+                            {
+                              required: true,
+                              message: "Enter your first name",
+                            },
                             { min: 2, message: "Too short" },
                           ]}
                         >
@@ -457,7 +478,10 @@ export default function OnboardingPage() {
                           name="name"
                           label="Organization name"
                           rules={[
-                            { required: true, message: "Enter an organization name" },
+                            {
+                              required: true,
+                              message: "Enter an organization name",
+                            },
                             { min: 2, message: "Too short" },
                           ]}
                         >
@@ -512,11 +536,10 @@ export default function OnboardingPage() {
                         requiredMark={false}
                         onValuesChange={(changed) => {
                           if (changed.token !== undefined) {
-                            if (previewTimer.current) clearTimeout(previewTimer.current);
+                            if (previewTimer.current)
+                              clearTimeout(previewTimer.current);
                             previewTimer.current = setTimeout(() => {
-                              const normalized = normalizeInviteToken(changed.token);
-                              formInvite.setFieldsValue({ token: normalized });
-                              previewInvite(normalized);
+                              previewInvite(changed.token); // previewInvite כבר עושה normalize פנימי
                             }, 250);
                           }
                         }}
@@ -524,9 +547,34 @@ export default function OnboardingPage() {
                         <Form.Item
                           name="token"
                           label="Invite token"
-                          rules={[{ required: true, message: "Paste invite token" }]}
+                          rules={[
+                            { required: true, message: "Paste invite token" },
+                          ]}
                         >
-                          <Input placeholder="Paste token here…" disabled={busy} />
+                          <Input
+                            placeholder="Paste token here…"
+                            disabled={busy}
+                            onPaste={(e) => {
+                              const text = e.clipboardData.getData("text");
+                              const normalized = normalizeInviteToken(text);
+                              if (normalized && normalized !== text.trim()) {
+                                e.preventDefault();
+                                formInvite.setFieldsValue({
+                                  token: normalized,
+                                });
+                                previewInvite(normalized);
+                              }
+                            }}
+                            onBlur={() => {
+                              const current = formInvite.getFieldValue("token");
+                              const normalized = normalizeInviteToken(current);
+                              if (normalized && normalized !== current) {
+                                formInvite.setFieldsValue({
+                                  token: normalized,
+                                });
+                              }
+                            }}
+                          />
                         </Form.Item>
 
                         <div style={{ minHeight: 44, marginBottom: 8 }}>
@@ -544,16 +592,26 @@ export default function OnboardingPage() {
                               <Alert
                                 type="success"
                                 showIcon
-                                title={`Invite to: ${invitePreview.org_name || invitePreview.org_id}`}
+                                title={`Invite to: ${
+                                  invitePreview.org_name || invitePreview.org_id
+                                }`}
                                 description={
                                   <Space orientation="vertical" size={2}>
-                                    <Text type="secondary" style={{ fontSize: 12 }}>
+                                    <Text
+                                      type="secondary"
+                                      style={{ fontSize: 12 }}
+                                    >
                                       Role: <b>{invitePreview.role}</b>
                                     </Text>
                                     {invitePreview.expires_at ? (
-                                      <Text type="secondary" style={{ fontSize: 12 }}>
+                                      <Text
+                                        type="secondary"
+                                        style={{ fontSize: 12 }}
+                                      >
                                         Expires:{" "}
-                                        {new Date(invitePreview.expires_at).toLocaleString()}
+                                        {new Date(
+                                          invitePreview.expires_at
+                                        ).toLocaleString()}
                                       </Text>
                                     ) : null}
                                   </Space>
@@ -570,7 +628,8 @@ export default function OnboardingPage() {
                           loading={busy}
                           block
                           disabled={
-                            !formInvite.getFieldValue("token") || invitePreview?._expired
+                            !formInvite.getFieldValue("token") ||
+                            invitePreview?._expired
                           }
                         >
                           Accept invite
@@ -589,8 +648,8 @@ export default function OnboardingPage() {
                 <Divider style={{ margin: "2px 0" }} />
 
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  Having trouble? Make sure you’re logged in, then paste the invite
-                  token again.
+                  Having trouble? Make sure you’re logged in, then paste the
+                  invite token again.
                 </Text>
               </Space>
             </Col>
