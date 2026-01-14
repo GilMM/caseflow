@@ -2,24 +2,39 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Button, Card, Form, Input, Space, Typography, message } from "antd";
 import { LockOutlined, MailOutlined, LoginOutlined } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 
+function safeNextPath(next) {
+  // only allow internal paths to prevent open-redirect
+  if (!next) return "/";
+  if (typeof next !== "string") return "/";
+  if (!next.startsWith("/")) return "/";
+  if (next.startsWith("//")) return "/";
+  return next;
+}
+
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [busy, setBusy] = useState(false);
 
+  const nextParam = safeNextPath(searchParams.get("next"));
+
   useEffect(() => {
-    // If already logged in -> go to app
+    // If already logged in -> go to next (or /)
     (async () => {
       const { data } = await supabase.auth.getSession();
-      if (data?.session) router.replace("/");
+      if (data?.session) {
+        router.replace(nextParam);
+        router.refresh?.();
+      }
     })();
-  }, [router]);
+  }, [router, nextParam]);
 
   async function onFinish(values) {
     setBusy(true);
@@ -31,8 +46,7 @@ export default function LoginPage() {
 
       if (error) throw error;
 
-      // message.success("Welcome back");
-      router.replace("/");
+      router.replace(nextParam);
       router.refresh?.();
     } catch (e) {
       message.error(e?.message || "Login failed");
@@ -109,10 +123,6 @@ export default function LoginPage() {
                 Create one
               </Link>
             </Text>
-
-            {/* <Link href="/cases" style={{ opacity: 0.7 }}>
-              Skip →
-            </Link> */}
           </div>
         </Card>
 

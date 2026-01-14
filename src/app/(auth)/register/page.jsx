@@ -2,24 +2,38 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Button, Card, Form, Input, Space, Typography, message } from "antd";
 import { LockOutlined, MailOutlined, UserAddOutlined } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 
+function safeNextPath(next) {
+  if (!next) return "/";
+  if (typeof next !== "string") return "/";
+  if (!next.startsWith("/")) return "/";
+  if (next.startsWith("//")) return "/";
+  return next;
+}
+
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [busy, setBusy] = useState(false);
 
+  const nextParam = safeNextPath(searchParams.get("next"));
+
   useEffect(() => {
-    // If already logged in -> go to app
+    // If already logged in -> go to next (or /)
     (async () => {
       const { data } = await supabase.auth.getSession();
-      if (data?.session) router.replace("/");
+      if (data?.session) {
+        router.replace(nextParam);
+        router.refresh?.();
+      }
     })();
-  }, [router]);
+  }, [router, nextParam]);
 
   async function onFinish(values) {
     setBusy(true);
@@ -31,9 +45,13 @@ export default function RegisterPage() {
         email,
         password,
         options: {
-          // If you have email confirmation enabled, user may need to verify first.
-          // You can add redirect URL if needed:
-          // emailRedirectTo: `${location.origin}/login`,
+          // אם יש לך email confirmation:
+          // שים לב: את ה-redirect הזה מומלץ להגדיר גם ב-Supabase Auth settings
+          // כדי שלא ייפול על localhost בפרודקשן.
+          emailRedirectTo:
+            typeof window !== "undefined"
+              ? `${window.location.origin}/login?next=${encodeURIComponent(nextParam)}`
+              : undefined,
         },
       });
 
@@ -42,10 +60,10 @@ export default function RegisterPage() {
       // If email confirmation is ON, session might be null
       if (data?.session) {
         message.success("Account created. You’re in!");
-        router.replace("/");
+        router.replace(nextParam);
       } else {
         message.success("Account created. Check your email to confirm, then sign in.");
-        router.replace("/login");
+        router.replace(`/login?next=${encodeURIComponent(nextParam)}`);
       }
 
       router.refresh?.();
@@ -146,7 +164,7 @@ export default function RegisterPage() {
           <div style={{ marginTop: 14 }}>
             <Text type="secondary">
               Already have an account?{" "}
-              <Link href="/login" style={{ fontWeight: 600 }}>
+              <Link href={`/login?next=${encodeURIComponent(nextParam)}`} style={{ fontWeight: 600 }}>
                 Sign in
               </Link>
             </Text>
