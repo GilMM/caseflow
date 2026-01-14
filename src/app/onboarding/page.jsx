@@ -168,22 +168,38 @@ export default function OnboardingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, tokenFromUrl]);
 
-  function normalizeInviteToken(input) {
-    const raw = (input || "").trim();
-    if (!raw) return "";
+function normalizeInviteToken(input) {
+  let raw = (input || "").trim();
+  if (!raw) return "";
 
-    if (raw.startsWith("http://") || raw.startsWith("https://")) {
-      try {
-        const u = new URL(raw);
-        return (u.searchParams.get("invite") || "").trim();
-      } catch {}
-    }
+  // מסיר תוספות של העתקה מצ'אט כמו " - " בסוף
+  raw = raw.replace(/[\s\-–—.,;:)\]]+$/g, "");
 
-    const m = raw.match(/invite=([a-zA-Z0-9\-_]+)/);
-    if (m?.[1]) return m[1].trim();
+  // URL
+  if (raw.startsWith("http://") || raw.startsWith("https://")) {
+    try {
+      const u = new URL(raw);
 
-    return raw;
+      // ?invite= או ?token=
+      const q = (u.searchParams.get("invite") || u.searchParams.get("token") || "").trim();
+      if (q) return q;
+
+      // /i/<token>
+      const m = u.pathname.match(/\/i\/([^/]+)/);
+      if (m?.[1]) return m[1].trim();
+
+      return "";
+    } catch {}
   }
+
+  // מישהו הדביק "invite=xxx" או "token=xxx"
+  const m = raw.match(/(?:invite|token)=([a-zA-Z0-9\-_]+)/);
+  if (m?.[1]) return m[1].trim();
+
+  // אחרת: טוקן נקי
+  return raw;
+}
+
 
   async function previewInvite(raw) {
     const tokenVal = normalizeInviteToken(raw);

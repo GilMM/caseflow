@@ -9,7 +9,7 @@ export default function InviteRedirectPage() {
 
   useEffect(() => {
     if (!token) return;
-    router.replace(`/accept-invite?token=${encodeURIComponent(token)}`);
+    router.replace(`/onboarding?invite=${encodeURIComponent(token)}`);
   }, [token, router]);
 
   return null;
