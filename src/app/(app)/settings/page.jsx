@@ -40,6 +40,7 @@ import OrgSettingsCard from "./_components/OrgSettingsCard";
 import WorkspaceCard from "./_components/WorkspaceCard";
 import SecurityCard from "./_components/SecurityCard";
 import { getExt } from "./_components/helpers";
+import AnnouncementsManager from "./_components/AnnouncementsManager";
 
 const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
@@ -119,7 +120,10 @@ export default function SettingsPage() {
         if (orgErr) throw orgErr;
 
         setOrgLogoUrl(org?.logo_url || null);
-        orgForm.setFieldsValue({ name: org?.name || ws?.orgName || "" });
+
+        orgForm.setFieldsValue({
+          name: org?.name || ws?.orgName || "",
+        });
       } else {
         setOrgLogoUrl(null);
       }
@@ -198,7 +202,8 @@ export default function SettingsPage() {
       const url = pub?.publicUrl || null;
 
       await upsertMyProfile({
-        fullName: profileForm.getFieldValue("full_name") || profile?.full_name || null,
+        fullName:
+          profileForm.getFieldValue("full_name") || profile?.full_name || null,
         avatarUrl: url,
       });
 
@@ -229,11 +234,16 @@ export default function SettingsPage() {
 
       if (upErr) throw upErr;
 
-      const { data: pub } = supabase.storage.from("org-logos").getPublicUrl(path);
+      const { data: pub } = supabase.storage
+        .from("org-logos")
+        .getPublicUrl(path);
       const url = pub?.publicUrl || null;
 
-      const name = (orgForm.getFieldValue("name") || workspace?.orgName || "").trim();
-
+      const name = (
+        orgForm.getFieldValue("name") ||
+        workspace?.orgName ||
+        ""
+      ).trim();
       await updateOrgSettings({
         orgId: workspace.orgId,
         name: name || workspace?.orgName || "Workspace",
@@ -284,23 +294,23 @@ export default function SettingsPage() {
 
   return (
     <Spin spinning={loading} size="large">
-      <Space orientation ="vertical" size={14} style={{ width: "100%" }}>
+      <Space orientation="vertical" size={14} style={{ width: "100%" }}>
         {/* Header */}
         <Card
           style={{
             borderRadius: 16,
-            background: "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
+            background:
+              "linear-gradient(135deg, rgba(22,119,255,0.08), rgba(0,0,0,0))",
           }}
         >
           <Row justify="space-between" align="middle" gutter={[12, 12]}>
             <Col xs={24} md="auto">
-              <Space orientation ="vertical" size={2} style={{ width: "100%" }}>
+              <Space orientation="vertical" size={2} style={{ width: "100%" }}>
                 <Title level={isMobile ? 4 : 3} style={{ margin: 0 }}>
                   Settings
                 </Title>
 
                 <Space wrap size={8}>
-
                   {workspace?.orgName ? (
                     <Tag color="blue">Workspace: {workspace.orgName}</Tag>
                   ) : (
@@ -309,7 +319,9 @@ export default function SettingsPage() {
 
                   <Tag icon={<SettingOutlined />}>Configuration</Tag>
                   {isOwner ? <Tag color="gold">Owner</Tag> : null}
-                  {workspace?.role ? <Tag color="geekblue">Role: {workspace.role}</Tag> : null}
+                  {workspace?.role ? (
+                    <Tag color="geekblue">Role: {workspace.role}</Tag>
+                  ) : null}
 
                   <Tag color="green" icon={<WifiOutlined />}>
                     Realtime enabled
@@ -335,7 +347,12 @@ export default function SettingsPage() {
                   </Button>
                 </Tooltip>
 
-                <Button danger icon={<LogoutOutlined />} onClick={logout} block={isMobile}>
+                <Button
+                  danger
+                  icon={<LogoutOutlined />}
+                  onClick={logout}
+                  block={isMobile}
+                >
                   Logout
                 </Button>
               </Space>
@@ -345,7 +362,12 @@ export default function SettingsPage() {
 
         {error ? (
           <Card style={{ borderRadius: 16, borderColor: "#ffccc7" }}>
-            <Alert type="error" showIcon message="Couldn’t load settings" description={error} />
+            <Alert
+              type="error"
+              showIcon
+              message="Couldn’t load settings"
+              description={error}
+            />
           </Card>
         ) : null}
 
@@ -360,6 +382,14 @@ export default function SettingsPage() {
               isMobile={isMobile}
               form={profileForm}
             />
+
+            {isAdmin && workspace?.orgId ? (
+              <AnnouncementsManager
+                orgId={workspace.orgId}
+                isAdmin={isAdmin}
+                isMobile={isMobile}
+              />
+            ) : null}
           </Col>
 
           {/* RIGHT */}
@@ -371,11 +401,12 @@ export default function SettingsPage() {
               isMobile={isMobile}
               onManageUsers={() => router.push("/settings/users")}
               onRequestAccess={() =>
-                message.info("Only workspace admins can manage members and invitations.")
+                message.info(
+                  "Only workspace admins can manage members and invitations."
+                )
               }
             />
 
-            {/* Admin: Organization */}
             {isAdmin && workspace?.orgId ? (
               <OrgSettingsCard
                 workspace={workspace}
@@ -403,11 +434,11 @@ export default function SettingsPage() {
 
         {/* Roadmap */}
         <Card style={{ borderRadius: 16 }}>
-          <Space orientation ="vertical" size={6}>
+          <Space orientation="vertical" size={6}>
             <Text strong>Next settings upgrades</Text>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              • Persist profile in <Text code>profiles</Text> • Workspace switcher • Notifications • SLA
-              per queue
+              • Persist profile in <Text code>profiles</Text> • Workspace
+              switcher • Notifications • SLA per queue
             </Text>
           </Space>
         </Card>

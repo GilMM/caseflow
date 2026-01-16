@@ -435,15 +435,27 @@ export async function setMemberActive({ orgId, userId, isActive }) {
 }
 
 /**
- * Update org settings (name + logo_url)
+ * Update org settings (name + logo_url + dashboard_update)
  */
-export async function updateOrgSettings({ orgId, name, logoUrl = null }) {
+export async function updateOrgSettings({ orgId, name, logoUrl = null, dashboardUpdate = null }) {
   if (!orgId) throw new Error("Missing orgId");
+
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
 
   const payload = {
     name,
     logo_url: logoUrl,
   };
+
+  // Add dashboard_update fields if provided
+  if (dashboardUpdate !== null && dashboardUpdate !== undefined) {
+    payload.dashboard_update = dashboardUpdate;
+    payload.dashboard_update_updated_at = new Date().toISOString();
+    if (userId) {
+      payload.dashboard_update_updated_by = userId;
+    }
+  }
 
   // avoid overwriting with undefined
   Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
@@ -531,3 +543,101 @@ export async function upsertMyProfile({ fullName = null, avatarUrl = null } = {}
 }
 
 
+
+
+/**
+ * Returns active announcements for org (ordered).
+ * Also filters by starts_at/ends_at if set.
+ */
+export async function getOrgAnnouncements(orgId) {
+  if (!orgId) return [];
+
+  const now = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("org_announcements")
+    .select("id, title, body, is_active, sort_order, starts_at, ends_at, created_at, updated_at")
+    .eq("org_id", orgId)
+    .eq("is_active", true)
+    .or(`starts_at.is.null,starts_at.lte.${now}`)
+    .or(`ends_at.is.null,ends_at.gte.${now}`)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+/** Admin: list all announcements for org */
+export async function listOrgAnnouncements(orgId) {
+  if (!orgId) return [];
+
+  const { data, error } = await supabase
+    .from("org_announcements")
+    .select("id, title, body, is_active, sort_order, starts_at, ends_at, created_at, updated_at")
+    .eq("org_id", orgId)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function createAnnouncement({
+  orgId,
+  title = null,
+  body,
+  isActive = true,
+  sortOrder = 0,
+  startsAt = null,
+  endsAt = null,
+}) {
+  if (!orgId) throw new Error("Missing orgId");
+  if (!body?.trim()) throw new Error("Announcement body is required");
+
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  if (userErr) throw userErr;
+
+  const { data, error } = await supabase
+    .from("org_announcements")
+    .insert({
+      org_id: orgId,
+      title: title?.trim() || null,
+      body: body.trim(),
+      is_active: !!isActive,
+      sort_order: Number.isFinite(sortOrder) ? sortOrder : 0,
+      starts_at: startsAt,
+      ends_at: endsAt,
+      created_by: userData?.user?.id || null,
+    })
+    .select("id")
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateAnnouncement(id, patch) {
+  if (!id) throw new Error("Missing id");
+
+  const clean = {};
+  if (typeof patch.title !== "undefined") clean.title = patch.title?.trim() || null;
+  if (typeof patch.body !== "undefined") clean.body = patch.body?.trim() || "";
+  if (typeof patch.is_active !== "undefined") clean.is_active = !!patch.is_active;
+  if (typeof patch.sort_order !== "undefined") clean.sort_order = Number(patch.sort_order) || 0;
+  if (typeof patch.starts_at !== "undefined") clean.starts_at = patch.starts_at;
+  if (typeof patch.ends_at !== "undefined") clean.ends_at = patch.ends_at;
+
+  if ("body" in clean && !clean.body) throw new Error("Body cannot be empty");
+
+  const { error } = await supabase.from("org_announcements").update(clean).eq("id", id);
+  if (error) throw error;
+  return true;
+}
+
+export async function deleteAnnouncement(id) {
+  if (!id) throw new Error("Missing id");
+  const { error } = await supabase.from("org_announcements").delete().eq("id", id);
+  if (error) throw error;
+  return true;
+}

@@ -13,7 +13,6 @@ import {
   Dropdown,
   Space,
   Typography,
-  Spin,
   Switch,
   Drawer,
   Grid,
@@ -32,6 +31,9 @@ import {
 
 import { supabase } from "@/lib/supabase/client";
 import { useThemeMode } from "@/app/providers";
+import AnnouncementBanner from "@/app/(app)/announcements/AnnouncementBanner";
+import { useAnnouncements } from "@/app/(app)/announcements/useAnnouncements";
+
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -49,13 +51,14 @@ export default function AppShell({ children, initialEmail = "" }) {
   const mode = themeMode?.mode || "light";
   const toggleTheme = themeMode?.toggle || (() => {});
 
-  // ✅ no client auth guard here (server already guarded)
   const [userEmail, setUserEmail] = useState(initialEmail);
 
   // Drawer state (Mobile)
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Optional: keep email updated if auth changes (rare)
+  // ✅ Announcements
+  const { items: announcements } = useAnnouncements();
+
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
@@ -68,7 +71,6 @@ export default function AppShell({ children, initialEmail = "" }) {
     return () => sub?.subscription?.unsubscribe?.();
   }, [router]);
 
-  // Close drawer on route change (Mobile)
   useEffect(() => {
     if (drawerOpen) setDrawerOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -181,13 +183,7 @@ export default function AppShell({ children, initialEmail = "" }) {
           flexShrink: 0,
         }}
       >
-        <Image
-          src="/caseflow-icon-512.png"
-          alt="CaseFlow"
-          width={16}
-          height={16}
-          priority
-        />
+        <Image src="/caseflow-icon-512.png" alt="CaseFlow" width={16} height={16} priority />
       </span>
 
       <div
@@ -203,14 +199,14 @@ export default function AppShell({ children, initialEmail = "" }) {
     </div>
   );
 
-  // no loading spinner needed anymore; server already decided access
-  // (keeping a safe fallback in case email isn't ready)
   const effectiveEmail = userEmail || "Account";
 
   return (
-    <Layout style={{ height: "100dvh", overflow: "hidden", background: token.colorBgLayout }}>
-      {/* Desktop Sider */}
-      {!isMobile && (
+    <div style={{ height: "100dvh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <AnnouncementBanner items={announcements} />
+
+      <Layout style={{ flex: 1, overflow: "hidden", background: token.colorBgLayout }}>
+        {!isMobile && (
         <Sider
           width={240}
           theme={mode === "dark" ? "dark" : "light"}
@@ -223,7 +219,6 @@ export default function AppShell({ children, initialEmail = "" }) {
         >
           <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
             <Brand />
-
             <div style={{ flex: 1, overflow: "auto", paddingBottom: 8 }}>
               <Menu
                 mode="inline"
@@ -251,7 +246,6 @@ export default function AppShell({ children, initialEmail = "" }) {
         </Sider>
       )}
 
-      {/* Mobile Drawer */}
       {isMobile && (
         <Drawer
           open={drawerOpen}
@@ -304,7 +298,8 @@ export default function AppShell({ children, initialEmail = "" }) {
             gap: 12,
           }}
         >
-          <Space size={10} style={{ minWidth: 0 }}>
+          {/* Left side: menu + title + ticker (desktop) */}
+          <Space size={10} style={{ minWidth: 0, flex: 1 }}>
             {isMobile && (
               <Button
                 type="text"
@@ -321,13 +316,15 @@ export default function AppShell({ children, initialEmail = "" }) {
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                maxWidth: isMobile ? 160 : 320,
+                maxWidth: isMobile ? 160 : 260,
               }}
             >
               {pageTitle}
             </Text>
+
           </Space>
 
+          {/* Right side: dropdown */}
           <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
             <Button>
               <Space>
@@ -361,5 +358,6 @@ export default function AppShell({ children, initialEmail = "" }) {
         </Content>
       </Layout>
     </Layout>
+    </div>
   );
 }

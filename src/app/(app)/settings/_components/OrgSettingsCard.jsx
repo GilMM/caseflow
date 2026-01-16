@@ -2,7 +2,20 @@
 "use client";
 
 import { useEffect } from "react";
-import { Avatar, Button, Card, Divider, Form, Input, Row, Col, Space, Tag, Typography, Upload } from "antd";
+import {
+  Avatar,
+  Button,
+  Card,
+  Divider,
+  Form,
+  Input,
+  Row,
+  Col,
+  Space,
+  Tag,
+  Typography,
+  Upload,
+} from "antd";
 import { EditOutlined, UploadOutlined } from "@ant-design/icons";
 import { initials, safeSrc } from "./helpers";
 
@@ -23,7 +36,10 @@ export default function OrgSettingsCard({
 
   useEffect(() => {
     if (!workspace?.orgId) return;
-    orgForm.setFieldsValue({ name: workspace?.orgName || "" });
+
+    orgForm.setFieldsValue({
+      name: workspace?.orgName || "",
+    });
   }, [orgForm, workspace?.orgId, workspace?.orgName]);
 
   const logoSrc = safeSrc(orgLogoUrl, logoBust);
@@ -47,7 +63,7 @@ export default function OrgSettingsCard({
         </Col>
         <Col flex="auto" style={{ minWidth: 0 }}>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            Upload an organization logo and update the name.
+            Update organization name and logo.
           </Text>
         </Col>
       </Row>
