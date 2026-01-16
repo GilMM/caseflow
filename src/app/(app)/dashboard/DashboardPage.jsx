@@ -24,6 +24,8 @@ import StatusDistributionCard from "./StatusDistributionCard";
 import MyWorkCard from "./MyWorkCard";
 import LiveActivityCard from "./LiveActivityCard";
 import { getDisplayNameForCurrentUser } from "./helpers";
+import { getUpcomingCalendarEvents } from "@/lib/db";
+import UpcomingEventsCard from "./UpcomingEventsCard";
 
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
@@ -46,6 +48,7 @@ export default function DashboardPage() {
   const [lastUpdated, setLastUpdated] = useState(null);
 
   const lastToastRef = useRef(0);
+  const [events, setEvents] = useState([]);
 
   const displayUser = (userId) => {
     if (!userId) return "unknown";
@@ -72,19 +75,22 @@ export default function DashboardPage() {
         return;
       }
 
-      const [s, a] = await Promise.all([
+      const [s, a, ev] = await Promise.all([
         getDashboardStats(ws.orgId),
         getRecentActivity(ws.orgId),
+        getUpcomingCalendarEvents(ws.orgId, { limit: 6 }),
       ]);
 
       setStats(s);
       setActivity(a);
+      setEvents(ev);
 
       // members map
       try {
         const members = await getOrgMembers(ws.orgId);
         const map = {};
-        for (const m of members) map[m.user_id] = m.full_name || m.email || null;
+        for (const m of members)
+          map[m.user_id] = m.full_name || m.email || null;
         setUserMap(map);
       } catch {
         setUserMap({});
@@ -112,27 +118,58 @@ export default function DashboardPage() {
   useEffect(() => {
     loadAll();
 
-    const channel = supabase
-      .channel("dashboard-live")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "case_activities" }, () => {
-        loadAll({ silent: true });
+    const maybeToast = (text = "Live update received") => {
+      const now = Date.now();
+      if (now - lastToastRef.current > 8000) {
+        lastToastRef.current = now;
+        message.success({ content: text, duration: 1.2 });
+      }
+    };
 
-        const now = Date.now();
-        if (now - lastToastRef.current > 8000) {
-          lastToastRef.current = now;
-          message.success({ content: "Live update received", duration: 1.2 });
+    // 1) Live activity changes (cases)
+    const activityChannel = supabase
+      .channel("dashboard-live-activities")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "case_activities" },
+        () => {
+          loadAll({ silent: true });
+          maybeToast("Activity updated");
         }
-      })
+      )
       .subscribe();
 
-    return () => supabase.removeChannel(channel);
+    // 2) Calendar changes (events)
+    const calendarChannel = supabase
+      .channel("dashboard-live-calendar")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "calendar_events" },
+        () => {
+          loadAll({ silent: true });
+          // optional toast (אפשר גם להסיר לגמרי כדי לא להציק)
+          maybeToast("Calendar updated");
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(activityChannel);
+      supabase.removeChannel(calendarChannel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const statusChips = useMemo(() => {
     const map = stats?.byStatus || {};
     const entries = Object.entries(map);
-    const order = ["new", "in_progress", "waiting_customer", "resolved", "closed"];
+    const order = [
+      "new",
+      "in_progress",
+      "waiting_customer",
+      "resolved",
+      "closed",
+    ];
     entries.sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
     return entries;
   }, [stats]);
@@ -168,7 +205,25 @@ export default function DashboardPage() {
         resolvedThisWeekCount={resolvedThisWeekCount}
       />
 
-      <StatusDistributionCard loading={loading} total={total} statusChips={statusChips} />
+      <Row gutter={[12, 12]}>
+        <Col xs={24} lg={12}>
+          <StatusDistributionCard
+            loading={loading}
+            total={total}
+            statusChips={statusChips}
+          />
+        </Col>
+
+        <Col xs={24} lg={12}>
+          <UpcomingEventsCard
+            loading={loading}
+            events={events}
+            isMobile={isMobile}
+            onOpenCalendar={() => router.push("/calendar")}
+            onOpenCase={(caseId) => router.push(`/cases/${caseId}`)}
+          />
+        </Col>
+      </Row>
 
       <Row gutter={[12, 12]}>
         <Col xs={24} lg={12}>

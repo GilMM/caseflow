@@ -27,13 +27,13 @@ import {
   LogoutOutlined,
   MoonOutlined,
   MenuOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
 
 import { supabase } from "@/lib/supabase/client";
 import { useThemeMode } from "@/app/providers";
 import AnnouncementBanner from "@/app/(app)/announcements/AnnouncementBanner";
 import { useAnnouncements } from "@/app/(app)/announcements/useAnnouncements";
-
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -81,6 +81,8 @@ export default function AppShell({ children, initialEmail = "" }) {
     if (pathname.startsWith("/cases")) return "cases";
     if (pathname.startsWith("/contacts")) return "contacts";
     if (pathname.startsWith("/queues")) return "queues";
+    if (pathname.startsWith("/calendar")) return "calendar";
+
     if (pathname.startsWith("/settings")) return "settings";
     return "dashboard";
   }, [pathname]);
@@ -91,6 +93,7 @@ export default function AppShell({ children, initialEmail = "" }) {
       cases: "Cases",
       contacts: "Contacts",
       queues: "Queues",
+      calendar: "Calendar",
       settings: "Settings",
     };
     return map[selectedKey] || "CaseFlow";
@@ -155,6 +158,12 @@ export default function AppShell({ children, initialEmail = "" }) {
         label: <Link href="/queues">Queues</Link>,
       },
       {
+        key: "calendar",
+        icon: <CalendarOutlined />,
+        label: <Link href="/calendar">Calendar</Link>,
+      },
+
+      {
         key: "settings",
         icon: <SettingOutlined />,
         label: <Link href="/settings">Settings</Link>,
@@ -183,7 +192,13 @@ export default function AppShell({ children, initialEmail = "" }) {
           flexShrink: 0,
         }}
       >
-        <Image src="/caseflow-icon-512.png" alt="CaseFlow" width={16} height={16} priority />
+        <Image
+          src="/caseflow-icon-512.png"
+          alt="CaseFlow"
+          width={16}
+          height={16}
+          priority
+        />
       </span>
 
       <div
@@ -202,24 +217,83 @@ export default function AppShell({ children, initialEmail = "" }) {
   const effectiveEmail = userEmail || "Account";
 
   return (
-    <div style={{ height: "100dvh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div
+      style={{
+        height: "100dvh",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
       <AnnouncementBanner items={announcements} />
 
-      <Layout style={{ flex: 1, overflow: "hidden", background: token.colorBgLayout }}>
+      <Layout
+        style={{ flex: 1, overflow: "hidden", background: token.colorBgLayout }}
+      >
         {!isMobile && (
-        <Sider
-          width={240}
-          theme={mode === "dark" ? "dark" : "light"}
-          style={{
-            height: "100vh",
-            borderRight: `1px solid ${token.colorBorder}`,
-            background: token.colorBgContainer,
-            overflow: "hidden",
-          }}
-        >
-          <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-            <Brand />
-            <div style={{ flex: 1, overflow: "auto", paddingBottom: 8 }}>
+          <Sider
+            width={240}
+            theme={mode === "dark" ? "dark" : "light"}
+            style={{
+              height: "100vh",
+              borderRight: `1px solid ${token.colorBorder}`,
+              background: token.colorBgContainer,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <Brand />
+              <div style={{ flex: 1, overflow: "auto", paddingBottom: 8 }}>
+                <Menu
+                  mode="inline"
+                  selectedKeys={[selectedKey]}
+                  style={{ background: "transparent", borderRight: 0 }}
+                  items={menuItems}
+                />
+              </div>
+
+              <div
+                style={{
+                  padding: "12px 16px",
+                  fontSize: 11,
+                  color: token.colorTextSecondary,
+                  borderTop: `1px solid ${
+                    token.colorBorderSecondary || token.colorBorder
+                  }`,
+                  textAlign: "center",
+                  lineHeight: 1.4,
+                  flexShrink: 0,
+                }}
+              >
+                <div style={{ opacity: 0.75 }}>Built by</div>
+                <div style={{ fontWeight: 600 }}>GilM</div>
+              </div>
+            </div>
+          </Sider>
+        )}
+
+        {isMobile && (
+          <Drawer
+            open={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+            placement="left"
+            width={280}
+            styles={{
+              body: { padding: 0 },
+              header: {
+                padding: 0,
+                borderBottom: `1px solid ${token.colorBorder}`,
+              },
+            }}
+            title={<Brand compact />}
+          >
+            <div style={{ paddingBottom: 8 }}>
               <Menu
                 mode="inline"
                 selectedKeys={[selectedKey]}
@@ -233,131 +307,103 @@ export default function AppShell({ children, initialEmail = "" }) {
                 padding: "12px 16px",
                 fontSize: 11,
                 color: token.colorTextSecondary,
-                borderTop: `1px solid ${token.colorBorderSecondary || token.colorBorder}`,
+                borderTop: `1px solid ${
+                  token.colorBorderSecondary || token.colorBorder
+                }`,
                 textAlign: "center",
                 lineHeight: 1.4,
-                flexShrink: 0,
               }}
             >
               <div style={{ opacity: 0.75 }}>Built by</div>
               <div style={{ fontWeight: 600 }}>GilM</div>
             </div>
-          </div>
-        </Sider>
-      )}
+          </Drawer>
+        )}
 
-      {isMobile && (
-        <Drawer
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          placement="left"
-          width={280}
-          styles={{
-            body: { padding: 0 },
-            header: { padding: 0, borderBottom: `1px solid ${token.colorBorder}` },
+        <Layout
+          style={{
+            background: token.colorBgLayout,
+            height: "100%",
+            overflow: "hidden",
           }}
-          title={<Brand compact />}
         >
-          <div style={{ paddingBottom: 8 }}>
-            <Menu
-              mode="inline"
-              selectedKeys={[selectedKey]}
-              style={{ background: "transparent", borderRight: 0 }}
-              items={menuItems}
-            />
-          </div>
-
-          <div
+          <Header
             style={{
-              padding: "12px 16px",
-              fontSize: 11,
-              color: token.colorTextSecondary,
-              borderTop: `1px solid ${token.colorBorderSecondary || token.colorBorder}`,
-              textAlign: "center",
-              lineHeight: 1.4,
+              background: token.colorBgContainer,
+              borderBottom: `1px solid ${token.colorBorder}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: isMobile ? "0 12px" : "0 16px",
+              height: 56,
+              lineHeight: "56px",
+              flex: "0 0 auto",
+              gap: 12,
             }}
           >
-            <div style={{ opacity: 0.75 }}>Built by</div>
-            <div style={{ fontWeight: 600 }}>GilM</div>
-          </div>
-        </Drawer>
-      )}
+            {/* Left side: menu + title + ticker (desktop) */}
+            <Space size={10} style={{ minWidth: 0, flex: 1 }}>
+              {isMobile && (
+                <Button
+                  type="text"
+                  icon={<MenuOutlined />}
+                  onClick={() => setDrawerOpen(true)}
+                  aria-label="Open menu"
+                />
+              )}
 
-      <Layout style={{ background: token.colorBgLayout, height: "100%", overflow: "hidden" }}>
-        <Header
-          style={{
-            background: token.colorBgContainer,
-            borderBottom: `1px solid ${token.colorBorder}`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: isMobile ? "0 12px" : "0 16px",
-            height: 56,
-            lineHeight: "56px",
-            flex: "0 0 auto",
-            gap: 12,
-          }}
-        >
-          {/* Left side: menu + title + ticker (desktop) */}
-          <Space size={10} style={{ minWidth: 0, flex: 1 }}>
-            {isMobile && (
-              <Button
-                type="text"
-                icon={<MenuOutlined />}
-                onClick={() => setDrawerOpen(true)}
-                aria-label="Open menu"
-              />
-            )}
+              <Text
+                strong
+                style={{
+                  fontSize: 14,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  maxWidth: isMobile ? 160 : 260,
+                }}
+              >
+                {pageTitle}
+              </Text>
+            </Space>
 
-            <Text
-              strong
-              style={{
-                fontSize: 14,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                maxWidth: isMobile ? 160 : 260,
-              }}
+            {/* Right side: dropdown */}
+            <Dropdown
+              menu={userMenu}
+              trigger={["click"]}
+              placement="bottomRight"
             >
-              {pageTitle}
-            </Text>
+              <Button>
+                <Space>
+                  <Text
+                    style={{
+                      maxWidth: isMobile ? 120 : 260,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {effectiveEmail}
+                  </Text>
+                </Space>
+              </Button>
+            </Dropdown>
+          </Header>
 
-          </Space>
-
-          {/* Right side: dropdown */}
-          <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
-            <Button>
-              <Space>
-                <Text
-                  style={{
-                    maxWidth: isMobile ? 120 : 260,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {effectiveEmail}
-                </Text>
-              </Space>
-            </Button>
-          </Dropdown>
-        </Header>
-
-        <Content
-          style={{
-            padding: isMobile ? 12 : 18,
-            background: token.colorBgLayout,
-            overflowY: "auto",
-            overflowX: "hidden",
-            flex: "1 1 auto",
-            WebkitOverflowScrolling: "touch",
-            overscrollBehavior: "contain",
-          }}
-        >
-          <div style={{ maxWidth: 1200, margin: "0 auto" }}>{children}</div>
-        </Content>
+          <Content
+            style={{
+              padding: isMobile ? 12 : 18,
+              background: token.colorBgLayout,
+              overflowY: "auto",
+              overflowX: "hidden",
+              flex: "1 1 auto",
+              WebkitOverflowScrolling: "touch",
+              overscrollBehavior: "contain",
+            }}
+          >
+            <div style={{ maxWidth: 1200, margin: "0 auto" }}>{children}</div>
+          </Content>
+        </Layout>
       </Layout>
-    </Layout>
     </div>
   );
 }

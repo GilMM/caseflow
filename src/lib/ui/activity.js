@@ -7,6 +7,7 @@ import {
   UserSwitchOutlined,
   TagsOutlined,
   ThunderboltOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
 
 export function getActivityMeta(type) {
@@ -29,6 +30,12 @@ export function getActivityMeta(type) {
 
     updated: { color: "purple", Icon: EditOutlined, label: "Updated" },
     tag: { color: "purple", Icon: TagsOutlined, label: "Tag" },
+
+    // ✅ Calendar activities (NEW)
+    calendar_created: { color: "blue", Icon: CalendarOutlined, label: "Event created" },
+    calendar_updated: { color: "geekblue", Icon: CalendarOutlined, label: "Event updated" },
+    calendar_moved: { color: "purple", Icon: CalendarOutlined, label: "Event moved" },
+    calendar_deleted: { color: "red", Icon: CalendarOutlined, label: "Event removed" },
   };
 
   return map[t] || { color: "default", Icon: EditOutlined, label: type || "Activity" };
@@ -43,6 +50,7 @@ export function activityBg(color) {
     green: "rgba(82,196,26,0.10)",
     cyan: "rgba(19,194,194,0.10)",
     purple: "rgba(114,46,209,0.10)",
+    blue: "rgba(22,119,255,0.10)", // ✅ new
     default: "rgba(255,255,255,0.06)",
   };
   return by[color] || by.default;
