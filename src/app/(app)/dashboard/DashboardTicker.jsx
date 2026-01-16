@@ -1,9 +1,10 @@
 // src/app/(app)/dashboard/DashboardTicker.jsx
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import { Typography, theme } from "antd";
 import { NotificationOutlined } from "@ant-design/icons";
+import Marquee from "react-fast-marquee";
 import { useAnnouncements } from "@/app/(app)/announcements/useAnnouncements";
 
 const { Text } = Typography;
@@ -11,10 +12,6 @@ const { Text } = Typography;
 export default function DashboardTicker() {
   const { token } = theme.useToken();
   const { items } = useAnnouncements();
-
-  const trackRef = useRef(null);
-  const [duration, setDuration] = useState(15);
-  const [paused, setPaused] = useState(false);
 
   const announcements = useMemo(() => {
     return (items || [])
@@ -27,42 +24,7 @@ export default function DashboardTicker() {
       }));
   }, [items]);
 
-  // Calculate animation duration based on content width
-  useEffect(() => {
-    if (!announcements.length) return;
-
-    const calc = () => {
-      const track = trackRef.current;
-      if (!track) return;
-
-      // Get width of just the first copy (half of total)
-      const trackWidth = track.scrollWidth / 2;
-      // Duration based on content width (pixels per second = 50)
-      const seconds = Math.max(8, Math.round(trackWidth / 50));
-      setDuration(seconds);
-    };
-
-    const timer = setTimeout(calc, 100);
-
-    const ro = new ResizeObserver(() => calc());
-    if (trackRef.current) ro.observe(trackRef.current);
-
-    return () => {
-      clearTimeout(timer);
-      ro.disconnect();
-    };
-  }, [announcements]);
-
   const hasAnnouncements = announcements.length > 0;
-
-  // Build the display text
-  const displayItems = announcements.map((a) => ({
-    id: a.id,
-    text: a.title ? `${a.title}: ${a.body}` : a.body,
-  }));
-
-  // Duplicate items for seamless loop
-  const loopItems = [...displayItems, ...displayItems];
 
   return (
     <div
@@ -74,16 +36,7 @@ export default function DashboardTicker() {
         position: "relative",
         height: 44,
       }}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
     >
-      <style>{`
-        @keyframes dashboard_scroll {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-      `}</style>
-
       {/* Background label */}
       <div
         style={{
@@ -139,31 +92,24 @@ export default function DashboardTicker() {
             height: "100%",
             display: "flex",
             alignItems: "center",
-            overflow: "hidden",
             position: "relative",
             zIndex: 1,
           }}
         >
-          <div
-            ref={trackRef}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              whiteSpace: "nowrap",
-              animation: !paused
-                ? `dashboard_scroll ${duration}s linear infinite`
-                : "none",
-            }}
+          <Marquee
+            speed={40}
+            pauseOnHover
+            gradient={false}
           >
-            {loopItems.map((item, idx) => (
+            {announcements.map((a) => (
               <div
-                key={`${item.id}-${idx}`}
+                key={a.id}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 8,
-                  paddingLeft: 40,
-                  paddingRight: 40,
+                  paddingLeft: 32,
+                  paddingRight: 32,
                 }}
               >
                 <NotificationOutlined
@@ -173,10 +119,12 @@ export default function DashboardTicker() {
                     flexShrink: 0,
                   }}
                 />
-                <Text style={{ fontSize: 13 }}>{item.text}</Text>
+                <Text style={{ fontSize: 13 }}>
+                  {a.title ? `${a.title}: ${a.body}` : a.body}
+                </Text>
               </div>
             ))}
-          </div>
+          </Marquee>
         </div>
       )}
     </div>
