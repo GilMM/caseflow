@@ -1,0 +1,450 @@
+{
+  "common": {
+    "refresh": "רענן",
+    "save": "שמור",
+    "cancel": "ביטול",
+    "reset": "איפוס",
+    "loading": "טוען...",
+    "shown": "מוצגים כעת",
+    "total": "סה\"כ",
+    "active": "פעילים",
+    "inactive": "לא פעילים",
+    "open": "פתוח",
+    "closed": "סגור",
+    "new": "חדש",
+    "more": "עוד",
+    "clear": "נקה",
+    "clearFilters": "נקה מסננים",
+    "required": "(חובה)",
+    "optional": "(אופציונלי)",
+    "create": "צור",
+    "update": "עדכן",
+    "delete": "מחק",
+    "edit": "ערוך",
+    "view": "הצג",
+    "back": "חזור",
+    "next": "הבא",
+    "previous": "הקודם",
+    "search": "חיפוש",
+    "noResults": "לא נמצאו תוצאות",
+    "error": "שגיאה",
+    "success": "הצלחה",
+    "warning": "אזהרה",
+    "info": "מידע",
+    "yes": "כן",
+    "no": "לא",
+    "all": "הכול",
+    "none": "ללא",
+    "untitled": "ללא כותרת",
+    "unnamed": "ללא שם",
+    "noQueue": "ללא תור",
+    "workspace": "סביבת עבודה",
+    "workspaceNone": "אין",
+    "unknown": "לא ידוע"
+  },
+
+  "navigation": {
+    "dashboard": "לוח בקרה",
+    "cases": "פניות",
+    "contacts": "אנשי קשר",
+    "queues": "תורים",
+    "calendar": "לוח שנה",
+    "settings": "הגדרות",
+    "announcements": "הודעות"
+  },
+  "userMenu": {
+    "darkMode": "מצב כהה",
+    "language": "שפה",
+    "logout": "התנתק",
+    "account": "חשבון"
+  },
+  "app": {
+    "builtBy": "נבנה על ידי"
+  },
+  "auth": {
+    "login": {
+      "title": "התחברות",
+      "subtitle": "התחבר כדי לנהל פניות בסביבת העבודה שלך.",
+      "email": "אימייל",
+      "password": "סיסמה",
+      "emailPlaceholder": "name@company.com",
+      "passwordPlaceholder": "הסיסמה שלך",
+      "emailRequired": "יש להזין כתובת אימייל",
+      "emailInvalid": "יש להזין כתובת אימייל תקינה",
+      "passwordRequired": "יש להזין סיסמה",
+      "signIn": "התחבר",
+      "noAccount": "אין לך חשבון?",
+      "createOne": "צור חשבון",
+      "failed": "ההתחברות נכשלה",
+      "footer": "CaseFlow • מאת GilM"
+    },
+    "register": {
+      "title": "יצירת חשבון",
+      "subtitle": "התחל לנהל פניות תוך דקות.",
+      "email": "אימייל",
+      "password": "סיסמה",
+      "confirmPassword": "אימות סיסמה",
+      "emailPlaceholder": "name@company.com",
+      "passwordPlaceholder": "צור סיסמה",
+      "confirmPlaceholder": "חזור על הסיסמה",
+      "emailRequired": "יש להזין כתובת אימייל",
+      "emailInvalid": "יש להזין כתובת אימייל תקינה",
+      "passwordRequired": "יש להזין סיסמה",
+      "passwordMinLength": "הסיסמה חייבת להכיל לפחות 8 תווים",
+      "confirmRequired": "יש לאמת את הסיסמה",
+      "passwordMismatch": "הסיסמאות אינן תואמות",
+      "createAccount": "צור חשבון",
+      "hasAccount": "כבר יש לך חשבון?",
+      "signIn": "התחבר",
+      "success": "החשבון נוצר והתחברת בהצלחה",
+      "successConfirm": "החשבון נוצר. בדוק את האימייל לאימות ולאחר מכן התחבר.",
+      "failed": "ההרשמה נכשלה",
+      "footer": "CaseFlow • מאת GilM"
+    },
+    "logout": "התנתק"
+  },
+  "onboarding": {
+    "pills": {
+      "rlsSecured": "מאובטח RLS",
+      "fastSetup": "הקמה מהירה",
+      "multiTenant": "רב-דיירי"
+    },
+    "welcome": "ברוכים הבאים ל-CaseFlow",
+    "subtitle": "צור את סביבת העבודה שלך או הצטרף לארגון קיים עם הזמנה. תוך פחות מדקה תהיה בלוח הבקרה.",
+    "error": "שגיאה בהצטרפות",
+    "features": {
+      "caseManagement": "ניהול פניות",
+      "caseManagementDesc": "פתח, עקוב ופתור בקשות עם תורים ועדיפויות.",
+      "teamsRoles": "צוותים ותפקידים",
+      "teamsRolesDesc": "מנהלים מנהלים משתמשים. סוכנים מטפלים בפניות. צופים קוראים בלבד.",
+      "dbSecurity": "אבטחה ברמת מסד הנתונים",
+      "dbSecurityDesc": "הרשאות נאכפות ב-Supabase RLS - לא רק בממשק."
+    },
+    "tip": "טיפ: אם הוזמנת, הדבק את הטוקן בצד ותראה תצוגה מקדימה לפני ההצטרפות.",
+    "getStarted": "בוא נתחיל",
+    "takesSeconds": "לוקח ~30 שניות",
+    "create": {
+      "title": "צור",
+      "description": "התחל סביבת עבודה חדשה והפוך למנהל.",
+      "firstName": "שם פרטי",
+      "firstNamePlaceholder": "לדוגמה: גיל",
+      "firstNameRequired": "הזן את שמך הפרטי",
+      "firstNameTooShort": "קצר מדי",
+      "orgName": "שם הארגון",
+      "orgNamePlaceholder": "לדוגמה: תמיכת אקמי",
+      "orgNameRequired": "הזן שם ארגון",
+      "orgNameTooShort": "קצר מדי",
+      "createWorkspace": "צור סביבת עבודה",
+      "hint": "תוכל להזמין משתמשים מאוחר יותר מההגדרות."
+    },
+    "join": {
+      "title": "הצטרף",
+      "description": "הדבק טוקן הזמנה להצטרפות לצוות.",
+      "inviteToken": "טוקן הזמנה",
+      "inviteTokenPlaceholder": "הדבק טוקן כאן…",
+      "inviteTokenRequired": "הדבק טוקן הזמנה",
+      "checkingInvite": "בודק הזמנה…",
+      "inviteExpired": "ההזמנה פגה",
+      "inviteExpiredDesc": "בקש ממנהל לשלוח הזמנה חדשה.",
+      "inviteTo": "הזמנה ל: {org}",
+      "role": "תפקיד: {role}",
+      "expires": "פג תוקף: {date}",
+      "acceptInvite": "קבל הזמנה",
+      "hint": "תראה רק ארגונים שהוזמנת אליהם.",
+      "troubleHint": "יש בעיה? ודא שאתה מחובר, ואז הדבק את הטוקן שוב."
+    },
+    "messages": {
+      "orgCreated": "הארגון נוצר",
+      "enterOrgName": "הזן שם ארגון",
+      "enterFirstName": "הזן את שמך הפרטי",
+      "notAuthenticated": "לא מאומת",
+      "failedCreate": "נכשל ביצירת הארגון",
+      "pasteToken": "הדבק טוקן הזמנה",
+      "inviteExpired": "ההזמנה פגה",
+      "joinedOrg": "הצטרפת לארגון",
+      "failedJoin": "נכשל בקבלת ההזמנה"
+    }
+  },
+  "dashboard": {
+    "greeting": {
+      "morning": "בוקר טוב",
+      "afternoon": "צהריים טובים",
+      "evening": "ערב טוב"
+    },
+    "hero": {
+      "user": "משתמש",
+      "workspace": "סביבת עבודה",
+      "role": "תפקיד",
+      "realtime": "זמן אמת",
+      "refreshTooltip": "רענן נתוני לוח הבקרה",
+      "goToCases": "עבור לפניות",
+      "updated": "עודכן לאחרונה",
+      "none": "אין"
+    },
+    "kpis": {
+      "open": "פניות פתוחות",
+      "notClosed": "לא סגורות",
+      "openTooltip": "אחוז הפניות הפתוחות מכלל הפניות בסביבת העבודה",
+      "openFooter": "מדד עומס עבודה מהיר",
+      "newToday": "חדשות היום",
+      "since00": "מאז חצות",
+      "newTodayFooter": "פניות שנוצרו היום",
+      "resolved": "נפתרו",
+      "thisWeek": "השבוע",
+      "resolvedFooter": "תפוקה שבועית",
+      "urgentOpen": "פניות דחופות פתוחות",
+      "priorityUrgent": "עדיפות: דחוף",
+      "urgentTooltip": "פניות דחופות מתוך הפניות הפתוחות",
+      "urgentFooter": "סימן להסלמה",
+      "live": "חי"
+    },
+    "myWork": {
+      "title": "העבודה שלי",
+      "viewAll": "הצג הכל",
+      "assigned": "מוקצה",
+      "created": "נוצר",
+      "noCases": "אין פניות פתוחות שהוקצו",
+      "tip": "טיפ: הוסף פעולת \"הקצאה\" בהמשך"
+    },
+    "liveActivity": {
+      "title": "פעילות חיה",
+      "realtime": "זמן אמת",
+      "noActivity": "אין פעילות אחרונה",
+      "noActivityHint": "ברגע שתתווסף פעילות – היא תופיע כאן"
+    },
+
+    "statusDistribution": {
+      "title": "התפלגות סטטוסים",
+      "total": "סה\"כ"
+    },
+    "upcomingEvents": {
+      "title": "אירועים קרובים",
+      "openCalendar": "פתח לוח שנה",
+      "allDay": "כל היום",
+      "event": "אירוע",
+      "openCase": "פתח פניה",
+      "noEvents": "אין אירועים קרובים",
+      "noEventsHint": "צור אירוע בלוח השנה כדי לראות אותו כאן",
+      "untitledEvent": "אירוע ללא כותרת"
+    },
+    "liveUpdate": "התקבל עדכון בזמן אמת",
+    "activityUpdated": "הפעילות עודכנה",
+    "calendarUpdated": "לוח השנה עודכן",
+    "errors": {
+      "loadFailed": "נכשל בטעינת לוח הבקרה"
+    }
+  },
+  "cases": {
+    "header": {
+      "title": "פניות",
+      "list": "רשימה",
+      "queueFiltered": "מסונן לפי תור",
+      "shownTotal": "{shown} מוצגות • {total} סה\"כ",
+      "refreshTooltip": "רענן רשימת פניות",
+      "newCase": "פניה חדשה"
+    },
+    "filters": {
+      "searchPlaceholder": "חפש לפי כותרת או מזהה…",
+      "allQueues": "כל התורים",
+      "allStatuses": "כל הסטטוסים",
+      "allPriorities": "כל העדיפויות",
+      "defaultQueue": "{name} (ברירת מחדל)",
+      "tip": "טיפ: לחץ על כרטיס פניה לפתיחת פרטים"
+    },
+    "kpis": {
+      "total": "סה\"כ",
+      "open": "פתוחות",
+      "urgent": "דחופות"
+    },
+    "list": {
+      "title": "פניות אחרונות",
+      "showing": "מציג {count}",
+      "created": "נוצר {time}",
+      "noMatch": "אין פניות התואמות למסננים",
+      "tryClearing": "נסה לנקות מסננים או צור פניה חדשה."
+    },
+    "new": {
+      "title": "פניה חדשה",
+      "caseDetails": "פרטי הפניה",
+      "couldntCreate": "לא ניתן ליצור פניה",
+      "noWorkspace": "לא נמצאה סביבת עבודה",
+      "noWorkspaceDesc": "צור ארגון + חברות קודם, ואז חזור ליצור פניות.",
+      "noQueues": "לא נמצאו תורים",
+      "noQueuesDesc": "צור לפחות תור אחד, ואז תוכל ליצור פניות.",
+      "queue": "תור",
+      "queueRequired": "אנא בחר תור",
+      "selectQueue": "בחר תור",
+      "requester": "מבקש",
+      "selectRequester": "בחר עובד (אופציונלי)",
+      "noEmail": "אין אימייל/טלפון",
+      "caseTitle": "כותרת",
+      "titleRequired": "אנא הזן כותרת",
+      "titleMinLength": "הכותרת צריכה להכיל לפחות 3 תווים",
+      "titlePlaceholder": "לדוגמה: VPN לא עובד",
+      "description": "תיאור",
+      "descriptionPlaceholder": "הוסף הקשר, שלבים לשחזור...",
+      "priority": "עדיפות",
+      "priorityRequired": "בחר עדיפות",
+      "createCase": "צור פניה"
+    },
+    "status": {
+      "new": "חדש",
+      "inProgress": "בטיפול",
+      "waitingCustomer": "ממתין ללקוח",
+      "resolved": "נפתר",
+      "closed": "סגור"
+    },
+    "priority": {
+      "low": "נמוכה",
+      "normal": "רגילה",
+      "high": "גבוהה",
+      "urgent": "דחופה"
+    },
+    "messages": {
+      "refreshed": "הפניות רועננו",
+      "failedLoad": "נכשל בטעינת פניות"
+    }
+  },
+  "contacts": {
+    "header": {
+      "title": "אנשי קשר",
+      "directory": "מדריך",
+      "shownTotal": "{shown} מוצגים • {total} סה\"כ • {active} פעילים",
+      "refreshTooltip": "רענן אנשי קשר",
+      "newContact": "איש קשר חדש"
+    },
+    "filters": {
+      "searchPlaceholder": "חפש לפי שם, אימייל, טלפון, מחלקה…",
+      "allStates": "כל המצבים",
+      "active": "פעיל",
+      "inactive": "לא פעיל",
+      "allDepartments": "כל המחלקות",
+      "hint": "אנשי קשר הם עובדים פנימיים. נקשר אותם לפניות כ\"מבקש\"."
+    },
+    "list": {
+      "title": "אנשים",
+      "noWorkspace": "אין סביבת עבודה",
+      "noWorkspaceDesc": "צור ארגון + חברות כדי להתחיל לנהל אנשי קשר.",
+      "tableNotAvailable": "טבלת אנשי קשר לא זמינה",
+      "tableNotAvailableDesc": "צור את טבלת אנשי הקשר (ו-RLS), ואז הדף הזה יפעל.",
+      "id": "מזהה: {id}",
+      "updated": "עודכן {updated} • נוצר {created}",
+      "nextHint": "הבא: דף פרטי איש קשר (כל הפניות של האדם הזה).",
+      "open": "פתח →",
+      "noMatch": "אין אנשי קשר התואמים למסננים",
+      "tryClearing": "נסה לנקות מסננים או צור איש קשר חדש."
+    }
+  },
+  "queues": {
+    "header": {
+      "title": "תורים",
+      "routing": "ניתוב",
+      "shownTotal": "{shown} מוצגים • {total} סה\"כ",
+      "refreshTooltip": "רענן רשימת תורים",
+      "newQueue": "תור חדש"
+    },
+    "filters": {
+      "searchPlaceholder": "חפש תור לפי שם או מזהה…",
+      "allStates": "כל המצבים",
+      "active": "פעיל",
+      "inactive": "לא פעיל",
+      "allQueues": "כל התורים",
+      "defaultOnly": "ברירת מחדל בלבד",
+      "hint": "תור ברירת מחדל משמש לניתוב \"פניה חדשה\" (MVP)."
+    }
+  },
+  "calendar": {
+    "header": {
+      "title": "לוח שנה",
+      "month": "חודש",
+      "week": "שבוע",
+      "refreshTooltip": "רענן לוח שנה",
+      "newEvent": "אירוע חדש"
+    },
+    "event": {
+      "untitled": "אירוע ללא כותרת"
+    }
+  },
+  "settings": {
+    "header": {
+      "title": "הגדרות",
+      "configuration": "הגדרות",
+      "owner": "בעלים",
+      "role": "תפקיד: {role}",
+      "realtimeEnabled": "זמן אמת מופעל",
+      "subtitle": "העדפות חשבון וסביבת עבודה",
+      "refreshTooltip": "רענן הגדרות"
+    },
+    "profile": {
+      "title": "פרופיל",
+      "displayName": "שם תצוגה",
+      "avatar": "תמונה",
+      "uploadAvatar": "העלה תמונה",
+      "updateHint": "עדכן את שם התצוגה והתמונה שלך.",
+      "storedIn": "מאוחסן ב-Supabase Storage"
+    },
+    "security": {
+      "title": "אבטחה",
+      "email": "אימייל",
+      "password": "סיסמה",
+      "changePassword": "שנה סיסמה"
+    },
+    "org": {
+      "title": "ארגון",
+      "orgName": "שם הארגון",
+      "logo": "לוגו",
+      "uploadLogo": "העלה לוגו"
+    },
+    "users": {
+      "title": "ניהול משתמשים",
+      "admin": "מנהל",
+      "primaryAdmin": "מנהל ראשי מוגן",
+      "manageHint": "נהל חברים והזמנות לארגון זה",
+      "backToSettings": "חזרה להגדרות",
+      "adminsOnly": "למנהלים בלבד",
+      "noPermission": "אין לך הרשאה לנהל משתמשים.",
+      "membersTab": "חברים ({count})",
+      "invitesTab": "הזמנות ({count})",
+      "noMembers": "לא נמצאו חברים"
+    },
+    "messages": {
+      "couldntLoad": "לא ניתן לטעון הגדרות",
+      "profileUpdated": "הפרופיל עודכן",
+      "profileFailed": "נכשל בשמירת הפרופיל",
+      "avatarUpdated": "התמונה עודכנה",
+      "avatarFailed": "העלאת התמונה נכשלה",
+      "orgUpdated": "הארגון עודכן",
+      "logoUpdated": "לוגו הארגון עודכן",
+      "logoFailed": "העלאת הלוגו נכשלה",
+      "orgFailed": "נכשל בשמירת הארגון",
+      "adminsOnlyManage": "רק מנהלי סביבת העבודה יכולים לנהל חברים והזמנות."
+    },
+    "nextUpgrades": {
+      "title": "שדרוגי הגדרות הבאים",
+      "items": "שמירת פרופיל בפרופילים • החלפת סביבת עבודה • התראות • SLA לכל תור"
+    },
+    "invites": {
+      "created": "ההזמנה נוצרה והקישור הועתק",
+      "createdNoLink": "ההזמנה נוצרה",
+      "copyHint": "העתק מהרשימה",
+      "failedCreate": "נכשל ביצירת הזמנה",
+      "revoked": "ההזמנה בוטלה",
+      "failedRevoke": "נכשל בביטול",
+      "roleUpdated": "התפקיד עודכן",
+      "failedRole": "נכשל בעדכון התפקיד",
+      "memberActivated": "החבר הופעל",
+      "memberDeactivated": "החבר הושבת",
+      "failedMember": "נכשל בעדכון החבר"
+    }
+  },
+  "announcements": {
+    "close": "סגור הודעה"
+  },
+  "time": {
+    "secondsAgo": "לפני {count} שניות",
+    "minutesAgo": "לפני {count} דקות",
+    "hoursAgo": "לפני {count} שעות",
+    "daysAgo": "לפני {count} ימים",
+    "justNow": "ממש עכשיו"
+  }
+}
