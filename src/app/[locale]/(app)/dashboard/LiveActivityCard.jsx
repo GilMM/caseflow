@@ -5,7 +5,8 @@ import { Button, Card, Divider, Empty, Row, Col, Space, Tag, Typography } from "
 import { WifiOutlined, UserOutlined } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
 
-import { getActivityMeta, activityBg } from "@/lib/ui/activity";
+import { useActivityMeta } from "@/lib/ui/useActivityMeta";
+import { activityBg } from "@/lib/ui/activity";
 import { caseKey, timeAgo } from "@/lib/ui/status";
 
 import { presetColorVar, tagBaseStyle } from "./helpers";
@@ -53,6 +54,112 @@ function renderActivityChange({ a, displayUser }) {
   return null;
 }
 
+function ActivityItem({ activity: a, displayUser, onOpenCase }) {
+  const t = useTranslations();
+  const am = useActivityMeta(a.type);
+  const Accent = presetColorVar(am.color, 6);
+
+  const queueName = a?.cases?.queues?.name || t("common.noQueue");
+  const queueIsDefault = !!a?.cases?.queues?.is_default;
+
+  return (
+    <Card
+      key={a.id}
+      size="small"
+      hoverable
+      style={{
+        borderRadius: 14,
+        position: "relative",
+        overflow: "hidden",
+        border: "1px solid rgba(255,255,255,0.06)",
+        background: `linear-gradient(135deg, ${activityBg(am.color)}, rgba(0,0,0,0))`,
+      }}
+      onClick={() => onOpenCase(a.case_id)}
+    >
+      <div
+        style={{
+          position: "absolute",
+          insetInlineStart: 0,
+          top: 0,
+          bottom: 0,
+          width: 4,
+          background: Accent,
+          opacity: 0.95,
+        }}
+      />
+
+      <Space direction="vertical" size={8} style={{ width: "100%", paddingInlineStart: 8 }}>
+        <Row justify="space-between" align="middle" gutter={[8, 8]}>
+          <Col flex="auto" style={{ minWidth: 0 }}>
+            <Space wrap size={8} align="center">
+              <Tag color={am.color} style={tagBaseStyle}>
+                <TagIcon>
+                  {am.Icon ? (
+                    <am.Icon style={{ fontSize: 12 }} />
+                  ) : null}
+                </TagIcon>
+                {am.label}
+              </Tag>
+
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {displayUser(a.created_by)}
+              </Text>
+
+              <Tag
+                color="default"
+                style={{
+                  ...tagBaseStyle,
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                }}
+              >
+                {caseKey(a.case_id)}
+              </Tag>
+
+              <QueueTag name={queueName} isDefault={queueIsDefault} />
+            </Space>
+          </Col>
+
+          <Col>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {timeAgo(a.created_at)}
+            </Text>
+          </Col>
+        </Row>
+
+        <div
+          style={{
+            whiteSpace: "pre-wrap",
+            lineHeight: 1.35,
+            padding: "8px 10px",
+            borderRadius: 12,
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.06)",
+          }}
+        >
+          <Text>{a.body || "—"}</Text>
+        </div>
+
+        <Divider style={{ margin: "6px 0" }} />
+
+        <Space style={{ justifyContent: "space-between", width: "100%", marginTop: 2 }}>
+          {renderActivityChange({ a, displayUser }) || <span />}
+
+          <Button
+            type="link"
+            style={{ padding: 0 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenCase(a.case_id);
+            }}
+          >
+            {t("common.open")} →
+          </Button>
+        </Space>
+      </Space>
+    </Card>
+  );
+}
+
 export default function LiveActivityCard({ loading, activity, displayUser, onOpenCase }) {
   const t = useTranslations();
 
@@ -74,110 +181,14 @@ export default function LiveActivityCard({ loading, activity, displayUser, onOpe
     >
       {activity?.length ? (
         <Space direction="vertical" size={10} style={{ width: "100%" }}>
-          {activity.map((a) => {
-            const am = getActivityMeta(a.type);
-            const Accent = presetColorVar(am.color, 6);
-
-            const queueName = a?.cases?.queues?.name || t("common.noQueue");
-            const queueIsDefault = !!a?.cases?.queues?.is_default;
-
-            return (
-              <Card
-                key={a.id}
-                size="small"
-                hoverable
-                style={{
-                  borderRadius: 14,
-                  position: "relative",
-                  overflow: "hidden",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  background: `linear-gradient(135deg, ${activityBg(am.color)}, rgba(0,0,0,0))`,
-                }}
-                onClick={() => onOpenCase(a.case_id)}
-              >
-                <div
-                  style={{
-                    position: "absolute",
-                    insetInlineStart: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: 4,
-                    background: Accent,
-                    opacity: 0.95,
-                  }}
-                />
-
-                <Space direction="vertical" size={8} style={{ width: "100%", paddingInlineStart: 8 }}>
-                  <Row justify="space-between" align="middle" gutter={[8, 8]}>
-                    <Col flex="auto" style={{ minWidth: 0 }}>
-                      <Space wrap size={8} align="center">
-                        <Tag color={am.color} style={tagBaseStyle}>
-                          <TagIcon>
-                            {am.icon ? (
-                              <span style={{ display: "inline-flex", lineHeight: 0 }}>{am.icon}</span>
-                            ) : null}
-                          </TagIcon>
-                          {am.label}
-                        </Tag>
-
-                        <Text type="secondary" style={{ fontSize: 12 }}>
-                          {displayUser(a.created_by)}
-                        </Text>
-
-                        <Tag
-                          color="default"
-                          style={{
-                            ...tagBaseStyle,
-                            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                          }}
-                        >
-                          {caseKey(a.case_id)}
-                        </Tag>
-
-                        <QueueTag name={queueName} isDefault={queueIsDefault} />
-                      </Space>
-                    </Col>
-
-                    <Col>
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        {timeAgo(a.created_at)}
-                      </Text>
-                    </Col>
-                  </Row>
-
-                  <div
-                    style={{
-                      whiteSpace: "pre-wrap",
-                      lineHeight: 1.35,
-                      padding: "8px 10px",
-                      borderRadius: 12,
-                      background: "rgba(255,255,255,0.03)",
-                      border: "1px solid rgba(255,255,255,0.06)",
-                    }}
-                  >
-                    <Text>{a.body || "—"}</Text>
-                  </div>
-
-                  <Divider style={{ margin: "6px 0" }} />
-
-                  <Space style={{ justifyContent: "space-between", width: "100%", marginTop: 2 }}>
-                    {renderActivityChange({ a, displayUser }) || <span />}
-
-                    <Button
-                      type="link"
-                      style={{ padding: 0 }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenCase(a.case_id);
-                      }}
-                    >
-                      {t("common.open")} →
-                    </Button>
-                  </Space>
-                </Space>
-              </Card>
-            );
-          })}
+          {activity.map((a) => (
+            <ActivityItem
+              key={a.id}
+              activity={a}
+              displayUser={displayUser}
+              onOpenCase={onOpenCase}
+            />
+          ))}
         </Space>
       ) : (
         <Empty

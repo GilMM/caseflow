@@ -40,10 +40,9 @@
     "noQueue": "ללא תור",
     "workspace": "סביבת עבודה",
     "workspaceNone": "אין",
-    "unknown": "לא ידוע",
-    "unassigned": "לא משוייך",
-    "close": "סגור"
+    "unknown": "לא ידוע"
   },
+
   "navigation": {
     "dashboard": "לוח בקרה",
     "cases": "פניות",
@@ -213,6 +212,7 @@
       "noActivity": "אין פעילות אחרונה",
       "noActivityHint": "ברגע שתתווסף פעילות – היא תופיע כאן"
     },
+
     "statusDistribution": {
       "title": "התפלגות סטטוסים",
       "total": "סה\"כ"
@@ -302,34 +302,7 @@
     },
     "messages": {
       "refreshed": "הפניות רועננו",
-      "failedLoad": "נכשל בטעינת פניות",
-      "statusUpdated": "הסטטוס עודכן",
-      "statusFailed": "נכשל בעדכון הסטטוס",
-      "priorityUpdated": "העדיפות עודכנה",
-      "priorityFailed": "נכשל בעדכון העדיפות",
-      "assignmentUpdated": "ההקצאה עודכנה",
-      "assignmentFailed": "נכשל בהקצאה"
-    },
-    "activity": {
-      "comment": "תגובה",
-      "note": "הערה",
-      "status": "סטטוס",
-      "priority": "עדיפות",
-      "assigned": "הוקצה",
-      "resolved": "נפתר",
-      "updated": "עודכן",
-      "tag": "תג",
-      "calendarCreated": "אירוע נוצר",
-      "calendarUpdated": "אירוע עודכן",
-      "calendarMoved": "אירוע הועבר",
-      "calendarDeleted": "אירוע הוסר"
-    },
-    "actions": {
-      "status": "סטטוס",
-      "assignee": "מוקצה ל",
-      "assignToMe": "הקצה לי",
-      "unassign": "בטל הקצאה",
-      "searchMember": "חפש חבר צוות…"
+      "failedLoad": "נכשל בטעינת פניות"
     }
   },
   "contacts": {
@@ -360,11 +333,6 @@
       "open": "פתח →",
       "noMatch": "אין אנשי קשר התואמים למסננים",
       "tryClearing": "נסה לנקות מסננים או צור איש קשר חדש."
-    },
-    "actions": {
-      "activate": "הפעל",
-      "deactivate": "השבת",
-      "toggleTooltip": "החלף מצב פעיל/לא פעיל"
     }
   },
   "queues": {
@@ -383,25 +351,6 @@
       "allQueues": "כל התורים",
       "defaultOnly": "ברירת מחדל בלבד",
       "hint": "תור ברירת מחדל משמש לניתוב \"פניה חדשה\" (MVP)."
-    },
-    "kpis": {
-      "default": "ברירת מחדל"
-    },
-    "list": {
-      "showing": "מציג {count}",
-      "created": "נוצר {time}",
-      "id": "מזהה: {id}",
-      "default": "ברירת מחדל",
-      "untitled": "ללא כותרת",
-      "noWorkspace": "אין סביבת עבודה",
-      "noWorkspaceDesc": "צור ארגון + חברות כדי להתחיל לנהל תורים.",
-      "tableNotAvailable": "טבלת תורים לא זמינה",
-      "tableNotAvailableDesc": "צור את טבלת התורים (ו-RLS), ואז הדף הזה יפעל.",
-      "nextHint": "הבא: עמוד עריכת תור (שם, SLA, חברי צוות).",
-      "open": "פתח →",
-      "noMatch": "אין תורים התואמים למסננים",
-      "tryClearing": "נסה לנקות מסננים או צור תור חדש.",
-      "toggleTooltip": "החלף מצב פעיל/לא פעיל"
     }
   },
   "calendar": {
@@ -410,51 +359,10 @@
       "month": "חודש",
       "week": "שבוע",
       "refreshTooltip": "רענן לוח שנה",
-      "newEvent": "אירוע חדש",
-      "eventCount": "{count} אירועים",
-      "view": "תצוגה"
+      "newEvent": "אירוע חדש"
     },
     "event": {
-      "untitled": "אירוע ללא כותרת",
-      "new": "חדש",
-      "newEvent": "אירוע חדש",
-      "editEvent": "עריכת אירוע",
-      "title": "כותרת",
-      "titlePlaceholder": "לדוגמה: פגישה עם לקוח",
-      "titleRequired": "הכותרת היא חובה",
-      "description": "תיאור",
-      "descriptionPlaceholder": "הוסף פרטים על האירוע...",
-      "startEnd": "התחלה וסיום",
-      "dateRange": "טווח תאריכים",
-      "startTimeRequired": "זמן התחלה הוא חובה",
-      "timeRangeRequired": "יש להזין טווח זמן תקין",
-      "allDay": "כל היום",
-      "allDayLabel": "אירוע כל היום",
-      "location": "מיקום",
-      "locationPlaceholder": "הוסף מיקום...",
-      "linkedCaseId": "פניה מקושרת",
-      "caseIdPlaceholder": "מזהה פניה (UUID)",
-      "validCaseUuid": "יש להזין UUID תקין",
-      "linkCaseTip": "קשר אירוע זה לפניה קיימת",
-      "openCase": "פתח פניה",
-      "color": "צבע",
-      "colorPlaceholder": "בחר צבע",
-      "optional": "(אופציונלי)",
-      "save": "שמור",
-      "delete": "מחק אירוע",
-      "more": "עוד",
-      "today": "היום",
-      "eventCreated": "האירוע נוצר",
-      "eventUpdated": "האירוע עודכן",
-      "eventDeleted": "האירוע נמחק",
-      "saveFailed": "שמירת האירוע נכשלה",
-      "deleteFailed": "מחיקת האירוע נכשלה",
-      "loadFailed": "טעינת האירוע נכשלה",
-      "noOrg": "לא נמצא ארגון",
-      "permissionDenied": "אין הרשאה",
-      "deletePermissionDenied": "אין הרשאה למחוק אירוע זה",
-      "noEvents": "אין אירועים",
-      "noEventsHint": "צור אירוע חדש כדי לראות אותו כאן"
+      "untitled": "אירוע ללא כותרת"
     }
   },
   "settings": {
@@ -470,8 +378,6 @@
     "profile": {
       "title": "פרופיל",
       "displayName": "שם תצוגה",
-      "placeholder": "הזן שם תצוגה",
-      "tooShort": "קצר מדי (לפחות 2 תווים)",
       "avatar": "תמונה",
       "uploadAvatar": "העלה תמונה",
       "updateHint": "עדכן את שם התצוגה והתמונה שלך.",
@@ -481,27 +387,13 @@
       "title": "אבטחה",
       "email": "אימייל",
       "password": "סיסמה",
-      "changePassword": "שנה סיסמה",
-      "role": "תפקיד",
-      "activeMembers": "חברים פעילים",
-      "member": "חבר",
-      "dataScoped": "הנתונים מוגבלים לסביבת העבודה שלך",
-      "diagAvailable": "אבחון זמין",
-      "diagDescription": "בדוק הרשאות וגישה לנתונים",
-      "runDiagnostics": "הרץ אבחון",
-      "notLoaded": "לא נטען"
+      "changePassword": "שנה סיסמה"
     },
     "org": {
       "title": "ארגון",
       "orgName": "שם הארגון",
-      "placeholder": "הזן שם ארגון",
-      "nameRequired": "שם הארגון הוא חובה",
-      "tooShort": "קצר מדי (לפחות 2 תווים)",
-      "updateHint": "עדכן את שם הארגון והלוגו",
-      "saveOrganization": "שמור ארגון",
       "logo": "לוגו",
-      "uploadLogo": "העלה לוגו",
-      "storedIn": "מאוחסן ב-Supabase Storage"
+      "uploadLogo": "העלה לוגו"
     },
     "users": {
       "title": "ניהול משתמשים",
@@ -513,39 +405,7 @@
       "noPermission": "אין לך הרשאה לנהל משתמשים.",
       "membersTab": "חברים ({count})",
       "invitesTab": "הזמנות ({count})",
-      "noMembers": "לא נמצאו חברים",
-      "user": "משתמש",
-      "email": "אימייל",
-      "role": "תפקיד",
-      "status": "סטטוס",
-      "active": "פעיל",
-      "inactive": "לא פעיל",
-      "joined": "הצטרף",
-      "owner": "בעלים",
-      "ownerProtected": "בעלים מוגן",
-      "admin_role": "מנהל",
-      "agent_role": "סוכן",
-      "viewer_role": "צופה",
-      "adminOnly": "מנהל בלבד",
-      "cantChangeSelf": "לא ניתן לשנות את התפקיד שלך",
-      "updating": "מעדכן...",
-      "createInvite": "צור הזמנה",
-      "inviteTip": "שתף את קישור ההזמנה עם משתמשים חדשים",
-      "emailRequired": "אימייל הוא חובה",
-      "emailInvalid": "כתובת אימייל לא תקינה",
-      "copyInviteLink": "העתק קישור הזמנה",
-      "linkCopied": "הקישור הועתק",
-      "copyFailed": "ההעתקה נכשלה",
-      "created": "נוצר",
-      "accepted": "התקבל",
-      "expired": "פג תוקף",
-      "pending": "ממתין",
-      "revokeInvite": "בטל הזמנה",
-      "revoke": "בטל",
-      "revokeConfirm": "האם אתה בטוח שברצונך לבטל הזמנה זו?",
-      "noInvites": "אין הזמנות",
-      "cannotOpen": "לא ניתן לפתוח הזמנה",
-      "failedLoad": "נכשל בטעינת משתמשים"
+      "noMembers": "לא נמצאו חברים"
     },
     "messages": {
       "couldntLoad": "לא ניתן לטעון הגדרות",
@@ -575,47 +435,10 @@
       "memberActivated": "החבר הופעל",
       "memberDeactivated": "החבר הושבת",
       "failedMember": "נכשל בעדכון החבר"
-    },
-    "workspace": {
-      "title": "סביבת עבודה",
-      "org": "ארגון",
-      "role": "תפקיד",
-      "realtime": "זמן אמת",
-      "realtimeDesc": "עדכונים אוטומטיים ללוח בקרה ופניות",
-      "manageUsers": "ניהול משתמשים",
-      "manageUsersTooltip": "נהל חברי צוות והזמנות",
-      "manageHint": "הוסף משתמשים, שנה תפקידים, וצור הזמנות",
-      "adminsOnlyHint": "רק מנהלים יכולים לנהל משתמשים",
-      "requestAccess": "בקש גישה ממנהל",
-      "noActiveWorkspace": "אין סביבת עבודה פעילה",
-      "noWorkspaceDesc": "צור ארגון כדי להתחיל",
-      "orgNameRequired": "שם הארגון הוא חובה"
-    },
-    "announcements": {
-      "title": "מודעות",
-      "headerHint": "הודעות אלה מופיעות בסרגל העליון עבור כולם.",
-      "titleLabel": "כותרת",
-      "titlePlaceholder": "לדוגמה: עדכון מערכת מתוכנן",
-      "message": "הודעה",
-      "messageLabel": "הודעה",
-      "messagePlaceholder": "הוסף פרטים על ההודעה...",
-      "messageRequired": "ההודעה היא חובה",
-      "messageMax": "ההודעה חייבת להיות עד 500 תווים",
-      "active": "פעיל",
-      "addAnnouncement": "הוסף הודעה",
-      "announcementAdded": "ההודעה נוספה",
-      "failedAdd": "נכשל בהוספת הודעה",
-      "failedUpdate": "נכשל בעדכון הודעה",
-      "deleted": "ההודעה נמחקה",
-      "deleteFailed": "נכשל במחיקת הודעה",
-      "deleteConfirm": "האם אתה בטוח שברצונך למחוק הודעה זו?",
-      "failedLoad": "נכשל בטעינת הודעות",
-      "refresh": "רענן הודעות"
     }
   },
   "announcements": {
-    "close": "סגור הודעה",
-    "title": "מודעות"
+    "close": "סגור הודעה"
   },
   "time": {
     "secondsAgo": "לפני {count} שניות",

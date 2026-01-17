@@ -201,7 +201,7 @@ console.log("CASES QUEUE:", JSON.stringify(queueName), queueIsDefault, qColor);
                       type="secondary"
                       style={{ fontSize: 12, whiteSpace: "nowrap" }}
                     >
-                      {t("cases.list.created")} {timeAgo(c.created_at)}
+                      {t("cases.list.created", { time: timeAgo(c.created_at) })}
                     </Text>
 
                     {/* Open/Closed */}

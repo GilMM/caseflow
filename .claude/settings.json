@@ -3,6 +3,9 @@
     "allow": [
       "Bash(find:*)",
       "Bash(wc:*)"
+    ],
+    "additionalDirectories": [
+      "/Users/gilmeshulami/caseflow/caseflow-1/messages"
     ]
   }
 }

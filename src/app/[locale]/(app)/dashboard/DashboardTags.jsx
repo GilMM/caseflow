@@ -3,10 +3,11 @@
 
 import { Tag, Typography, Space } from "antd";
 import { AppstoreOutlined, UserOutlined } from "@ant-design/icons";
+import { useTranslations } from "next-intl";
 
 import { queueColor } from "@/lib/ui/queue";
-import { getStatusMeta } from "@/lib/ui/status";
-import { getPriorityMeta } from "@/lib/ui/priority";
+import { useStatusMeta } from "@/lib/ui/useStatusMeta";
+import { usePriorityMeta } from "@/lib/ui/usePriorityMeta";
 
 import { tagBaseStyle } from "./helpers";
 
@@ -21,6 +22,8 @@ export function TagIcon({ children }) {
 }
 
 export function QueueTag({ name, isDefault = false }) {
+  const t = useTranslations();
+
   return (
     <Tag
       color={queueColor(name, isDefault)}
@@ -35,13 +38,13 @@ export function QueueTag({ name, isDefault = false }) {
       <TagIcon>
         <AppstoreOutlined style={{ fontSize: 12 }} />
       </TagIcon>
-      {name || "No queue"}
+      {name || t("common.noQueue")}
     </Tag>
   );
 }
 
 export function StatusTag({ status }) {
-  const meta = getStatusMeta(status);
+  const meta = useStatusMeta(status);
   return (
     <Tag color={meta.color} style={tagBaseStyle}>
       <TagIcon>{meta.Icon ? <meta.Icon style={{ fontSize: 12 }} /> : null}</TagIcon>
@@ -51,7 +54,7 @@ export function StatusTag({ status }) {
 }
 
 export function PriorityTag({ priority }) {
-  const meta = getPriorityMeta(priority);
+  const meta = usePriorityMeta(priority);
   return (
     <Tag color={meta.color} style={tagBaseStyle}>
       <TagIcon>{meta.Icon ? <meta.Icon style={{ fontSize: 12 }} /> : null}</TagIcon>
@@ -61,6 +64,8 @@ export function PriorityTag({ priority }) {
 }
 
 export function AssignmentChange({ fromU, toU, displayUser }) {
+  const t = useTranslations();
+
   const Arrow = (
     <Text type="secondary" style={{ fontSize: 12 }}>
       →
@@ -73,14 +78,14 @@ export function AssignmentChange({ fromU, toU, displayUser }) {
         <TagIcon>
           <UserOutlined style={{ fontSize: 12 }} />
         </TagIcon>
-        {fromU ? displayUser(fromU) : "Unassigned"}
+        {fromU ? displayUser(fromU) : t("common.unassigned")}
       </Tag>
       {Arrow}
       <Tag color="cyan" style={tagBaseStyle}>
         <TagIcon>
           <UserOutlined style={{ fontSize: 12 }} />
         </TagIcon>
-        {toU ? displayUser(toU) : "Unassigned"}
+        {toU ? displayUser(toU) : t("common.unassigned")}
       </Tag>
     </Space>
   );

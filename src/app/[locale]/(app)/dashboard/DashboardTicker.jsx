@@ -5,11 +5,13 @@ import { useMemo } from "react";
 import { Typography, theme } from "antd";
 import { NotificationOutlined } from "@ant-design/icons";
 import Marquee from "react-fast-marquee";
+import { useTranslations } from "next-intl";
 import { useAnnouncements } from "@/app/[locale]/(app)/announcements/useAnnouncements";
 
 const { Text } = Typography;
 
 export default function DashboardTicker() {
+  const t = useTranslations();
   const { token } = theme.useToken();
   const { items } = useAnnouncements();
 
@@ -55,7 +57,7 @@ export default function DashboardTicker() {
           zIndex: 0,
         }}
       >
-        Announcements
+        {t("announcements.title")}
       </div>
 
       {/* Left fade */}
