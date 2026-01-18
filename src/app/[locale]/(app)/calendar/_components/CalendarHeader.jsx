@@ -31,7 +31,7 @@ export default function CalendarHeader({
       <Row justify="space-between" align="middle" gutter={[12, 12]}>
         {/* LEFT */}
         <Col>
-          <Space direction="vertical" size={2}>
+          <Space orientation ="vertical" size={2}>
             <Title level={3} style={{ margin: 0 }}>
               {t("calendar.header.title")}
             </Title>

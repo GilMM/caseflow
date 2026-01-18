@@ -209,7 +209,7 @@ export default function CasesPage() {
   }
 
   return (
-    <Space direction="vertical" size={14} style={{ width: "100%" }}>
+    <Space orientation ="vertical" size={14} style={{ width: "100%" }}>
       <CasesHeader
         workspace={workspace}
         queueId={queueId}

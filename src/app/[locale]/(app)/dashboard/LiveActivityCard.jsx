@@ -1,8 +1,18 @@
 // src/app/(app)/_components/dashboard/LiveActivityCard.jsx
 "use client";
 
-import { Button, Card, Divider, Empty, Row, Col, Space, Tag, Typography } from "antd";
-import { WifiOutlined, UserOutlined } from "@ant-design/icons";
+import {
+  Button,
+  Card,
+  Divider,
+  Empty,
+  Row,
+  Col,
+  Space,
+  Tag,
+  Typography,
+} from "antd";
+import { WifiOutlined } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
 
 import { useActivityMeta } from "@/lib/ui/useActivityMeta";
@@ -10,7 +20,13 @@ import { activityBg } from "@/lib/ui/activity";
 import { caseKey, timeAgo } from "@/lib/ui/status";
 
 import { presetColorVar, tagBaseStyle } from "./helpers";
-import { QueueTag, TagIcon, AssignmentChange, StatusTag, PriorityTag } from "./DashboardTags";
+import {
+  QueueTag,
+  TagIcon,
+  AssignmentChange,
+  StatusTag,
+  PriorityTag,
+} from "./DashboardTags";
 
 const { Text } = Typography;
 
@@ -48,7 +64,9 @@ function renderActivityChange({ a, displayUser }) {
   ) {
     const fromU = meta?.from_user ?? meta?.from;
     const toU = meta?.to_user ?? meta?.to;
-    return <AssignmentChange fromU={fromU} toU={toU} displayUser={displayUser} />;
+    return (
+      <AssignmentChange fromU={fromU} toU={toU} displayUser={displayUser} />
+    );
   }
 
   return null;
@@ -61,6 +79,9 @@ function ActivityItem({ activity: a, displayUser, onOpenCase }) {
 
   const queueName = a?.cases?.queues?.name || t("common.noQueue");
   const queueIsDefault = !!a?.cases?.queues?.is_default;
+
+  // ✅ translate label key (fix showing "cases.activity.status")
+  const activityLabel = am?.label ? am.label : "";
 
   return (
     <Card
@@ -88,15 +109,17 @@ function ActivityItem({ activity: a, displayUser, onOpenCase }) {
         }}
       />
 
-      <Space orientation="vertical" size={8} style={{ width: "100%", paddingInlineStart: 8 }}>
+      <Space
+        orientation="vertical"
+        size={8}
+        style={{ width: "100%", paddingInlineStart: 8 }}
+      >
         <Row justify="space-between" align="middle" gutter={[8, 8]}>
           <Col flex="auto" style={{ minWidth: 0 }}>
             <Space wrap size={8} align="center">
               <Tag color={am.color} style={tagBaseStyle}>
                 <TagIcon>
-                  {am.Icon ? (
-                    <am.Icon style={{ fontSize: 12 }} />
-                  ) : null}
+                  {am.Icon ? <am.Icon style={{ fontSize: 12 }} /> : null}
                 </TagIcon>
                 {am.label}
               </Tag>
@@ -141,7 +164,13 @@ function ActivityItem({ activity: a, displayUser, onOpenCase }) {
 
         <Divider style={{ margin: "6px 0" }} />
 
-        <Space style={{ justifyContent: "space-between", width: "100%", marginTop: 2 }}>
+        <Space
+          style={{
+            justifyContent: "space-between",
+            width: "100%",
+            marginTop: 2,
+          }}
+        >
           {renderActivityChange({ a, displayUser }) || <span />}
 
           <Button
@@ -160,7 +189,13 @@ function ActivityItem({ activity: a, displayUser, onOpenCase }) {
   );
 }
 
-export default function LiveActivityCard({ loading, activity, displayUser, onOpenCase, onViewAll }) {
+export default function LiveActivityCard({
+  loading,
+  activity,
+  displayUser,
+  onOpenCase,
+  onViewAll,
+}) {
   const t = useTranslations();
 
   return (
@@ -187,7 +222,7 @@ export default function LiveActivityCard({ loading, activity, displayUser, onOpe
       style={{ borderRadius: 16 }}
     >
       {activity?.length ? (
-        <Space direction="vertical" size={10} style={{ width: "100%" }}>
+        <Space orientation ="vertical" size={10} style={{ width: "100%" }}>
           {activity.map((a) => (
             <ActivityItem
               key={a.id}
@@ -201,7 +236,7 @@ export default function LiveActivityCard({ loading, activity, displayUser, onOpe
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
           description={
-            <Space direction="vertical" size={2}>
+            <Space orientation ="vertical" size={2}>
               <Text>{t("dashboard.liveActivity.noActivity")}</Text>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {t("dashboard.liveActivity.noActivityHint")}

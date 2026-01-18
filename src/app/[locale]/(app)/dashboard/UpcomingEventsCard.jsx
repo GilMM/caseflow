@@ -83,7 +83,7 @@ export default function UpcomingEventsCard({
       styles={{ body: { padding: isMobile ? 12 : 16 } }}
     >
       {rows.length ? (
-        <Space direction="vertical" size={10} style={{ width: "100%" }}>
+        <Space orientation ="vertical" size={10} style={{ width: "100%" }}>
           {rows.map((e) => {
             const when = formatWhen(e, t);
             const hasCase = !!e.case_id;
@@ -98,7 +98,7 @@ export default function UpcomingEventsCard({
                   background: "rgba(255,255,255,0.02)",
                 }}
               >
-                <Space direction="vertical" size={6} style={{ width: "100%" }}>
+                <Space orientation ="vertical" size={6} style={{ width: "100%" }}>
                   <Space align="center" style={{ justifyContent: "space-between", width: "100%" }}>
                     <Space size={10} style={{ minWidth: 0 }}>
                       {colorDot(e.color)}
@@ -160,7 +160,7 @@ export default function UpcomingEventsCard({
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
           description={
-            <Space direction="vertical" size={2}>
+            <Space orientation ="vertical" size={2}>
               <Text>{t("dashboard.upcomingEvents.noEvents")}</Text>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {t("dashboard.upcomingEvents.noEventsHint")}

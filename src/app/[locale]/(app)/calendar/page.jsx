@@ -43,7 +43,7 @@ export default function CalendarPage() {
   const t = useTranslations();
 
   const locale = useLocale();
-const isRTL = locale === "he";
+  const isRTL = locale === "he";
   // keep view consistent when switching responsive
   useEffect(() => {
     setView(isMobile ? "week" : "month");
@@ -120,7 +120,7 @@ const isRTL = locale === "he";
         onNewEvent={() => openCreate(null)}
       />
 
-      <Card style={{ borderRadius: 16 }} bodyStyle={{ padding: 12 }}>
+      <Card style={{ borderRadius: 16 }} styles={{ padding: 12 }}>
         {/* Desktop controls */}
         {!isMobile ? (
           <Space
@@ -132,15 +132,14 @@ const isRTL = locale === "he";
               marginBottom: 10,
             }}
           >
-<Segmented
-  value={view}
-  onChange={(v) => setView(v)}
-  options={[
-    { label: t("calendar.view.month"), value: "month" },
-    { label: t("calendar.view.week"), value: "week" },
-  ]}
-/>
-
+            <Segmented
+              value={view}
+              onChange={(v) => setView(v)}
+              options={[
+                { label: t("calendar.view.month"), value: "month" },
+                { label: t("calendar.view.week"), value: "week" },
+              ]}
+            />
 
             <Text type="secondary" style={{ fontSize: 12 }}>
               {cursor.format(view === "week" ? "MMM D, YYYY" : "MMMM YYYY")}

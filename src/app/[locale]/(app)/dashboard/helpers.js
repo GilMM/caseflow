@@ -28,29 +28,26 @@ export function presetColorVar(color, level = 6) {
 }
 
 // ✅ get user name (metadata -> profiles -> email prefix)
+
 export async function getDisplayNameForCurrentUser() {
-  try {
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData?.user;
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData?.user;
+  if (!user) return "";
 
-    let name =
-      user?.user_metadata?.first_name ||
-      user?.user_metadata?.full_name ||
-      "";
+  // 1) profiles.full_name (הדבר שאתה עורך ב-Settings)
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", user.id)
+    .single();
 
-    if (!name && user?.id) {
-      const { data: p } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", user.id)
-        .maybeSingle();
-      name = p?.full_name || "";
-    }
+  const fullName = profile?.full_name?.trim();
+  if (fullName) return fullName;
 
-    if (!name && user?.email) name = user.email.split("@")[0];
+  // 2) fallback
+  const metaName = user?.user_metadata?.full_name;
+  if (typeof metaName === "string" && metaName.trim()) return metaName.trim();
 
-    return name || "User";
-  } catch {
-    return "User";
-  }
+  // 3) fallback אחרון: חלק לפני @
+  return (user?.email || "").split("@")[0] || "";
 }

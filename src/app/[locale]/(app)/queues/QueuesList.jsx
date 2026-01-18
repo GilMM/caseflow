@@ -68,7 +68,7 @@ export default function QueuesList({
                 size="small"
                 hoverable
                 style={{ borderRadius: 14 }}
-                bodyStyle={{ padding: isMobile ? 12 : 16 }}
+                styles={{ padding: isMobile ? 12 : 16 }}
               >
                 <Row justify="space-between" align="middle" gutter={[12, 12]}>
                   <Col xs={24} md flex="auto">

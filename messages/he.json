@@ -289,7 +289,26 @@
       "descriptionPlaceholder": "הוסף הקשר, שלבים לשחזור...",
       "priority": "עדיפות",
       "priorityRequired": "בחר עדיפות",
-      "createCase": "צור פניה"
+      "createCase": "צור פניה",
+      "header": {
+      "queueSelected": "נבחר תור",
+      "queueLabel": "תור",
+      "requesterPrefilled": "המבקש מולא מראש",
+      "hint": "מלא את הטופס ופתח פנייה בלחיצה אחת",
+      "backToCases": "חזרה לפניות"
+    },
+      "sidebar": {
+        "quickTipsTitle": "טיפים מהירים",
+        "tipTitleShort": "שמור על כותרת קצרה וקלה לחיפוש.",
+        "tipStepsInDescription": "שים שלבים + הודעות שגיאה בתיאור.",
+        "tipUrgentPrefix": "השתמש ב",
+        "tipUrgentSuffix": "רק להסלמות.",
+        "defaults": "ברירות מחדל",
+        "queueSelected": "נבחר תור",
+        "queueLabel": "תור",
+        "nextPolishTitle": "ליטוש הבא (אופציונלי)",
+        "nextPolishDesc": "ביצירה: להוסיף אוטומטית הערת פעילות + \"הקצה לי\"."
+      }
     },
     "status": {
       "new": "חדש",
@@ -317,16 +336,38 @@
     "activity": {
       "comment": "תגובה",
       "note": "הערה",
+
       "status": "סטטוס",
+      "status_change": "שינוי סטטוס",
+      "statusChanged": "שינוי סטטוס",
+
       "priority": "עדיפות",
+      "priority_change": "שינוי עדיפות",
+      "priorityChanged": "שינוי עדיפות",
+
       "assigned": "הוקצה",
+      "assignment": "הקצאה",
+      "assignment_change": "שינוי הקצאה",
+      "assignee": "מוקצה",
+
       "resolved": "נפתר",
+      "closed": "נסגר",
+      "created": "נוצר",
       "updated": "עודכן",
+
       "tag": "תג",
+      "tag_added": "תג נוסף",
+      "tag_removed": "תג הוסר",
+
       "calendarCreated": "אירוע נוצר",
       "calendarUpdated": "אירוע עודכן",
       "calendarMoved": "אירוע הועבר",
-      "calendarDeleted": "אירוע הוסר"
+      "calendarDeleted": "אירוע הוסר",
+
+      "calendar_created": "אירוע נוצר",
+      "calendar_updated": "אירוע עודכן",
+      "calendar_moved": "אירוע הועבר",
+      "calendar_deleted": "אירוע הוסר"
     },
     "actions": {
       "status": "סטטוס",
@@ -377,7 +418,7 @@
     "upsert": {
       "titleCreate": "איש קשר חדש",
       "titleEdit": "עריכת איש קשר",
-  
+
       "fields": {
         "fullName": "שם מלא",
         "email": "אימייל",
@@ -388,7 +429,7 @@
         "active": "פעיל",
         "notes": "הערות"
       },
-  
+
       "placeholders": {
         "fullName": "לדוגמה: דוד כהן",
         "email": "name@company.com",
@@ -398,12 +439,12 @@
         "location": "לדוגמה: מטה / מרחוק",
         "notes": "הערות פנימיות…"
       },
-  
+
       "validation": {
         "fullNameRequired": "יש להזין שם מלא",
         "emailInvalid": "כתובת אימייל לא תקינה"
       },
-  
+
       "tip": {
         "title": "טיפ",
         "description": "בהמשך נקשר איש קשר זה לפניות כ\"מבקש\" ונציג את כל הפניות של האדם."
@@ -447,31 +488,31 @@
       "default": "ברירת מחדל",
       "defaultHint": "הגדרת תור כברירת מחדל תבטל את ברירת המחדל משאר התורים בסביבת העבודה."
     },
-      "upsert": {
-        "titleCreate": "תור חדש",
-        "titleEdit": "עריכת תור",
-    
-        "fields": {
-          "name": "שם התור",
-          "active": "פעיל",
-          "default": "ברירת מחדל"
-        },
-    
-        "placeholders": {
-          "name": "לדוגמה: תמיכה, חיוב, קליטה…"
-        },
-    
-        "validation": {
-          "nameRequired": "אנא הזן שם לתור",
-          "nameMin": "השם חייב להכיל לפחות 2 תווים"
-        },
-    
-        "note": {
-          "title": "הערה",
-          "description": "הגדרת תור כברירת מחדל תבטל את ברירת המחדל מתורים אחרים בסביבת העבודה."
-        }
+    "upsert": {
+      "titleCreate": "תור חדש",
+      "titleEdit": "עריכת תור",
+
+      "fields": {
+        "name": "שם התור",
+        "active": "פעיל",
+        "default": "ברירת מחדל"
       },
-    
+
+      "placeholders": {
+        "name": "לדוגמה: תמיכה, חיוב, קליטה…"
+      },
+
+      "validation": {
+        "nameRequired": "אנא הזן שם לתור",
+        "nameMin": "השם חייב להכיל לפחות 2 תווים"
+      },
+
+      "note": {
+        "title": "הערה",
+        "description": "הגדרת תור כברירת מחדל תבטל את ברירת המחדל מתורים אחרים בסביבת העבודה."
+      }
+    },
+
     "filters": {
       "searchPlaceholder": "חפש תור לפי שם או מזהה…",
       "allStates": "כל המצבים",
@@ -733,34 +774,32 @@
     "justNow": "ממש עכשיו"
   },
   "caseDetails": {
-  "notFound": {
-    "title": "לא נמצא",
-    "subtitle": "הפנייה לא קיימת או שאין לך הרשאה לצפות בה."
-  },
-  "meta": {
-    "created": "נוצר:"
-  },
-  "sections": {
-    "description": "תיאור",
-    "quickStatus": "סטטוס מהיר",
-    "addNote": "הוספת הערה",
-    "timeline": "ציר זמן"
-  },
-  "note": {
-    "placeholder": "כתוב הערה פנימית…",
-    "add": "הוסף הערה"
-  },
-  "tips": {
-    "mobileQuickStatus": "טיפ: לחץ על סטטוס כדי לעדכן מהר"
-  },
-  "messages": {
-    "loadFailed": "נכשל בטעינת הפנייה",
-    "noteAdded": "ההערה נוספה",
-    "noteAddFailed": "נכשל בהוספת הערה",
-    "statusUpdated": "הסטטוס עודכן ל-{status}",
-    "statusUpdateFailed": "נכשל בעדכון הסטטוס"
+    "notFound": {
+      "title": "לא נמצא",
+      "subtitle": "הפנייה לא קיימת או שאין לך הרשאה לצפות בה."
+    },
+    "meta": {
+      "created": "נוצר:"
+    },
+    "sections": {
+      "description": "תיאור",
+      "quickStatus": "סטטוס מהיר",
+      "addNote": "הוספת הערה",
+      "timeline": "ציר זמן"
+    },
+    "note": {
+      "placeholder": "כתוב הערה פנימית…",
+      "add": "הוסף הערה"
+    },
+    "tips": {
+      "mobileQuickStatus": "טיפ: לחץ על סטטוס כדי לעדכן מהר"
+    },
+    "messages": {
+      "loadFailed": "נכשל בטעינת הפנייה",
+      "noteAdded": "ההערה נוספה",
+      "noteAddFailed": "נכשל בהוספת הערה",
+      "statusUpdated": "הסטטוס עודכן ל-{status}",
+      "statusUpdateFailed": "נכשל בעדכון הסטטוס"
+    }
   }
 }
-  
-}
-

@@ -96,7 +96,7 @@ export default function CalendarMobile({
   return (
     <Space orientation="vertical" size={12} style={{ width: "100%" }}>
       {/* Week strip */}
-      <Card style={{ borderRadius: 14 }} bodyStyle={{ padding: 12 }}>
+      <Card style={{ borderRadius: 14 }} styles={{ padding: 12 }}>
         <Space align="center" style={{ justifyContent: "space-between", width: "100%" }}>
           <Space size={8}>
             <Button icon={<LeftOutlined />} onClick={goPrevWeek} />

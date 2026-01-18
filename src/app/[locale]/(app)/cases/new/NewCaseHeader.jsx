@@ -37,23 +37,31 @@ export default function NewCaseHeader({
               <Tag icon={<InboxOutlined />}>{t("common.create")}</Tag>
 
               {orgId ? (
-                <Tag color="blue">{t("common.workspace")}: {workspace?.orgName || t("common.workspace")}</Tag>
+                <Tag color="blue">
+                  {t("common.workspace")}: {workspace?.orgName || t("common.workspace")}
+                </Tag>
               ) : (
-                <Tag>{t("common.workspace")}: {t("common.workspaceNone")}</Tag>
+                <Tag>
+                  {t("common.workspace")}: {t("common.workspaceNone")}
+                </Tag>
               )}
 
               {queuesLoading ? (
                 <Tag>{t("common.loading")}</Tag>
               ) : queueId ? (
-                <Tag color="geekblue">Queue selected</Tag>
+                <Tag color="geekblue">{t("cases.new.header.queueSelected")}</Tag>
               ) : (
-                <Tag>Queue: {t("common.workspaceNone")}</Tag>
+                <Tag>
+                  {t("cases.new.header.queueLabel")}: {t("common.workspaceNone")}
+                </Tag>
               )}
 
-              {requesterFromUrl ? <Tag color="purple">Requester prefilled</Tag> : null}
+              {requesterFromUrl ? (
+                <Tag color="purple">{t("cases.new.header.requesterPrefilled")}</Tag>
+              ) : null}
 
               <Text type="secondary" style={{ fontSize: 12 }}>
-                Fill the form and create a case in one click
+                {t("cases.new.header.hint")}
               </Text>
             </Space>
           </Space>
@@ -62,7 +70,7 @@ export default function NewCaseHeader({
         <Col>
           <Space wrap>
             <Button icon={<ArrowLeftOutlined />} onClick={() => router.push("/cases")}>
-              Back to cases
+              {t("cases.new.header.backToCases")}
             </Button>
 
             <Button

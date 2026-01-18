@@ -71,7 +71,7 @@ export default function CalendarWeek({
       <Row gutter={[8, 8]}>
         {/* Left time column */}
         <Col flex="120px">
-          <Card size="small" style={{ borderRadius: 12 }} bodyStyle={{ padding: 8 }}>
+          <Card size="small" style={{ borderRadius: 12 }} styles={{ padding: 8 }}>
             <div style={{ height: 36 }} />
             {hours.map((h) => (
               <div
@@ -97,7 +97,7 @@ export default function CalendarWeek({
 
           return (
             <Col key={key} flex="1 1 0">
-              <Card size="small" style={{ borderRadius: 12 }} bodyStyle={{ padding: 8 }}>
+              <Card size="small" style={{ borderRadius: 12 }} styles={{ padding: 8 }}>
                 <div style={{ height: 36, display: "flex", alignItems: "center" }}>
                   <Text strong>{d.format("ddd")}</Text>
                   <Text type="secondary" style={{ marginInlineStart: 8 }}>

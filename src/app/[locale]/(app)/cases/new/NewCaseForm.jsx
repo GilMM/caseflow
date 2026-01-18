@@ -12,7 +12,11 @@ import {
   Tag,
   Typography,
 } from "antd";
-import { PlusOutlined, ThunderboltOutlined, UserOutlined } from "@ant-design/icons";
+import {
+  PlusOutlined,
+  ThunderboltOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
 import { useTranslations } from "next-intl";
 import { initials } from "@/lib/ui/initials";
 import { priorityColor, PRIORITY_OPTIONS } from "@/lib/ui/priority";
@@ -37,10 +41,16 @@ export default function NewCaseForm({
   filterOption,
 }) {
   const t = useTranslations();
-  const priority = Form.useWatch("priority", form);
+  const priority = Form.useWatch("priority", form) || "normal";
+
+  // ✅ translate priority options using messages: cases.priority.low/normal/high/urgent
+  const priorityOptions = PRIORITY_OPTIONS.map((o) => ({
+    ...o,
+    label: t(`cases.priority.${o.value}`),
+  }));
 
   const priorityTag = (
-    <Tag color={priorityColor(priority || "normal")}>{priority || "normal"}</Tag>
+    <Tag color={priorityColor(priority)}>{t(`cases.priority.${priority}`)}</Tag>
   );
 
   return (
@@ -100,7 +110,6 @@ export default function NewCaseForm({
               disabled={busy}
               onChange={(v) => {
                 setQueueId?.(v); // keep your external state in sync (optional)
-                // Form will already store the value because this field is bound to name="queue_id"
               }}
               onClear={() => setQueueId?.(null)}
               allowClear
@@ -134,7 +143,8 @@ export default function NewCaseForm({
                       </Space>
 
                       <Text type="secondary" style={{ fontSize: 12 }}>
-                        {[c.email, c.phone].filter(Boolean).join(" • ") || t("cases.new.noEmail")}
+                        {[c.email, c.phone].filter(Boolean).join(" • ") ||
+                          t("cases.new.noEmail")}
                       </Text>
                     </Space>
                   </Space>
@@ -198,14 +208,14 @@ export default function NewCaseForm({
             rules={[{ required: true, message: t("cases.new.priorityRequired") }]}
           >
             <Select
-              options={PRIORITY_OPTIONS}
+              options={priorityOptions}
               disabled={busy}
               optionRender={(opt) => (
                 <Space>
                   {opt.data.value === "urgent" ? <ThunderboltOutlined /> : null}
-                  <span>{opt.data.label}</span>
+                  <span>{t(`cases.priority.${opt.data.value}`)}</span>
                   <Tag color={priorityColor(opt.data.value)} style={{ marginInlineStart: 8 }}>
-                    {opt.data.value}
+                    {t(`cases.priority.${opt.data.value}`)}
                   </Tag>
                 </Space>
               )}

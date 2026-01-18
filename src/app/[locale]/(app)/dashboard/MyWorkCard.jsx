@@ -25,7 +25,7 @@ export default function MyWorkCard({ loading, myCases, onOpenCase, onViewAll }) 
       style={{ borderRadius: 16 }}
     >
       {myCases?.length ? (
-        <Space direction="vertical" size={10} style={{ width: "100%" }}>
+        <Space orientation ="vertical" size={10} style={{ width: "100%" }}>
           {myCases.map((c) => {
             const queueName = c?.queues?.name || t("common.noQueue");
             const queueIsDefault = !!c?.queues?.is_default;
@@ -66,7 +66,7 @@ export default function MyWorkCard({ loading, myCases, onOpenCase, onViewAll }) 
 
                 <Row justify="space-between" align="top" gutter={[10, 10]}>
                   <Col flex="auto" style={{ minWidth: 0 }}>
-                    <Space direction="vertical" size={6} style={{ width: "100%" }}>
+                    <Space orientation ="vertical" size={6} style={{ width: "100%" }}>
                       <Space size={10} align="baseline" wrap style={{ width: "100%" }}>
                         <Text strong style={{ fontSize: 14 }}>
                           {c.title || t("common.untitled")}
@@ -92,7 +92,7 @@ export default function MyWorkCard({ loading, myCases, onOpenCase, onViewAll }) 
                   </Col>
 
                   <Col>
-                    <Space direction="vertical" size={6} align="end">
+                    <Space orientation ="vertical" size={6} align="end">
                       <Text type="secondary" style={{ fontSize: 12, whiteSpace: "nowrap" }}>
                         {t("dashboard.myWork.created")} {timeAgo(c.created_at)}
                       </Text>
@@ -119,7 +119,7 @@ export default function MyWorkCard({ loading, myCases, onOpenCase, onViewAll }) 
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
           description={
-            <Space direction="vertical" size={2}>
+            <Space orientation ="vertical" size={2}>
               <Text>{t("dashboard.myWork.noCases")}</Text>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {t("dashboard.myWork.tip")}

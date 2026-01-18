@@ -9,14 +9,18 @@ const { Text } = Typography;
 export default function NewCaseSidebar({ orgId, orgName, queueId, priority }) {
   const t = useTranslations();
 
+  const priorityKey = priority || "normal";
+
   return (
     <>
-      <Card title="Quick tips" style={{ borderRadius: 16 }}>
+      <Card title={t("cases.new.sidebar.quickTipsTitle")} style={{ borderRadius: 16 }}>
         <Space orientation="vertical" size={10} style={{ width: "100%" }}>
-          <Text>• Keep the title short and searchable.</Text>
-          <Text>• Put steps + error messages in the description.</Text>
+          <Text>• {t("cases.new.sidebar.tipTitleShort")}</Text>
+          <Text>• {t("cases.new.sidebar.tipStepsInDescription")}</Text>
           <Text>
-            • Use <Tag color="red">{t("cases.priority.urgent")}</Tag> only for escalations.
+            • {t("cases.new.sidebar.tipUrgentPrefix")}{" "}
+            <Tag color="red">{t("cases.priority.urgent")}</Tag>{" "}
+            {t("cases.new.sidebar.tipUrgentSuffix")}
           </Text>
 
           <div
@@ -29,13 +33,28 @@ export default function NewCaseSidebar({ orgId, orgName, queueId, priority }) {
 
           <Space orientation="vertical" size={4}>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              Defaults
+              {t("cases.new.sidebar.defaults")}
             </Text>
+
             <Space wrap>
-              {orgId ? <Tag color="blue">{orgName || t("common.workspace")}</Tag> : <Tag>{t("common.workspace")}: {t("common.workspaceNone")}</Tag>}
-              {queueId ? <Tag color="geekblue">Queue selected</Tag> : <Tag>Queue: {t("common.workspaceNone")}</Tag>}
-              <Tag color={priorityColor(priority || "normal")}>
-                {t("cases.new.priority")}: {priority || "normal"}
+              {orgId ? (
+                <Tag color="blue">{orgName || t("common.workspace")}</Tag>
+              ) : (
+                <Tag>
+                  {t("common.workspace")}: {t("common.workspaceNone")}
+                </Tag>
+              )}
+
+              {queueId ? (
+                <Tag color="geekblue">{t("cases.new.sidebar.queueSelected")}</Tag>
+              ) : (
+                <Tag>
+                  {t("cases.new.sidebar.queueLabel")}: {t("common.workspaceNone")}
+                </Tag>
+              )}
+
+              <Tag color={priorityColor(priorityKey)}>
+                {t("cases.new.priority")}: {t(`cases.priority.${priorityKey}`)}
               </Tag>
             </Space>
           </Space>
@@ -44,9 +63,9 @@ export default function NewCaseSidebar({ orgId, orgName, queueId, priority }) {
 
       <Card style={{ borderRadius: 16, marginTop: 12 }}>
         <Space orientation="vertical" size={6}>
-          <Text strong>Next polish (optional)</Text>
+          <Text strong>{t("cases.new.sidebar.nextPolishTitle")}</Text>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            On create: auto add activity note + "Assign to me".
+            {t("cases.new.sidebar.nextPolishDesc")}
           </Text>
         </Space>
       </Card>

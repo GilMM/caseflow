@@ -404,7 +404,7 @@ export default function CaseInlineActions({
         menu={assignMenu}
         trigger={["click"]}
         disabled={busy || !orgId}
-        dropdownRender={(menu) => (
+        popupRender ={(menu) => (
           <div onClick={stop} onMouseDown={stop}>
             <div
               style={{

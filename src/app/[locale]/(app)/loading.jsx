@@ -5,7 +5,7 @@ import { Skeleton, Space, Card, Row, Col } from "antd";
 
 export default function AppLoading() {
   return (
-    <Space direction="vertical" size={16} style={{ width: "100%", padding: 16 }}>
+    <Space orientation ="vertical" size={16} style={{ width: "100%", padding: 16 }}>
       {/* Header skeleton */}
       <Skeleton.Input active style={{ width: 200, height: 32 }} />
 

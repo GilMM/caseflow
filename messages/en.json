@@ -286,7 +286,30 @@
       "descriptionPlaceholder": "Add context, steps to reproduce...",
       "priority": "Priority",
       "priorityRequired": "Select a priority",
-      "createCase": "Create case"
+      "createCase": "Create case",
+      "header": {
+        "queueSelected": "Queue selected",
+        "queueLabel": "Queue",
+        "requesterPrefilled": "Requester prefilled",
+        "hint": "Fill the form and create a case in one click",
+        "backToCases": "Back to cases"
+      },
+      "cases": {
+        "new": {
+          "sidebar": {
+            "quickTipsTitle": "Quick tips",
+            "tipTitleShort": "Keep the title short and searchable.",
+            "tipStepsInDescription": "Put steps + error messages in the description.",
+            "tipUrgentPrefix": "Use",
+            "tipUrgentSuffix": "only for escalations.",
+            "defaults": "Defaults",
+            "queueSelected": "Queue selected",
+            "queueLabel": "Queue",
+            "nextPolishTitle": "Next polish (optional)",
+            "nextPolishDesc": "On create: auto add activity note + \"Assign to me\"."
+          }
+        }
+      }
     },
     "status": {
       "new": "New",
@@ -317,6 +340,46 @@
       "priorityFailed": "Failed to update priority",
       "assignmentUpdated": "Assignment updated",
       "assignmentFailed": "Failed to assign"
+    },
+    "activity": {
+      "comment": "Comment",
+      "note": "Note",
+
+      "status": "Status",
+      "status_change": "Status change",
+      "statusChanged": "Status change",
+
+      "priority": "Priority",
+      "priority_change": "Priority change",
+      "priorityChanged": "Priority change",
+
+      "assigned": "Assigned",
+      "assignment": "Assignment",
+      "assignment_change": "Assignment change",
+      "assignee": "Assignee",
+
+      "resolved": "Resolved",
+      "closed": "Closed",
+      "created": "Created",
+      "updated": "Updated",
+
+      "tag": "Tag",
+      "tag_added": "Tag added",
+      "tag_removed": "Tag removed",
+
+      "calendarCreated": "Calendar event created",
+      "calendarUpdated": "Calendar event updated",
+      "calendarMoved": "Calendar event moved",
+      "calendarDeleted": "Calendar event deleted",
+
+      "calendar_created": "Calendar event created",
+      "calendar_updated": "Calendar event updated",
+      "calendar_moved": "Calendar event moved",
+      "calendar_deleted": "Calendar event deleted"
+    },
+    "announcements": {
+      "title": "Announcements",
+      "close": "Close announcement"
     }
   },
   "contacts": {

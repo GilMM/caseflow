@@ -5,7 +5,7 @@ import { Skeleton, Space, Card, Row, Col } from "antd";
 
 export default function ContactsLoading() {
   return (
-    <Space direction="vertical" size={14} style={{ width: "100%" }}>
+    <Space orientation ="vertical" size={14} style={{ width: "100%" }}>
       {/* Header skeleton */}
       <Row justify="space-between" align="middle">
         <Skeleton.Input active style={{ width: 180, height: 32 }} />
@@ -29,7 +29,7 @@ export default function ContactsLoading() {
 
       {/* Table skeleton */}
       <Card style={{ borderRadius: 16 }}>
-        <Space direction="vertical" size={12} style={{ width: "100%" }}>
+        <Space orientation ="vertical" size={12} style={{ width: "100%" }}>
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
             <Skeleton.Input key={i} active block style={{ height: 44 }} />
           ))}
