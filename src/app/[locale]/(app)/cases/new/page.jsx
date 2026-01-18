@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useLocaleContext } from "@/app/[locale]/providers";
 
 import { supabase } from "@/lib/supabase/client";
 import { createCase, getMyWorkspaces, getActiveWorkspace } from "@/lib/db";
@@ -44,6 +46,9 @@ if (process.env.NODE_ENV === "development") {
 
   // watch priority for sidebar tag
   const priority = Form.useWatch("priority", form);
+
+  const pathname = usePathname();
+const { locale } = useLocaleContext();
 
   // 1) Load workspace
   useEffect(() => {
@@ -229,7 +234,7 @@ if (process.env.NODE_ENV === "development") {
       });
 
       message.success("Case created");
-      router.push(`/cases/${caseId}`);
+      router.push(`/${locale}/cases/${caseId}`);
     } catch (e) {
       setError(e?.message || "Failed to create case");
     } finally {

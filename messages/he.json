@@ -42,7 +42,8 @@
     "workspaceNone": "אין",
     "unknown": "לא ידוע",
     "unassigned": "לא משוייך",
-    "close": "סגור"
+    "close": "סגור",
+    "noMoreItems": "אין עוד פריטים"
   },
   "navigation": {
     "dashboard": "לוח בקרה",
@@ -211,7 +212,8 @@
       "title": "פעילות חיה",
       "realtime": "זמן אמת",
       "noActivity": "אין פעילות אחרונה",
-      "noActivityHint": "ברגע שתתווסף פעילות – היא תופיע כאן"
+      "noActivityHint": "ברגע שתתווסף פעילות – היא תופיע כאן",
+      "viewAll": "צפה בכל הפעילות"
     },
     "statusDistribution": {
       "title": "התפלגות סטטוסים",
@@ -623,5 +625,36 @@
     "hoursAgo": "לפני {count} שעות",
     "daysAgo": "לפני {count} ימים",
     "justNow": "ממש עכשיו"
+  },
+  "caseDetails": {
+  "notFound": {
+    "title": "לא נמצא",
+    "subtitle": "הפנייה לא קיימת או שאין לך הרשאה לצפות בה."
+  },
+  "meta": {
+    "created": "נוצר:"
+  },
+  "sections": {
+    "description": "תיאור",
+    "quickStatus": "סטטוס מהיר",
+    "addNote": "הוספת הערה",
+    "timeline": "ציר זמן"
+  },
+  "note": {
+    "placeholder": "כתוב הערה פנימית…",
+    "add": "הוסף הערה"
+  },
+  "tips": {
+    "mobileQuickStatus": "טיפ: לחץ על סטטוס כדי לעדכן מהר"
+  },
+  "messages": {
+    "loadFailed": "נכשל בטעינת הפנייה",
+    "noteAdded": "ההערה נוספה",
+    "noteAddFailed": "נכשל בהוספת הערה",
+    "statusUpdated": "הסטטוס עודכן ל-{status}",
+    "statusUpdateFailed": "נכשל בעדכון הסטטוס"
   }
 }
+  
+}
+

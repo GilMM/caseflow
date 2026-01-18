@@ -1,7 +1,10 @@
+// src/app/[locale]/(app)/cases/[id]/page.jsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+
 import {
   Button,
   Card,
@@ -34,16 +37,37 @@ const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
 
 function presetColorVar(color, level = 6) {
-  if (!color || color === "default") return "var(--ant-color-text, rgba(255,255,255,0.85))";
+  if (!color || color === "default")
+    return "var(--ant-color-text, rgba(255,255,255,0.85))";
   return `var(--ant-color-${color}-${level}, var(--ant-color-primary, #1677ff))`;
 }
 
+// map DB status -> your i18n keys (cases.status.*)
+function statusI18nKey(statusValue) {
+  switch (statusValue) {
+    case "new":
+      return "new";
+    case "in_progress":
+      return "inProgress";
+    case "waiting_customer":
+      return "waitingCustomer";
+    case "resolved":
+      return "resolved";
+    case "closed":
+      return "closed";
+    default:
+      return "new";
+  }
+}
 
 export default function CaseDetailsPage() {
   const router = useRouter();
-  const { id } = useParams();
+  const { id, locale } = useParams();
   const screens = useBreakpoint();
   const isMobile = !screens.md;
+
+  const t = useTranslations();
+  const tCase = useTranslations("caseDetails");
 
   const [row, setRow] = useState(null);
   const [items, setItems] = useState([]);
@@ -53,6 +77,8 @@ export default function CaseDetailsPage() {
   const [note, setNote] = useState("");
   const [busyNote, setBusyNote] = useState(false);
   const [busyStatus, setBusyStatus] = useState(false);
+
+  const createdLabel = useMemo(() => tCase("meta.created"), [tCase]);
 
   async function loadAll() {
     if (!id) return;
@@ -67,15 +93,13 @@ export default function CaseDetailsPage() {
       if (c?.org_id) {
         const members = await getOrgMembers(c.org_id);
         const map = {};
-        for (const m of members) {
-          map[m.user_id] = m.full_name || m.email || null;
-        }
+        for (const m of members) map[m.user_id] = m.full_name || m.email || null;
         setUserMap(map);
       } else {
         setUserMap({});
       }
     } catch (e) {
-      message.error(e?.message || "Failed to load case");
+      message.error(e?.message || tCase("messages.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -96,9 +120,9 @@ export default function CaseDetailsPage() {
       await addCaseNote({ caseId: row.id, orgId: row.org_id, body: text });
       setNote("");
       await loadAll();
-      message.success("Note added");
+      message.success(tCase("messages.noteAdded"));
     } catch (e) {
-      message.error(e?.message || "Failed to add note");
+      message.error(e?.message || tCase("messages.noteAddFailed"));
     } finally {
       setBusyNote(false);
     }
@@ -116,9 +140,12 @@ export default function CaseDetailsPage() {
         status: nextStatus,
       });
       await loadAll();
-      message.success(`Status updated to ${nextStatus}`);
+
+      // friendly label (from your existing translations)
+      const label = t(`cases.status.${statusI18nKey(nextStatus)}`);
+      message.success(tCase("messages.statusUpdated", { status: label }));
     } catch (e) {
-      message.error(e?.message || "Failed to update status");
+      message.error(e?.message || tCase("messages.statusUpdateFailed"));
     } finally {
       setBusyStatus(false);
     }
@@ -134,22 +161,23 @@ export default function CaseDetailsPage() {
     );
   }
 
+  const backToCases = () => router.push(`/${locale}/cases`);
+
   if (!row) {
     return (
       <Card style={{ borderRadius: 16 }}>
-        <Space orientation="vertical" size={6}>
+        <Space direction="vertical" size={6}>
           <Title level={4} style={{ margin: 0 }}>
-            Not found
+            {tCase("notFound.title")}
           </Title>
-          <Text type="secondary">
-            This case does not exist or you don&apos;t have access.
-          </Text>
+          <Text type="secondary">{tCase("notFound.subtitle")}</Text>
+
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => router.push("/cases")}
+            onClick={backToCases}
             style={{ width: "fit-content" }}
           >
-            Back to Cases
+            {t("common.back")} {t("navigation.cases")}
           </Button>
         </Space>
       </Card>
@@ -160,18 +188,18 @@ export default function CaseDetailsPage() {
   const p = getPriorityMeta(row.priority);
 
   return (
-    <Space orientation="vertical" size={14} style={{ width: "100%" }}>
+    <Space direction="vertical" size={14} style={{ width: "100%" }}>
       <Button
         icon={<ArrowLeftOutlined />}
-        onClick={() => router.push("/cases")}
+        onClick={backToCases}
         style={{ width: "fit-content" }}
         block={isMobile}
       >
-        Back to Cases
+        {t("common.back")} {t("navigation.cases")}
       </Button>
 
       <Card style={{ borderRadius: 16 }}>
-        <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+        <Space direction="vertical" size={10} style={{ width: "100%" }}>
           {/* Header */}
           <div
             style={{
@@ -184,19 +212,22 @@ export default function CaseDetailsPage() {
           >
             <div style={{ minWidth: 0, flex: "1 1 320px" }}>
               <Title level={isMobile ? 4 : 3} style={{ margin: 0 }}>
-                {row.title || "(untitled)"}
+                {row.title || t("common.untitled")}
               </Title>
               <Text type="secondary" style={{ fontSize: 12 }}>
-                Created: {new Date(row.created_at).toLocaleString()}
+                {createdLabel} {new Date(row.created_at).toLocaleString()}
               </Text>
             </div>
 
             <Space wrap style={{ justifyContent: isMobile ? "flex-start" : "flex-end" }}>
               <Tag color={s.color} icon={s.Icon ? <s.Icon /> : null}>
-                {s.label}
+                {/* status label from translations */}
+                {t(`cases.status.${statusI18nKey(row.status)}`)}
               </Tag>
+
               <Tag color={p.color} icon={p.Icon ? <p.Icon /> : null}>
-                {p.label}
+                {/* priority label from your existing translations */}
+                {t(`cases.priority.${row.priority || "normal"}`)}
               </Tag>
             </Space>
           </div>
@@ -205,7 +236,7 @@ export default function CaseDetailsPage() {
 
           {/* Description */}
           <div style={{ display: "grid", gap: 10 }}>
-            <Text strong>Description</Text>
+            <Text strong>{tCase("sections.description")}</Text>
             <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
               {row.description || "—"}
             </div>
@@ -225,42 +256,45 @@ export default function CaseDetailsPage() {
 
           {/* Quick status */}
           <div>
-            <Text strong>Quick status</Text>
+            <Text strong>{tCase("sections.quickStatus")}</Text>
 
             <div
               style={{
                 marginTop: 10,
                 display: "grid",
-                gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, max-content)",
+                gridTemplateColumns: isMobile
+                  ? "1fr 1fr"
+                  : "repeat(5, max-content)",
                 gap: 8,
                 alignItems: "center",
               }}
             >
-{CASE_STATUSES.map((st) => {
-  const sm = getStatusMeta(st.value);
-  const Accent = presetColorVar(sm.color, 6);
-  const active = row.status === st.value;
+              {CASE_STATUSES.map((st) => {
+                const sm = getStatusMeta(st.value);
+                const Accent = presetColorVar(sm.color, 6);
+                const active = row.status === st.value;
 
-  return (
-    <Button
-      key={st.value}
-      disabled={busyStatus}
-      onClick={() => onChangeStatus(st.value)}
-      icon={active ? <CheckOutlined /> : sm.Icon ? <sm.Icon /> : null}
-      type={active ? "primary" : "default"}
-      style={{
-        width: isMobile ? "100%" : undefined,
-        borderRadius: 10,
-        borderColor: Accent,
-        color: active ? "#fff" : Accent,
-        background: active ? Accent : "transparent",
-      }}
-    >
-      {st.label}
-    </Button>
-  );
-})}
-
+                return (
+                  <Button
+                    key={st.value}
+                    disabled={busyStatus}
+                    onClick={() => onChangeStatus(st.value)}
+                    icon={
+                      active ? <CheckOutlined /> : sm.Icon ? <sm.Icon /> : null
+                    }
+                    type={active ? "primary" : "default"}
+                    style={{
+                      width: isMobile ? "100%" : undefined,
+                      borderRadius: 10,
+                      borderColor: Accent,
+                      color: active ? "#fff" : Accent,
+                      background: active ? Accent : "transparent",
+                    }}
+                  >
+                    {t(`cases.status.${statusI18nKey(st.value)}`)}
+                  </Button>
+                );
+              })}
             </div>
 
             {isMobile ? (
@@ -268,7 +302,7 @@ export default function CaseDetailsPage() {
                 type="secondary"
                 style={{ fontSize: 12, display: "block", marginTop: 8 }}
               >
-                Tip: tap a status to update quickly
+                {tCase("tips.mobileQuickStatus")}
               </Text>
             ) : null}
           </div>
@@ -276,13 +310,13 @@ export default function CaseDetailsPage() {
       </Card>
 
       {/* Add note */}
-      <Card title="Add note" style={{ borderRadius: 16 }}>
-        <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+      <Card title={tCase("sections.addNote")} style={{ borderRadius: 16 }}>
+        <Space direction="vertical" size={10} style={{ width: "100%" }}>
           <Input.TextArea
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={isMobile ? 4 : 3}
-            placeholder="Write an internal note…"
+            placeholder={tCase("note.placeholder")}
           />
           <Button
             type="primary"
@@ -292,13 +326,13 @@ export default function CaseDetailsPage() {
             style={!isMobile ? { width: "fit-content" } : undefined}
             disabled={!note.trim()}
           >
-            Add Note
+            {tCase("note.add")}
           </Button>
         </Space>
       </Card>
 
       {/* Timeline */}
-      <Card title="Timeline" style={{ borderRadius: 16 }}>
+      <Card title={tCase("sections.timeline")} style={{ borderRadius: 16 }}>
         <CaseTimeline items={items} userMap={userMap} />
       </Card>
     </Space>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { supabase } from "@/lib/supabase/client";
@@ -15,6 +15,8 @@ import ContactUpsertModal from "./ContactUpsertModal";
 
 const { useBreakpoint } = Grid;
 
+const PAGE_SIZE = 30;
+
 export default function ContactsPage() {
   const router = useRouter();
   const { message } = App.useApp();
@@ -28,8 +30,10 @@ export default function ContactsPage() {
   const [tableAvailable, setTableAvailable] = useState(true);
 
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [hasMore, setHasMore] = useState(true);
 
   // filters
   const [q, setQ] = useState("");
@@ -43,8 +47,9 @@ export default function ContactsPage() {
   const [saving, setSaving] = useState(false);
 
   const lastToastRef = useRef(0);
+  const workspaceRef = useRef(null);
 
-  async function loadAll({ silent = false } = {}) {
+  async function loadInitial({ silent = false } = {}) {
     try {
       setError("");
       if (!silent) setLoading(true);
@@ -52,9 +57,11 @@ export default function ContactsPage() {
 
       const ws = await getActiveWorkspace();
       setWorkspace(ws);
+      workspaceRef.current = ws;
 
       if (!ws?.orgId) {
         setRows([]);
+        setHasMore(false);
         return;
       }
 
@@ -66,7 +73,7 @@ export default function ContactsPage() {
         .eq("org_id", ws.orgId)
         .order("is_active", { ascending: false })
         .order("full_name", { ascending: true })
-        .limit(800);
+        .limit(PAGE_SIZE);
 
       if (res.error) {
         const msg = String(res.error.message || "").toLowerCase();
@@ -78,6 +85,7 @@ export default function ContactsPage() {
         if (looksMissing) {
           setTableAvailable(false);
           setRows([]);
+          setHasMore(false);
           return;
         }
         throw res.error;
@@ -85,6 +93,7 @@ export default function ContactsPage() {
 
       setTableAvailable(true);
       setRows(res.data || []);
+      setHasMore((res.data || []).length === PAGE_SIZE);
 
       const now = Date.now();
       if (silent && now - lastToastRef.current > 7000) {
@@ -100,8 +109,43 @@ export default function ContactsPage() {
     }
   }
 
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || rows.length === 0) return;
+
+    const ws = workspaceRef.current;
+    if (!ws?.orgId) return;
+
+    try {
+      setLoadingMore(true);
+
+      // For cursor pagination with composite sort, we need range query
+      const res = await supabase
+        .from("contacts")
+        .select(
+          "id,org_id,full_name,email,phone,department,job_title,location,notes,is_active,created_at,updated_at"
+        )
+        .eq("org_id", ws.orgId)
+        .order("is_active", { ascending: false })
+        .order("full_name", { ascending: true })
+        .range(rows.length, rows.length + PAGE_SIZE - 1);
+
+      if (res.error) throw res.error;
+
+      if (res.data && res.data.length > 0) {
+        setRows((prev) => [...prev, ...res.data]);
+        setHasMore(res.data.length === PAGE_SIZE);
+      } else {
+        setHasMore(false);
+      }
+    } catch (e) {
+      message.error(e?.message || "Failed to load more contacts");
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, rows.length, message]);
+
   useEffect(() => {
-    loadAll();
+    loadInitial();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -164,7 +208,7 @@ export default function ContactsPage() {
       if (error) throw error;
 
       message.success(nextActive ? "Contact activated" : "Contact deactivated");
-      await loadAll({ silent: true });
+      await loadInitial({ silent: true });
     } catch (e) {
       message.error(e?.message || "Failed to update contact");
     }
@@ -202,7 +246,7 @@ export default function ContactsPage() {
 
         message.success("Contact created");
         setModalOpen(false);
-        await loadAll({ silent: true });
+        await loadInitial({ silent: true });
         return;
       }
 
@@ -225,7 +269,7 @@ export default function ContactsPage() {
 
       message.success("Contact updated");
       setModalOpen(false);
-      await loadAll({ silent: true });
+      await loadInitial({ silent: true });
     } catch (e) {
       message.error(e?.message || "Save failed");
     } finally {
@@ -269,7 +313,7 @@ export default function ContactsPage() {
   }
 
   return (
-    <Space orientation="vertical" size={14} style={{ width: "100%" }}>
+    <Space direction="vertical" size={14} style={{ width: "100%" }}>
       <ContactsHeader
         isMobile={isMobile}
         workspace={workspace}
@@ -277,13 +321,13 @@ export default function ContactsPage() {
         total={total}
         activeCount={activeCount}
         refreshing={refreshing}
-        onRefresh={() => loadAll({ silent: true })}
+        onRefresh={() => loadInitial({ silent: true })}
         onCreate={openCreate}
       />
 
       {error ? (
         <Card style={{ borderRadius: 16, borderColor: "#ffccc7" }}>
-          <Alert type="error" showIcon title="Couldn’t load contacts" description={error} />
+          <Alert type="error" showIcon title="Couldn't load contacts" description={error} />
         </Card>
       ) : null}
 
@@ -313,6 +357,9 @@ export default function ContactsPage() {
         onNewCase={(contactId) => router.push(`/cases/new?requester=${contactId}`)}
         onOpenFuture={() => message.info("Next: /contacts/[id]")}
         onCreate={openCreate}
+        hasMore={hasMore}
+        loadingMore={loadingMore}
+        onLoadMore={loadMore}
       />
 
       <ContactUpsertModal

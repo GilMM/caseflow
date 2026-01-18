@@ -1,6 +1,7 @@
 "use client";
 
-import { Button, Card, Divider, Empty, Row, Col, Space, Typography, Avatar, Badge, Tag } from "antd";
+import { useEffect, useRef } from "react";
+import { Button, Card, Divider, Empty, Row, Col, Space, Spin, Typography, Avatar, Badge, Tag } from "antd";
 import { MailOutlined, PhoneOutlined, EnvironmentOutlined } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
 
@@ -19,8 +20,37 @@ export default function ContactsList({
   onNewCase,
   onOpenFuture,
   onCreate,
+  hasMore,
+  loadingMore,
+  onLoadMore,
 }) {
   const t = useTranslations();
+  const loaderRef = useRef(null);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    if (!onLoadMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          onLoadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentLoader = loaderRef.current;
+    if (currentLoader) {
+      observer.observe(currentLoader);
+    }
+
+    return () => {
+      if (currentLoader) {
+        observer.unobserve(currentLoader);
+      }
+    };
+  }, [hasMore, loadingMore, onLoadMore]);
 
   return (
     <Card title={t("contacts.list.title")} style={{ borderRadius: 16 }}>
@@ -148,6 +178,23 @@ export default function ContactsList({
               </Card>
             );
           })}
+
+          {/* Infinite scroll loader */}
+          {onLoadMore && (
+            <div
+              ref={loaderRef}
+              style={{
+                padding: 20,
+                textAlign: "center",
+                minHeight: 60,
+              }}
+            >
+              {loadingMore && <Spin />}
+              {!hasMore && rows.length > 0 && (
+                <Text type="secondary">{t("common.noMoreItems")}</Text>
+              )}
+            </div>
+          )}
         </Space>
       ) : (
         <Empty

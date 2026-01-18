@@ -76,7 +76,9 @@ export default function AppShell({ children, initialEmail = "" }) {
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
-        router.replace(`/${locale}/login`);
+        // router.replace(`/${locale}/login`);
+        window.location.assign(`/${locale}/login`);
+
         return;
       }
       setUserEmail(session.user.email || "");

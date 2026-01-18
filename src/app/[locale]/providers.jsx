@@ -31,12 +31,16 @@ export default function Providers({ children, locale, direction }) {
   const [mode, setMode] = useState("dark");
   const [mounted, setMounted] = useState(false);
 
+  // Read theme from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem("caseflow_theme");
-    if (saved === "dark" || saved === "light") setMode(saved);
+    if (saved === "dark" || saved === "light") {
+      setMode(saved);
+    }
     setMounted(true);
   }, []);
 
+  // Persist theme changes
   useEffect(() => {
     if (!mounted) return;
     localStorage.setItem("caseflow_theme", mode);
@@ -75,7 +79,17 @@ export default function Providers({ children, locale, direction }) {
     [mode]
   );
 
-  if (!mounted) return null;
+  // Show minimal loading state before hydration (prevents flash)
+  if (!mounted) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#141414",
+        }}
+      />
+    );
+  }
 
   return (
     <ThemeCtx.Provider value={themeValue}>

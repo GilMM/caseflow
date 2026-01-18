@@ -165,8 +165,18 @@ export async function updateCaseStatus({ caseId, status }) {
 /**
  * Active workspace for current user.
  * Returns orgId, orgName, role, ownerUserId, orgLogoUrl
+ * Uses in-memory cache to avoid repeated calls on navigation.
  */
 export async function getActiveWorkspace() {
+  // Check cache first (client-side only)
+  if (typeof window !== "undefined") {
+    const { getCachedWorkspace, setCachedWorkspace } = await import(
+      "@/lib/workspaceCache"
+    );
+    const cached = getCachedWorkspace();
+    if (cached) return cached;
+  }
+
   const { data, error } = await supabase
     .from("org_memberships")
     .select(
@@ -181,13 +191,21 @@ export async function getActiveWorkspace() {
   const m = data?.[0];
   if (!m) return null;
 
-  return {
+  const result = {
     orgId: m.org_id,
     orgName: m.organizations?.name || "Workspace",
     orgLogoUrl: m.organizations?.logo_url || null,
     role: m.role,
     ownerUserId: m.organizations?.owner_user_id || null,
   };
+
+  // Cache the result (client-side only)
+  if (typeof window !== "undefined") {
+    const { setCachedWorkspace } = await import("@/lib/workspaceCache");
+    setCachedWorkspace(result);
+  }
+
+  return result;
 }
 
 
@@ -252,7 +270,7 @@ export async function getMyOpenCases(orgId, userId) {
   return data || [];
 }
 
-export async function getRecentActivity(orgId) {
+export async function getRecentActivity(orgId, { limit = 5 } = {}) {
   const { data, error } = await supabase
     .from("case_activities")
     .select(
@@ -260,7 +278,7 @@ export async function getRecentActivity(orgId) {
     )
     .eq("org_id", orgId)
     .order("created_at", { ascending: false })
-    .limit(12);
+    .limit(limit);
 
   if (error) throw error;
   return data || [];

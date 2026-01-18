@@ -41,7 +41,8 @@
     "noQueue": "No queue",
     "workspace": "Workspace",
     "workspaceNone": "none",
-    "unknown": "unknown"
+    "unknown": "unknown",
+    "noMoreItems": "No more items"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -210,7 +211,8 @@
       "title": "Live activity",
       "realtime": "realtime",
       "noActivity": "No recent activity",
-      "noActivityHint": "Add a note or change a status to see it here"
+      "noActivityHint": "Add a note or change a status to see it here",
+      "viewAll": "View all"
     },
     "statusDistribution": {
       "title": "Status distribution",

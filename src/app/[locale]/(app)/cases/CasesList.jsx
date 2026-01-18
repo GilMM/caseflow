@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import {
   Badge,
   Button,
@@ -8,6 +9,7 @@ import {
   Row,
   Col,
   Space,
+  Spin,
   Tag,
   Typography,
 } from "antd";
@@ -21,14 +23,42 @@ import { getPriorityMeta } from "@/lib/ui/priority";
 
 const { Text } = Typography;
 
-/* ------------------------------------------------------------ */
-/* Queue color helper (nice + consistent) */
-/* ------------------------------------------------------------ */
-
-
-export default function CasesList({ filtered, onOpenCase, onRefresh }) {
+export default function CasesList({
+  filtered,
+  onOpenCase,
+  onRefresh,
+  hasMore,
+  loadingMore,
+  onLoadMore,
+}) {
   const t = useTranslations();
   const list = filtered || [];
+  const loaderRef = useRef(null);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    if (!onLoadMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          onLoadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentLoader = loaderRef.current;
+    if (currentLoader) {
+      observer.observe(currentLoader);
+    }
+
+    return () => {
+      if (currentLoader) {
+        observer.unobserve(currentLoader);
+      }
+    };
+  }, [hasMore, loadingMore, onLoadMore]);
 
   return (
     <Card
@@ -44,7 +74,6 @@ export default function CasesList({ filtered, onOpenCase, onRefresh }) {
           const queueName = c?.queues?.name || t("common.noQueue");
           const queueIsDefault = Boolean(c?.queues?.is_default);
           const qColor = queueColor(queueName, queueIsDefault);
-console.log("CASES QUEUE:", JSON.stringify(queueName), queueIsDefault, qColor);
 
           const isOpen = ["new", "in_progress", "waiting_customer"].includes(
             c.status
@@ -254,6 +283,23 @@ console.log("CASES QUEUE:", JSON.stringify(queueName), queueIsDefault, qColor);
             </Card>
           );
         })}
+
+        {/* Infinite scroll loader */}
+        {onLoadMore && (
+          <div
+            ref={loaderRef}
+            style={{
+              padding: 20,
+              textAlign: "center",
+              minHeight: 60,
+            }}
+          >
+            {loadingMore && <Spin />}
+            {!hasMore && list.length > 0 && (
+              <Text type="secondary">{t("common.noMoreItems")}</Text>
+            )}
+          </div>
+        )}
       </Space>
     </Card>
   );

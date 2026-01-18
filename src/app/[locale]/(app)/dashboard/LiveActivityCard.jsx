@@ -88,7 +88,7 @@ function ActivityItem({ activity: a, displayUser, onOpenCase }) {
         }}
       />
 
-      <Space direction="vertical" size={8} style={{ width: "100%", paddingInlineStart: 8 }}>
+      <Space orientation="vertical" size={8} style={{ width: "100%", paddingInlineStart: 8 }}>
         <Row justify="space-between" align="middle" gutter={[8, 8]}>
           <Col flex="auto" style={{ minWidth: 0 }}>
             <Space wrap size={8} align="center">
@@ -160,7 +160,7 @@ function ActivityItem({ activity: a, displayUser, onOpenCase }) {
   );
 }
 
-export default function LiveActivityCard({ loading, activity, displayUser, onOpenCase }) {
+export default function LiveActivityCard({ loading, activity, displayUser, onOpenCase, onViewAll }) {
   const t = useTranslations();
 
   return (
@@ -176,6 +176,13 @@ export default function LiveActivityCard({ loading, activity, displayUser, onOpe
             {t("dashboard.liveActivity.realtime")}
           </Tag>
         </Space>
+      }
+      extra={
+        activity?.length ? (
+          <Button type="link" style={{ padding: 0 }} onClick={onViewAll}>
+            {t("dashboard.liveActivity.viewAll")}
+          </Button>
+        ) : null
       }
       style={{ borderRadius: 16 }}
     >

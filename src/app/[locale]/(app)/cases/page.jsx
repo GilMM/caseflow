@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { supabase } from "@/lib/supabase/client";
@@ -15,6 +15,8 @@ import CasesList from "./CasesList";
 
 const { Text } = Typography;
 
+const PAGE_SIZE = 5;
+
 export default function CasesPage() {
   const router = useRouter();
   const pathname = usePathname();
@@ -27,14 +29,17 @@ export default function CasesPage() {
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [hasMore, setHasMore] = useState(true);
 
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
   const [priority, setPriority] = useState("all");
 
   const lastToastRef = useRef(0);
+  const workspaceRef = useRef(null);
 
   // keep in sync with URL
   useEffect(() => {
@@ -42,7 +47,7 @@ export default function CasesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  async function loadAll({ silent = false } = {}) {
+  async function loadInitial({ silent = false } = {}) {
     try {
       setError("");
       if (!silent) setLoading(true);
@@ -50,10 +55,12 @@ export default function CasesPage() {
 
       const ws = await getActiveWorkspace();
       setWorkspace(ws);
+      workspaceRef.current = ws;
 
       if (!ws?.orgId) {
         setQueues([]);
         setRows([]);
+        setHasMore(false);
         return;
       }
 
@@ -68,7 +75,7 @@ export default function CasesPage() {
       if (qErr) throw qErr;
       setQueues(qData || []);
 
-      // cases (filtered by queue in DB, if chosen)
+      // cases - initial load
       let query = supabase
         .from("cases")
         .select(
@@ -76,7 +83,7 @@ export default function CasesPage() {
         )
         .eq("org_id", ws.orgId)
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(PAGE_SIZE);
 
       if (queueId && queueId !== "all") {
         query = query.eq("queue_id", queueId);
@@ -86,6 +93,7 @@ export default function CasesPage() {
       if (error) throw error;
 
       setRows(data || []);
+      setHasMore((data || []).length === PAGE_SIZE);
 
       const now = Date.now();
       if (silent && now - lastToastRef.current > 7000) {
@@ -101,9 +109,50 @@ export default function CasesPage() {
     }
   }
 
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || rows.length === 0) return;
+
+    const ws = workspaceRef.current;
+    if (!ws?.orgId) return;
+
+    try {
+      setLoadingMore(true);
+
+      const lastRow = rows[rows.length - 1];
+
+      let query = supabase
+        .from("cases")
+        .select(
+          "id,org_id,title,status,priority,created_at,queue_id,assigned_to, queues(name)",
+        )
+        .eq("org_id", ws.orgId)
+        .order("created_at", { ascending: false })
+        .lt("created_at", lastRow.created_at)
+        .limit(PAGE_SIZE);
+
+      if (queueId && queueId !== "all") {
+        query = query.eq("queue_id", queueId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setRows((prev) => [...prev, ...data]);
+        setHasMore(data.length === PAGE_SIZE);
+      } else {
+        setHasMore(false);
+      }
+    } catch (e) {
+      message.error(e?.message || "Failed to load more cases");
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, rows, queueId]);
+
   // reload when queueId changes
   useEffect(() => {
-    loadAll({ silent: false });
+    loadInitial({ silent: false });
 
     // Optional: keep your realtime refresh hook
     const channel = supabase
@@ -111,7 +160,7 @@ export default function CasesPage() {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "case_activities" },
-        () => loadAll({ silent: true }),
+        () => loadInitial({ silent: true }),
       )
       .subscribe();
 
@@ -159,19 +208,15 @@ export default function CasesPage() {
     );
   }
 
-  console.log("ROWS:", rows.length, rows);
-  console.log("FILTERED:", filtered.length, filtered);
-  console.log("FILTERS:", { q, status, priority, queueId });
-
   return (
-    <Space orientation="vertical" size={14} style={{ width: "100%" }}>
+    <Space direction="vertical" size={14} style={{ width: "100%" }}>
       <CasesHeader
         workspace={workspace}
         queueId={queueId}
         filteredCount={filtered.length}
         totalCount={total}
         refreshing={refreshing}
-        onRefresh={() => loadAll({ silent: true })}
+        onRefresh={() => loadInitial({ silent: true })}
         onNewCase={() => router.push(`${pathname}/new`)}
       />
 
@@ -214,8 +259,11 @@ export default function CasesPage() {
       <CasesList
         workspace={workspace}
         filtered={filtered}
-        onOpenCase={(id) => router.push(`/cases/${id}`)}
-        onRefresh={() => loadAll({ silent: true })}
+        onOpenCase={(id) => router.push(`${pathname}/${id}`)}
+        onRefresh={() => loadInitial({ silent: true })}
+        hasMore={hasMore}
+        loadingMore={loadingMore}
+        onLoadMore={loadMore}
       />
     </Space>
   );

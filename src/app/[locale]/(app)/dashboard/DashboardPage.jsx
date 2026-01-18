@@ -4,6 +4,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { usePathname } from "next/navigation";
+import { useLocaleContext } from "@/app/[locale]/providers";
 
 import { supabase } from "@/lib/supabase/client";
 import {
@@ -51,6 +53,15 @@ export default function DashboardPage() {
 
   const lastToastRef = useRef(0);
   const [events, setEvents] = useState([]);
+const pathname = usePathname();
+const { locale } = useLocaleContext();
+
+const withLocale = (to) => {
+  const segs = pathname.split("/").filter(Boolean);
+  const rest = segs[0] === locale ? segs.slice(1).join("/") : segs.join("/");
+  // to is like "/cases" or `/cases/${id}`
+  return `/${locale}${to}`;
+};
 
   const displayUser = (userId) => {
     if (!userId) return t("common.unknown");
@@ -187,7 +198,7 @@ export default function DashboardPage() {
         loading={loading}
         refreshing={refreshing}
         onRefresh={() => loadAll({ silent: true })}
-        onGoCases={() => router.push("/cases")}
+        onGoCases={() => router.push(`/${locale}/cases`)}
         workspace={workspace}
         displayName={displayName}
         lastUpdated={lastUpdated}
@@ -220,8 +231,8 @@ export default function DashboardPage() {
             loading={loading}
             events={events}
             isMobile={isMobile}
-            onOpenCalendar={() => router.push("/calendar")}
-            onOpenCase={(caseId) => router.push(`/cases/${caseId}`)}
+            onOpenCalendar={() => router.push(`/${locale}/calendar`)}
+            onOpenCase={(caseId) => router.push(`/${locale}/cases/${caseId}`)}
           />
         </Col>
       </Row>
@@ -231,18 +242,20 @@ export default function DashboardPage() {
           <MyWorkCard
             loading={loading}
             myCases={myCases}
-            onOpenCase={(id) => router.push(`/cases/${id}`)}
-            onViewAll={() => router.push("/cases")}
+            onViewAll={() => router.push(`/${locale}/cases`)}
+            onOpenCase={(id) => router.push(`/${locale}/cases/${id}`)}
           />
         </Col>
 
         <Col xs={24} lg={12}>
-          <LiveActivityCard
-            loading={loading}
-            activity={activity}
-            displayUser={displayUser}
-            onOpenCase={(id) => router.push(`/cases/${id}`)}
-          />
+        <LiveActivityCard
+  loading={loading}
+  activity={activity}
+  displayUser={displayUser}
+  onViewAll={() => router.push(`/${locale}/cases`)}
+  onOpenCase={(id) => router.push(`/${locale}/cases/${id}`)}
+/>
+
         </Col>
       </Row>
     </Space>
