@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import { useTranslations } from "next-intl";
 
 import { getActiveWorkspace, listCalendarEvents } from "@/lib/db";
+import { useLocale } from "next-intl";
 
 import CalendarMonth from "./_components/CalendarMonth.jsx";
 import CalendarWeek from "./_components/CalendarWeek.jsx";
@@ -41,6 +42,8 @@ export default function CalendarPage() {
   const [modalPrefill, setModalPrefill] = useState(null);
   const t = useTranslations();
 
+  const locale = useLocale();
+const isRTL = locale === "he";
   // keep view consistent when switching responsive
   useEffect(() => {
     setView(isMobile ? "week" : "month");

@@ -39,7 +39,7 @@ export default function DashboardHero({
     >
       <Row justify="space-between" align="middle" gutter={[12, 12]}>
         <Col>
-          <Space direction="vertical" size={2}>
+          <Space orientation="vertical" size={2}>
             <Title level={3} style={{ margin: 0 }}>
               {greeting()},{" "}
               <span style={{ opacity: 0.9 }}>{displayName || t("dashboard.hero.user")}</span>

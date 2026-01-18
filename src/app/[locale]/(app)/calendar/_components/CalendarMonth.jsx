@@ -4,8 +4,7 @@ import { useMemo, useRef } from "react";
 import { Badge, Button, Calendar, Space, Typography } from "antd";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
-import { useTranslations } from "next-intl";
-
+import { useLocale, useTranslations } from "next-intl";
 const { Text } = Typography;
 
 /**
@@ -46,49 +45,62 @@ export default function CalendarMonth({
   }
 
   function headerRender({ value, onChange }) {
-    const cur = value; // dayjs
+    const cur = value;
+    const locale = useLocale();
+    const t = useTranslations();
+    const isRTL = locale === "he";
+  
+    function goPrev() {
+      markIgnoreNextSelect();
+      const next = isRTL ? cur.add(1, "month") : cur.subtract(1, "month");
+      onChange(next);
+      onCursorChange?.(next);
+    }
+  
+    function goNext() {
+      markIgnoreNextSelect();
+      const next = isRTL ? cur.subtract(1, "month") : cur.add(1, "month");
+      onChange(next);
+      onCursorChange?.(next);
+    }
+  
     return (
-      <Space style={{ justifyContent: "space-between", width: "100%" }} wrap>
+      <Space
+        style={{
+          justifyContent: "space-between",
+          width: "100%",
+          direction: isRTL ? "rtl" : "ltr",
+        }}
+        wrap
+      >
         <Space>
           <Button
             size="small"
-            icon={<LeftOutlined />}
-            onClick={() => {
-              markIgnoreNextSelect();
-              const next = cur.subtract(1, "month");
-              onChange(next);
-              onCursorChange?.(next);
-            }}
+            icon={isRTL ? <RightOutlined /> : <LeftOutlined />}
+            onClick={goPrev}
           />
           <Button
             size="small"
-            icon={<RightOutlined />}
-            onClick={() => {
-              markIgnoreNextSelect();
-              const next = cur.add(1, "month");
-              onChange(next);
-              onCursorChange?.(next);
-            }}
+            icon={isRTL ? <LeftOutlined /> : <RightOutlined />}
+            onClick={goNext}
           />
         </Space>
-
+  
         <Text strong style={{ fontSize: 14 }}>
           {cur.format("MMMM YYYY")}
         </Text>
-
-        <Space>
-          <Button
-            size="small"
-            onClick={() => {
-              markIgnoreNextSelect();
-              const next = dayjs();
-              onChange(next);
-              onCursorChange?.(next);
-            }}
-          >
-            {t("calendar.event.today")}
-          </Button>
-        </Space>
+  
+        <Button
+          size="small"
+          onClick={() => {
+            markIgnoreNextSelect();
+            const next = dayjs();
+            onChange(next);
+            onCursorChange?.(next);
+          }}
+        >
+          {t("calendar.event.today")}
+        </Button>
       </Space>
     );
   }
