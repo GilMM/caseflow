@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import { supabase } from "@/lib/supabase/client";
@@ -74,7 +74,9 @@ export default function SettingsPage() {
 
   // used to bust org logo cache
   const [logoBust, setLogoBust] = useState(0);
-
+  const params = useParams();
+  const locale = params?.locale || "he"; // או "en" לפי ברירת מחדל אצלך
+  
   const isOwner =
     !!workspace?.ownerUserId && !!sessionUser?.id
       ? workspace.ownerUserId === sessionUser.id
@@ -92,7 +94,7 @@ export default function SettingsPage() {
       const user = s?.session?.user || null;
 
       if (!user) {
-        router.replace("/login");
+        router.replace(`/${locale}/login`);
         return;
       }
 
@@ -165,9 +167,14 @@ export default function SettingsPage() {
   }, [isAdmin, workspace?.orgId]);
 
   async function logout() {
-    await supabase.auth.signOut({ scope: "local" });
-    window.location.assign("/login");
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } finally {
+      router.replace(`/${locale}/login`);
+      router.refresh(); // מבטיח ניקוי state בצד לקוח
+    }
   }
+  
 
   async function onSaveProfile(values) {
     try {
@@ -401,7 +408,7 @@ export default function SettingsPage() {
               isAdmin={isAdmin}
               isOwner={isOwner}
               isMobile={isMobile}
-              onManageUsers={() => router.push("/settings/users")}
+              onManageUsers={() => router.push(`/${locale}/settings/users`)}
               onRequestAccess={() =>
                 message.info(
                   t("settings.messages.adminsOnlyManage")

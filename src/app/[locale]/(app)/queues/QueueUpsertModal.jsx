@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Alert, Form, Input, Modal, Row, Col, Switch } from "antd";
+import { useTranslations } from "next-intl";
 
 export default function QueueUpsertModal({
   open,
@@ -12,13 +13,12 @@ export default function QueueUpsertModal({
   onCancel,
   onSubmit,
 }) {
-  const [form] = Form.useForm();
-if (process.env.NODE_ENV === "development") {
-  console.log("useForm created here ↓");
-  console.log(new Error().stack);
-}
+  const t = useTranslations();
+  const [form] = Form.useForm(); // ✅ תמיד נוצר, בלי תנאים
+
   useEffect(() => {
     if (!open) return;
+
     form.setFieldsValue(
       initialValues || {
         name: "",
@@ -32,25 +32,25 @@ if (process.env.NODE_ENV === "development") {
     <Modal
       open={open}
       onCancel={onCancel}
-      title={mode === "create" ? "New queue" : "Edit queue"}
-      okText={mode === "create" ? "Create" : "Save"}
+      title={mode === "create" ? t("queues.modal.newTitle") : t("queues.modal.editTitle")}
+      okText={mode === "create" ? t("common.create") : t("common.save")}
       onOk={() => form.submit()}
       confirmLoading={saving}
-      destroyOnHidden
+      forceRender // ✅ שומר את ה-Form מחובר גם כשהמודאל סגור
       width={isMobile ? "100%" : 520}
       style={isMobile ? { top: 12 } : undefined}
     >
       <Form form={form} layout="vertical" onFinish={onSubmit}>
         <Form.Item
-          label="Queue name"
+          label={t("queues.modal.name")}
           name="name"
           rules={[
-            { required: true, message: "Please enter a queue name" },
-            { min: 2, message: "Name should be at least 2 characters" },
+            { required: true, message: t("queues.modal.nameRequired") },
+            { min: 2, message: t("queues.modal.nameMin") },
           ]}
         >
           <Input
-            placeholder="e.g., Support, Billing, Onboarding…"
+            placeholder={t("queues.modal.namePlaceholder")}
             maxLength={60}
             showCount
           />
@@ -58,12 +58,12 @@ if (process.env.NODE_ENV === "development") {
 
         <Row gutter={[12, 12]}>
           <Col xs={12}>
-            <Form.Item label="Active" name="is_active" valuePropName="checked">
+            <Form.Item label={t("queues.modal.active")} name="is_active" valuePropName="checked">
               <Switch />
             </Form.Item>
           </Col>
           <Col xs={12}>
-            <Form.Item label="Default" name="is_default" valuePropName="checked">
+            <Form.Item label={t("queues.modal.default")} name="is_default" valuePropName="checked">
               <Switch />
             </Form.Item>
           </Col>
@@ -72,8 +72,8 @@ if (process.env.NODE_ENV === "development") {
         <Alert
           type="info"
           showIcon
-          mtitle="Note"
-          description="Setting a queue as Default will unset Default from other queues in this workspace."
+          title={t("common.note")}
+          description={t("queues.modal.defaultHint")}
         />
       </Form>
     </Modal>

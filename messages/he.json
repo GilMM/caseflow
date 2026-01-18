@@ -43,7 +43,9 @@
     "unknown": "לא ידוע",
     "unassigned": "לא משוייך",
     "close": "סגור",
-    "noMoreItems": "אין עוד פריטים"
+    "noMoreItems": "אין עוד פריטים",
+    "note": "הערה",
+    "tip": "טיפ"
   },
   "navigation": {
     "dashboard": "לוח בקרה",
@@ -350,6 +352,63 @@
       "allDepartments": "כל המחלקות",
       "hint": "אנשי קשר הם עובדים פנימיים. נקשר אותם לפניות כ\"מבקש\"."
     },
+    "modal": {
+      "newTitle": "איש קשר חדש",
+      "editTitle": "עריכת איש קשר",
+      "fullName": "שם מלא",
+      "fullNameRequired": "שם מלא הוא חובה",
+      "fullNamePlaceholder": "לדוגמה: דוד כהן",
+      "email": "אימייל",
+      "emailInvalid": "אימייל לא תקין",
+      "emailPlaceholder": "name@company.com",
+      "phone": "טלפון",
+      "phonePlaceholder": "+972...",
+      "department": "מחלקה",
+      "departmentPlaceholder": "לדוגמה: IT, HR, שיווק",
+      "jobTitle": "תפקיד",
+      "jobTitlePlaceholder": "לדוגמה: Helpdesk Specialist",
+      "location": "מיקום",
+      "locationPlaceholder": "לדוגמה: משרד / מרחוק",
+      "active": "פעיל",
+      "notes": "הערות",
+      "notesPlaceholder": "הערות פנימיות…",
+      "tip": "בשלב הבא נקשר את איש הקשר לפניות כ”מבקש” ונציג את כל הפניות של כל אדם."
+    },
+    "upsert": {
+      "titleCreate": "איש קשר חדש",
+      "titleEdit": "עריכת איש קשר",
+  
+      "fields": {
+        "fullName": "שם מלא",
+        "email": "אימייל",
+        "phone": "טלפון",
+        "department": "מחלקה",
+        "jobTitle": "תפקיד",
+        "location": "מיקום",
+        "active": "פעיל",
+        "notes": "הערות"
+      },
+  
+      "placeholders": {
+        "fullName": "לדוגמה: דוד כהן",
+        "email": "name@company.com",
+        "phone": "+972...",
+        "department": "לדוגמה: IT, משאבי אנוש",
+        "jobTitle": "לדוגמה: נציג תמיכה",
+        "location": "לדוגמה: מטה / מרחוק",
+        "notes": "הערות פנימיות…"
+      },
+  
+      "validation": {
+        "fullNameRequired": "יש להזין שם מלא",
+        "emailInvalid": "כתובת אימייל לא תקינה"
+      },
+  
+      "tip": {
+        "title": "טיפ",
+        "description": "בהמשך נקשר איש קשר זה לפניות כ\"מבקש\" ונציג את כל הפניות של האדם."
+      }
+    },
     "list": {
       "title": "אנשים",
       "noWorkspace": "אין סביבת עבודה",
@@ -377,6 +436,42 @@
       "refreshTooltip": "רענן רשימת תורים",
       "newQueue": "תור חדש"
     },
+    "modal": {
+      "newTitle": "תור חדש",
+      "editTitle": "עריכת תור",
+      "name": "שם התור",
+      "nameRequired": "אנא הזן שם תור",
+      "nameMin": "השם צריך להכיל לפחות 2 תווים",
+      "namePlaceholder": "לדוגמה: תמיכה, חיובים, Onboarding…",
+      "active": "פעיל",
+      "default": "ברירת מחדל",
+      "defaultHint": "הגדרת תור כברירת מחדל תבטל את ברירת המחדל משאר התורים בסביבת העבודה."
+    },
+      "upsert": {
+        "titleCreate": "תור חדש",
+        "titleEdit": "עריכת תור",
+    
+        "fields": {
+          "name": "שם התור",
+          "active": "פעיל",
+          "default": "ברירת מחדל"
+        },
+    
+        "placeholders": {
+          "name": "לדוגמה: תמיכה, חיוב, קליטה…"
+        },
+    
+        "validation": {
+          "nameRequired": "אנא הזן שם לתור",
+          "nameMin": "השם חייב להכיל לפחות 2 תווים"
+        },
+    
+        "note": {
+          "title": "הערה",
+          "description": "הגדרת תור כברירת מחדל תבטל את ברירת המחדל מתורים אחרים בסביבת העבודה."
+        }
+      },
+    
     "filters": {
       "searchPlaceholder": "חפש תור לפי שם או מזהה…",
       "allStates": "כל המצבים",
@@ -404,6 +499,13 @@
       "noMatch": "אין תורים התואמים למסננים",
       "tryClearing": "נסה לנקות מסננים או צור תור חדש.",
       "toggleTooltip": "החלף מצב פעיל/לא פעיל"
+    },
+    "actions": {
+      "edit": "ערוך",
+      "setDefault": "הגדר ברירת מחדל",
+      "default": "ברירת מחדל",
+      "viewCases": "צפה בפניות",
+      "toggleActive": "הפעל / השבת תור"
     }
   },
   "calendar": {
@@ -415,6 +517,10 @@
       "newEvent": "אירוע חדש",
       "eventCount": "{count} אירועים",
       "view": "תצוגה"
+    },
+    "view": {
+      "month": "חודש",
+      "week": "שבוע"
     },
     "event": {
       "untitled": "אירוע ללא כותרת",

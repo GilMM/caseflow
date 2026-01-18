@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { App, Card, Grid, Segmented, Space, Spin, Typography } from "antd";
 import dayjs from "dayjs";
+import { useTranslations } from "next-intl";
 
 import { getActiveWorkspace, listCalendarEvents } from "@/lib/db";
 
@@ -38,6 +39,7 @@ export default function CalendarPage() {
   const [modalMode, setModalMode] = useState("create");
   const [modalEventId, setModalEventId] = useState(null);
   const [modalPrefill, setModalPrefill] = useState(null);
+  const t = useTranslations();
 
   // keep view consistent when switching responsive
   useEffect(() => {
@@ -127,14 +129,15 @@ export default function CalendarPage() {
               marginBottom: 10,
             }}
           >
-            <Segmented
-              value={view}
-              onChange={(v) => setView(v)}
-              options={[
-                { label: "Month", value: "month" },
-                { label: "Week", value: "week" },
-              ]}
-            />
+<Segmented
+  value={view}
+  onChange={(v) => setView(v)}
+  options={[
+    { label: t("calendar.view.month"), value: "month" },
+    { label: t("calendar.view.week"), value: "week" },
+  ]}
+/>
+
 
             <Text type="secondary" style={{ fontSize: 12 }}>
               {cursor.format(view === "week" ? "MMM D, YYYY" : "MMMM YYYY")}

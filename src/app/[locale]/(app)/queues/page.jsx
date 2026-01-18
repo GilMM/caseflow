@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { getActiveWorkspace } from "@/lib/db";
 
@@ -42,6 +41,7 @@ export default function QueuesPage() {
   const [saving, setSaving] = useState(false);
 
   const lastToastRef = useRef(0);
+  const { locale } = useParams();
 
   async function loadAll({ silent = false } = {}) {
     try {
@@ -317,7 +317,7 @@ export default function QueuesPage() {
         onEdit={openEdit}
         onSetDefault={setDefaultQueue}
         onToggleActive={toggleActive}
-        onViewCases={(queueId) => router.push(`/cases?queue=${queueId}`)}
+        onViewCases={(queueId) => router.push(`/${locale}/cases?queue=${queueId}`)}
         onOpenFuture={() => message.info("Next: queue details page")}
       />
 

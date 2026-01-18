@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Alert, Form, Input, Modal, Row, Col, Switch } from "antd";
+import { useTranslations } from "next-intl";
 
 export default function ContactUpsertModal({
   open,
@@ -12,10 +13,12 @@ export default function ContactUpsertModal({
   onCancel,
   onSubmit,
 }) {
-  const [form] = Form.useForm();
+  const t = useTranslations();
+  const [form] = Form.useForm(); // ✅ תמיד נוצר, בלי תנאים
 
   useEffect(() => {
     if (!open) return;
+
     form.setFieldsValue(
       initialValues || {
         full_name: "",
@@ -34,11 +37,11 @@ export default function ContactUpsertModal({
     <Modal
       open={open}
       onCancel={onCancel}
-      title={mode === "create" ? "New contact" : "Edit contact"}
-      okText={mode === "create" ? "Create" : "Save"}
+      title={mode === "create" ? t("contacts.modal.newTitle") : t("contacts.modal.editTitle")}
+      okText={mode === "create" ? t("common.create") : t("common.save")}
       onOk={() => form.submit()}
       confirmLoading={saving}
-      destroyOnHidden
+      forceRender // ✅ שומר את ה-Form מחובר גם כשהמודאל סגור
       width={isMobile ? "100%" : 720}
       style={isMobile ? { top: 12 } : undefined}
     >
@@ -46,59 +49,59 @@ export default function ContactUpsertModal({
         <Row gutter={[12, 12]}>
           <Col span={24}>
             <Form.Item
-              label="Full name"
+              label={t("contacts.modal.fullName")}
               name="full_name"
-              rules={[{ required: true, message: "Full name is required" }]}
+              rules={[{ required: true, message: t("contacts.modal.fullNameRequired") }]}
             >
-              <Input placeholder="e.g., David Cohen" maxLength={80} />
+              <Input placeholder={t("contacts.modal.fullNamePlaceholder")} maxLength={80} />
             </Form.Item>
           </Col>
 
           <Col xs={24} md={12}>
             <Form.Item
-              label="Email"
+              label={t("contacts.modal.email")}
               name="email"
-              rules={[{ type: "email", message: "Invalid email" }]}
+              rules={[{ type: "email", message: t("contacts.modal.emailInvalid") }]}
             >
-              <Input placeholder="name@company.com" />
+              <Input placeholder={t("contacts.modal.emailPlaceholder")} />
             </Form.Item>
           </Col>
 
           <Col xs={24} md={12}>
-            <Form.Item label="Phone" name="phone">
-              <Input placeholder="+972..." />
+            <Form.Item label={t("contacts.modal.phone")} name="phone">
+              <Input placeholder={t("contacts.modal.phonePlaceholder")} />
             </Form.Item>
           </Col>
 
           <Col xs={24} md={12}>
-            <Form.Item label="Department" name="department">
-              <Input placeholder="e.g., IT, HR, Marketing" />
+            <Form.Item label={t("contacts.modal.department")} name="department">
+              <Input placeholder={t("contacts.modal.departmentPlaceholder")} />
             </Form.Item>
           </Col>
 
           <Col xs={24} md={12}>
-            <Form.Item label="Job title" name="job_title">
-              <Input placeholder="e.g., Helpdesk Specialist" />
+            <Form.Item label={t("contacts.modal.jobTitle")} name="job_title">
+              <Input placeholder={t("contacts.modal.jobTitlePlaceholder")} />
             </Form.Item>
           </Col>
 
           <Col xs={24} md={12}>
-            <Form.Item label="Location" name="location">
-              <Input placeholder="e.g., HQ / Remote" />
+            <Form.Item label={t("contacts.modal.location")} name="location">
+              <Input placeholder={t("contacts.modal.locationPlaceholder")} />
             </Form.Item>
           </Col>
 
           <Col xs={24} md={12}>
-            <Form.Item label="Active" name="is_active" valuePropName="checked">
+            <Form.Item label={t("contacts.modal.active")} name="is_active" valuePropName="checked">
               <Switch />
             </Form.Item>
           </Col>
 
           <Col span={24}>
-            <Form.Item label="Notes" name="notes">
+            <Form.Item label={t("contacts.modal.notes")} name="notes">
               <Input.TextArea
                 rows={isMobile ? 4 : 3}
-                placeholder="Internal notes…"
+                placeholder={t("contacts.modal.notesPlaceholder")}
               />
             </Form.Item>
           </Col>
@@ -107,8 +110,8 @@ export default function ContactUpsertModal({
         <Alert
           type="info"
           showIcon
-          title="Tip"
-          description="Next we’ll link this contact to cases as “Requester” and show all cases per person."
+          title={t("common.tip")}
+          description={t("contacts.modal.tip")}
         />
       </Form>
     </Modal>

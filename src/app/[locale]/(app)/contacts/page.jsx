@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 import { supabase } from "@/lib/supabase/client";
 import { getActiveWorkspace } from "@/lib/db";
@@ -48,6 +48,9 @@ export default function ContactsPage() {
 
   const lastToastRef = useRef(0);
   const workspaceRef = useRef(null);
+
+  const { locale } = useParams();
+
 
   async function loadInitial({ silent = false } = {}) {
     try {
@@ -313,7 +316,7 @@ export default function ContactsPage() {
   }
 
   return (
-    <Space direction="vertical" size={14} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={14} style={{ width: "100%" }}>
       <ContactsHeader
         isMobile={isMobile}
         workspace={workspace}
@@ -354,8 +357,10 @@ export default function ContactsPage() {
         rows={filtered}
         onEdit={openEdit}
         onToggleActive={toggleActive}
-        onNewCase={(contactId) => router.push(`/cases/new?requester=${contactId}`)}
-        onOpenFuture={() => message.info("Next: /contacts/[id]")}
+        onNewCase={(contactId) =>
+          router.push(`/${locale}/cases/new?requester=${contactId}`)
+        }
+                onOpenFuture={() => message.info("Next: /contacts/[id]")}
         onCreate={openCreate}
         hasMore={hasMore}
         loadingMore={loadingMore}
