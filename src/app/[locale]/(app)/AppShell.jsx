@@ -1,4 +1,3 @@
-// src/app/[locale]/(app)/AppShell.jsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -43,7 +42,7 @@ const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
-export default function AppShell({ children, initialEmail = "" }) {
+export default function AppShell({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const screens = useBreakpoint();
@@ -65,7 +64,7 @@ export default function AppShell({ children, initialEmail = "" }) {
 
   const { menuItems: languageMenuItems } = useLanguageSwitcher();
 
-  const [userEmail, setUserEmail] = useState(initialEmail);
+  const [userEmail, setUserEmail] = useState("");
 
   // Drawer state (Mobile)
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -73,12 +72,24 @@ export default function AppShell({ children, initialEmail = "" }) {
   // Announcements
   const { items: announcements } = useAnnouncements();
 
+  // ✅ Fill email quickly on first mount
+  useEffect(() => {
+    let alive = true;
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (!alive) return;
+      setUserEmail(data?.user?.email || "");
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
-        // router.replace(`/${locale}/login`);
         window.location.assign(`/${locale}/login`);
-
         return;
       }
       setUserEmail(session.user.email || "");
@@ -208,7 +219,7 @@ export default function AppShell({ children, initialEmail = "" }) {
         label: <Link href={`${linkPrefix}/settings`}>{tNav("settings")}</Link>,
       },
     ],
-    [linkPrefix, tNav],
+    [linkPrefix, tNav]
   );
 
   const Brand = ({ compact = false }) => (
@@ -266,9 +277,7 @@ export default function AppShell({ children, initialEmail = "" }) {
     >
       <AnnouncementBanner items={announcements} />
 
-      <Layout
-        style={{ flex: 1, overflow: "hidden", background: token.colorBgLayout }}
-      >
+      <Layout style={{ flex: 1, overflow: "hidden", background: token.colorBgLayout }}>
         {!isMobile && (
           <Sider
             width={240}
@@ -280,13 +289,7 @@ export default function AppShell({ children, initialEmail = "" }) {
               overflow: "hidden",
             }}
           >
-            <div
-              style={{
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
+            <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
               <Brand />
               <div style={{ flex: 1, overflow: "auto", paddingBottom: 8 }}>
                 <Menu
@@ -302,9 +305,7 @@ export default function AppShell({ children, initialEmail = "" }) {
                   padding: "12px 16px",
                   fontSize: 11,
                   color: token.colorTextSecondary,
-                  borderTop: `1px solid ${
-                    token.colorBorderSecondary || token.colorBorder
-                  }`,
+                  borderTop: `1px solid ${token.colorBorderSecondary || token.colorBorder}`,
                   textAlign: "center",
                   lineHeight: 1.4,
                   flexShrink: 0,
@@ -325,10 +326,7 @@ export default function AppShell({ children, initialEmail = "" }) {
             size={280}
             styles={{
               body: { padding: 0 },
-              header: {
-                padding: 0,
-                borderBottom: `1px solid ${token.colorBorder}`,
-              },
+              header: { padding: 0, borderBottom: `1px solid ${token.colorBorder}` },
             }}
             title={<Brand compact />}
           >
@@ -346,9 +344,7 @@ export default function AppShell({ children, initialEmail = "" }) {
                 padding: "12px 16px",
                 fontSize: 11,
                 color: token.colorTextSecondary,
-                borderTop: `1px solid ${
-                  token.colorBorderSecondary || token.colorBorder
-                }`,
+                borderTop: `1px solid ${token.colorBorderSecondary || token.colorBorder}`,
                 textAlign: "center",
                 lineHeight: 1.4,
               }}
@@ -359,13 +355,7 @@ export default function AppShell({ children, initialEmail = "" }) {
           </Drawer>
         )}
 
-        <Layout
-          style={{
-            background: token.colorBgLayout,
-            height: "100%",
-            overflow: "hidden",
-          }}
-        >
+        <Layout style={{ background: token.colorBgLayout, height: "100%", overflow: "hidden" }}>
           <Header
             style={{
               background: token.colorBgContainer,
@@ -380,7 +370,6 @@ export default function AppShell({ children, initialEmail = "" }) {
               gap: 12,
             }}
           >
-            {/* Left side: menu + title */}
             <Space size={10} style={{ minWidth: 0, flex: 1 }}>
               {isMobile && (
                 <Button
@@ -405,12 +394,7 @@ export default function AppShell({ children, initialEmail = "" }) {
               </Text>
             </Space>
 
-            {/* Right side: dropdown */}
-            <Dropdown
-              menu={userMenu}
-              trigger={["click"]}
-              placement={isRTL ? "bottomLeft" : "bottomRight"}
-            >
+            <Dropdown menu={userMenu} trigger={["click"]} placement={isRTL ? "bottomLeft" : "bottomRight"}>
               <Button>
                 <Space>
                   <Text

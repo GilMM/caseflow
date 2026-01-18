@@ -1,5 +1,4 @@
 // src/app/[locale]/(app)/loading.jsx
-"use client";
 
 import { Skeleton, Space, Card, Row, Col } from "antd";
 
