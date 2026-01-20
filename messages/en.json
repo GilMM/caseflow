@@ -45,7 +45,10 @@
     "close": "Close",
     "noMoreItems": "No more items",
     "note": "Note",
-    "tip": "Tip"
+    "tip": "Tip",
+    "fixed": "Fixed",
+    "noChanges": "No changes",
+    "nothingToFix": "Nothing to fix"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -290,6 +293,8 @@
       "priority": "Priority",
       "priorityRequired": "Select a priority",
       "createCase": "Create case",
+      "aiFix": "Fix spelling",
+      "aiFixTooltip": "Fix spelling & minor grammar (Hebrew/English). Does not rewrite.",
       "header": {
         "queueSelected": "Queue selected",
         "queueLabel": "Queue",

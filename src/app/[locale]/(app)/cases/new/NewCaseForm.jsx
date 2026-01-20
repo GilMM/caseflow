@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import {
   Alert,
   Avatar,
@@ -11,6 +12,9 @@ import {
   Space,
   Tag,
   Typography,
+  Tooltip,
+  message,
+  App,
 } from "antd";
 import {
   PlusOutlined,
@@ -39,9 +43,12 @@ export default function NewCaseForm({
   contactsLoading,
   requesterOptions,
   filterOption,
+  locale, // ✅ חדש: נעביר locale כדי שה-API ידע
 }) {
   const t = useTranslations();
   const priority = Form.useWatch("priority", form) || "normal";
+
+  const [aiFixing, setAiFixing] = useState(false);
 
   // ✅ translate priority options using messages: cases.priority.low/normal/high/urgent
   const priorityOptions = PRIORITY_OPTIONS.map((o) => ({
@@ -52,9 +59,117 @@ export default function NewCaseForm({
   const priorityTag = (
     <Tag color={priorityColor(priority)}>{t(`cases.priority.${priority}`)}</Tag>
   );
+  const { message } = App.useApp();
+  const [fixing, setFixing] = useState(false);
+
+  async function onFixSpelling() {
+    try {
+      setFixing(true);
+
+      const title = form.getFieldValue("title") || "";
+      const description = form.getFieldValue("description") || "";
+
+      const res = await fetch("/api/ai/spellcheck", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description,
+          locale: "he", // או locale מה־context שלך
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Spellcheck failed");
+
+      if (!data.changedTitle && !data.changedDescription) {
+        message.info("No changes");
+        return;
+      }
+
+      form.setFieldsValue({
+        title: data.correctedTitle,
+        description: data.correctedDescription,
+      });
+
+      message.success("Fixed");
+    } catch (e) {
+      message.error(e?.message || "Failed");
+    } finally {
+      setFixing(false);
+    }
+  }
+
+  async function fixSpelling() {
+    try {
+      const values = form.getFieldsValue(["title", "description"]);
+      const title = (values?.title || "").trim();
+      const description = (values?.description || "").trim();
+
+      if (!title && !description) {
+        message.info(t("common.nothingToFix") || "Nothing to fix");
+        return;
+      }
+
+      setAiFixing(true);
+
+      const res = await fetch("/api/ai/spellcheck", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description,
+          locale: locale || "he",
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || "AI spellcheck failed");
+      }
+
+      const nextTitle = data?.title ?? title;
+      const nextDesc = data?.description ?? description;
+
+      const changed = nextTitle !== title || nextDesc !== description;
+
+      form.setFieldsValue({
+        title: nextTitle,
+        description: nextDesc,
+      });
+
+      message.success(
+        changed
+          ? t("common.fixed") || "Fixed"
+          : t("common.noChanges") || "No changes",
+      );
+    } catch (e) {
+      message.error(e?.message || "Failed");
+    } finally {
+      setAiFixing(false);
+    }
+  }
+
+  // כפתור קטן ליד שדות טקסט — מקצועי ונקי
+  const FixButton = (
+    <Tooltip
+      title={
+        t("cases.new.aiFixTooltip") ||
+        "Fix spelling & minor grammar (Hebrew/English). Does not rewrite."
+      }
+    >
+      <Button onClick={onFixSpelling} loading={fixing}>
+        Fix spelling
+      </Button>
+    </Tooltip>
+  );
 
   return (
-    <Card title={t("cases.new.caseDetails")} style={{ borderRadius: 16 }}>
+    <Card
+      title={t("cases.new.caseDetails")}
+      extra={FixButton}
+      style={{ borderRadius: 16 }}
+    >
       {error ? (
         <Alert
           type="error"
@@ -88,7 +203,6 @@ export default function NewCaseForm({
           form={form}
           layout="vertical"
           onFinish={onSubmit}
-          // ✅ Don't preselect queue automatically (force manual choice)
           initialValues={{ priority: "normal" }}
         >
           <Form.Item
@@ -108,15 +222,16 @@ export default function NewCaseForm({
               options={queueOptions}
               placeholder={t("cases.new.selectQueue")}
               disabled={busy}
-              onChange={(v) => {
-                setQueueId?.(v); // keep your external state in sync (optional)
-              }}
+              onChange={(v) => setQueueId?.(v)}
               onClear={() => setQueueId?.(null)}
               allowClear
             />
           </Form.Item>
 
-          <Form.Item label={t("cases.new.requester")} name="requester_contact_id">
+          <Form.Item
+            label={t("cases.new.requester")}
+            name="requester_contact_id"
+          >
             <Select
               allowClear
               showSearch
@@ -135,10 +250,16 @@ export default function NewCaseForm({
                       {initials(c.full_name)}
                     </Avatar>
 
-                    <Space orientation="vertical" size={0} style={{ width: "100%" }}>
+                    <Space
+                      orientation="vertical"
+                      size={0}
+                      style={{ width: "100%" }}
+                    >
                       <Space wrap size={8}>
                         <Text strong>{c.full_name || t("common.unnamed")}</Text>
-                        {c.department ? <Tag color="geekblue">{c.department}</Tag> : null}
+                        {c.department ? (
+                          <Tag color="geekblue">{c.department}</Tag>
+                        ) : null}
                         {!isActive ? <Tag>{t("common.inactive")}</Tag> : null}
                       </Space>
 
@@ -154,12 +275,16 @@ export default function NewCaseForm({
                 const c = opt?.raw;
                 if (!c) return opt?.label;
 
-                const secondary = [c.email, c.phone].filter(Boolean).join(" • ");
+                const secondary = [c.email, c.phone]
+                  .filter(Boolean)
+                  .join(" • ");
                 return (
                   <Space size={8}>
                     <Avatar size="small">{initials(c.full_name)}</Avatar>
                     <span>{c.full_name || t("common.unnamed")}</span>
-                    {secondary ? <Text type="secondary">({secondary})</Text> : null}
+                    {secondary ? (
+                      <Text type="secondary">({secondary})</Text>
+                    ) : null}
                   </Space>
                 );
               }}
@@ -205,7 +330,9 @@ export default function NewCaseForm({
               </Space>
             }
             name="priority"
-            rules={[{ required: true, message: t("cases.new.priorityRequired") }]}
+            rules={[
+              { required: true, message: t("cases.new.priorityRequired") },
+            ]}
           >
             <Select
               options={priorityOptions}
@@ -214,7 +341,10 @@ export default function NewCaseForm({
                 <Space>
                   {opt.data.value === "urgent" ? <ThunderboltOutlined /> : null}
                   <span>{t(`cases.priority.${opt.data.value}`)}</span>
-                  <Tag color={priorityColor(opt.data.value)} style={{ marginInlineStart: 8 }}>
+                  <Tag
+                    color={priorityColor(opt.data.value)}
+                    style={{ marginInlineStart: 8 }}
+                  >
                     {t(`cases.priority.${opt.data.value}`)}
                   </Tag>
                 </Space>
@@ -223,7 +353,10 @@ export default function NewCaseForm({
           </Form.Item>
 
           <Space style={{ marginTop: 6 }}>
-            <Button onClick={() => router.push("/cases")} disabled={busy}>
+            <Button
+              onClick={() => router.push("/cases")}
+              disabled={busy || aiFixing}
+            >
               {t("common.cancel")}
             </Button>
 
@@ -232,7 +365,7 @@ export default function NewCaseForm({
               htmlType="submit"
               loading={busy}
               icon={<PlusOutlined />}
-              disabled={!orgId || !hasQueues}
+              disabled={!orgId || !hasQueues || aiFixing}
             >
               {t("cases.new.createCase")}
             </Button>

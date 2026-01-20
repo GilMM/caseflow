@@ -283,6 +283,7 @@ const { locale } = useLocaleContext();
             contactsLoading={contactsLoading}
             requesterOptions={requesterOptions}
             filterOption={filterOption}
+            locale={locale}
           />
         </Col>
 

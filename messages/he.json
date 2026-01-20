@@ -45,7 +45,10 @@
     "close": "סגור",
     "noMoreItems": "אין עוד פריטים",
     "note": "הערה",
-    "tip": "טיפ"
+    "tip": "טיפ",
+    "fixed": "תוקן",
+    "noChanges": "אין שינוי",
+    "nothingToFix": "אין מה לתקן"
   },
   "navigation": {
     "dashboard": "לוח בקרה",
@@ -290,13 +293,15 @@
       "priority": "עדיפות",
       "priorityRequired": "בחר עדיפות",
       "createCase": "צור פניה",
+      "aiFix": "תיקון שגיאות",
+      "aiFixTooltip": "תיקון שגיאות כתיב ודקדוק קל (עברית/אנגלית), בלי לשכתב.",
       "header": {
-      "queueSelected": "נבחר תור",
-      "queueLabel": "תור",
-      "requesterPrefilled": "המבקש מולא מראש",
-      "hint": "מלא את הטופס ופתח פנייה בלחיצה אחת",
-      "backToCases": "חזרה לפניות"
-    },
+        "queueSelected": "נבחר תור",
+        "queueLabel": "תור",
+        "requesterPrefilled": "המבקש מולא מראש",
+        "hint": "מלא את הטופס ופתח פנייה בלחיצה אחת",
+        "backToCases": "חזרה לפניות"
+      },
       "sidebar": {
         "quickTipsTitle": "טיפים מהירים",
         "tipTitleShort": "שמור על כותרת קצרה וקלה לחיפוש.",
