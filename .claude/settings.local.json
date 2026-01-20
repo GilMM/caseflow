@@ -10,7 +10,10 @@
       "Bash(curl:*)",
       "Bash(node /tmp/find_missing_translations.js:*)",
       "Bash(node -e:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Bash(del \"\\\\?\\\\c:\\\\Users\\\\GMesh\\\\caseflow\\\\nul\")",
+      "Bash(powershell -Command \"Remove-Item -LiteralPath ''\\\\?\\\\c:\\\\Users\\\\GMesh\\\\caseflow\\\\nul'' -Force\")",
+      "Bash(cmd /c \"del /f /q \\\\?\\\\c:\\\\Users\\\\GMesh\\\\caseflow\\\\nul\")"
     ]
   }
 }
