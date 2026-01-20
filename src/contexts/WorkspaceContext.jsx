@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
 import { supabase } from "@/lib/supabase/client";
 import { getOrgMembers } from "@/lib/db";
 import {
@@ -24,6 +31,29 @@ export function WorkspaceProvider({ children }) {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [membersLoading, setMembersLoading] = useState(false);
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadUser() {
+      const { data } = await supabase.auth.getSession();
+      if (!mounted) return;
+      setUserId(data?.session?.user?.id || null);
+    }
+
+    loadUser();
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (!mounted) return;
+      setUserId(session?.user?.id || null);
+    });
+
+    return () => {
+      mounted = false;
+      sub?.subscription?.unsubscribe?.();
+    };
+  }, []);
 
   const fetchWorkspace = useCallback(async () => {
     // Check cache first
@@ -37,7 +67,7 @@ export function WorkspaceProvider({ children }) {
       const { data, error } = await supabase
         .from("org_memberships")
         .select(
-          "org_id, role, is_active, created_at, organizations:org_id ( id, name, logo_url, owner_user_id )"
+          "org_id, role, is_active, created_at, organizations:org_id ( id, name, logo_url, owner_user_id )",
         )
         .eq("is_active", true)
         .order("created_at", { ascending: false })
@@ -126,17 +156,13 @@ export function WorkspaceProvider({ children }) {
     let mounted = true;
 
     async function init() {
-      try {
-        const ws = await fetchWorkspace();
-        if (!mounted) return;
+      const ws = await fetchWorkspace();
+      if (!mounted) return;
 
-        if (ws?.orgId) {
-          await fetchMembers(ws.orgId);
-        }
-      } catch (e) {
-        console.error("WorkspaceContext init error:", e);
-      } finally {
-        if (mounted) setLoading(false);
+      setLoading(false); // ✅ מוריד מהר כדי שלא יהיה "פלאש" מוזר
+
+      if (ws?.orgId) {
+        fetchMembers(ws.orgId); // ✅ בלי await (לא חוסם הרשאות)
       }
     }
 
@@ -170,8 +196,10 @@ export function WorkspaceProvider({ children }) {
 
   // Derived values
   const isOwner = useMemo(() => {
-    return !!workspace?.ownerUserId && !!workspace?.orgId;
-  }, [workspace?.ownerUserId, workspace?.orgId]);
+    return (
+      !!userId && !!workspace?.ownerUserId && userId === workspace.ownerUserId
+    );
+  }, [userId, workspace?.ownerUserId]);
 
   const isAdmin = useMemo(() => {
     return workspace?.role === "admin" || isOwner;
