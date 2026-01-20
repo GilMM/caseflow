@@ -1,5 +1,38 @@
 import { supabase } from "@/lib/supabase/client";
 
+// ═══════════════════════════════════════════════════════════════════
+// Auth session cache - prevents redundant auth calls
+// ═══════════════════════════════════════════════════════════════════
+let _cachedUser = null;
+let _cacheTimestamp = 0;
+const AUTH_CACHE_TTL = 30000; // 30 seconds
+
+/**
+ * Get current user with caching to prevent redundant auth calls.
+ * Cache is invalidated after 30 seconds or on auth state change.
+ */
+export async function getCurrentUser() {
+  const now = Date.now();
+  if (_cachedUser && now - _cacheTimestamp < AUTH_CACHE_TTL) {
+    return _cachedUser;
+  }
+
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+
+  _cachedUser = data?.session?.user || null;
+  _cacheTimestamp = now;
+  return _cachedUser;
+}
+
+// Clear cache on auth state change
+if (typeof window !== "undefined") {
+  supabase.auth.onAuthStateChange(() => {
+    _cachedUser = null;
+    _cacheTimestamp = 0;
+  });
+}
+
 /**
  * Creates an org, adds current user as admin member, creates default queue.
  * Returns { orgId, queueId }.
@@ -7,11 +40,7 @@ import { supabase } from "@/lib/supabase/client";
 export async function initializeWorkspace({
   orgName = "Weizmann Service Desk",
 } = {}) {
-  // must have session
-  const { data: sessionData, error: sessionError } =
-    await supabase.auth.getSession();
-  if (sessionError) throw sessionError;
-  const user = sessionData?.session?.user;
+  const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
   // 1) Create organization (✅ includes owner_user_id)
@@ -78,8 +107,7 @@ export async function createCase({
 }) {
   if (!queueId) throw new Error("Queue is required");
 
-  const { data: sessionData } = await supabase.auth.getSession();
-  const user = sessionData?.session?.user;
+  const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
   const { data, error } = await supabase
@@ -129,8 +157,7 @@ export async function getCaseActivities(caseId) {
 
 /** Add a note activity */
 export async function addCaseNote({ caseId, orgId, body }) {
-  const { data: sessionData } = await supabase.auth.getSession();
-  const user = sessionData?.session?.user;
+  const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
   const { error } = await supabase.from("case_activities").insert({
@@ -146,10 +173,7 @@ export async function addCaseNote({ caseId, orgId, body }) {
 
 /** Update case status (activity is logged by DB trigger) */
 export async function updateCaseStatus({ caseId, status }) {
-  const { data: sessionData, error } = await supabase.auth.getSession();
-  if (error) throw error;
-
-  const user = sessionData?.session?.user;
+  const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
   const toStatus = String(status || "").toLowerCase();
@@ -298,10 +322,7 @@ export async function getOrgMembers(orgId) {
 
 /** Assign case (activity is logged by DB trigger) */
 export async function assignCase({ caseId, toUserId }) {
-  const { data: sessionData, error } = await supabase.auth.getSession();
-  if (error) throw error;
-
-  const user = sessionData?.session?.user;
+  const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
   const { error: upErr } = await supabase
@@ -458,8 +479,8 @@ export async function setMemberActive({ orgId, userId, isActive }) {
 export async function updateOrgSettings({ orgId, name, logoUrl = null, dashboardUpdate = null }) {
   if (!orgId) throw new Error("Missing orgId");
 
-  const { data: userData } = await supabase.auth.getUser();
-  const userId = userData?.user?.id;
+  const user = await getCurrentUser();
+  const userId = user?.id;
 
   const payload = {
     name,
@@ -497,9 +518,8 @@ export async function diagnosticsOrgAccess(orgId) {
 }
 // ✅ Priority (activity logged by DB trigger)
 export async function updateCasePriority({ caseId, priority }) {
-  const { data: sessionData, error } = await supabase.auth.getSession();
-  if (error) throw error;
-  if (!sessionData?.session?.user) throw new Error("Not authenticated");
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
 
   const toPriority = String(priority || "").toLowerCase();
 
@@ -516,10 +536,7 @@ export async function updateCasePriority({ caseId, priority }) {
 
 
 export async function getMyProfile() {
-  const { data: s, error: sErr } = await supabase.auth.getSession();
-  if (sErr) throw sErr;
-
-  const user = s?.session?.user;
+  const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
   const { data, error } = await supabase
@@ -537,10 +554,7 @@ export async function getMyProfile() {
  * Profile upsert (profiles.id = auth.users.id)
  */
 export async function upsertMyProfile({ fullName = null, avatarUrl = null } = {}) {
-  const { data: s, error: sErr } = await supabase.auth.getSession();
-  if (sErr) throw sErr;
-
-  const user = s?.session?.user;
+  const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
   const payload = {
@@ -613,8 +627,7 @@ export async function createAnnouncement({
   if (!orgId) throw new Error("Missing orgId");
   if (!body?.trim()) throw new Error("Announcement body is required");
 
-  const { data: userData, error: userErr } = await supabase.auth.getUser();
-  if (userErr) throw userErr;
+  const user = await getCurrentUser();
 
   const { data, error } = await supabase
     .from("org_announcements")
@@ -626,7 +639,7 @@ export async function createAnnouncement({
       sort_order: Number.isFinite(sortOrder) ? sortOrder : 0,
       starts_at: startsAt,
       ends_at: endsAt,
-      created_by: userData?.user?.id || null,
+      created_by: user?.id || null,
     })
     .select("id")
     .single();
@@ -827,8 +840,8 @@ export async function getCalendarEventById(id) {
 }
 
 export async function createCalendarEvent(payload) {
-  const { data: u } = await supabase.auth.getUser();
-  const userId = u?.user?.id || null;
+  const user = await getCurrentUser();
+  const userId = user?.id || null;
 
   const { data, error } = await supabase
     .from("calendar_events")
@@ -864,8 +877,8 @@ export async function createCalendarEvent(payload) {
 }
 
 export async function updateCalendarEvent(id, patch, { activityType = "calendar_updated" } = {}) {
-  const { data: u } = await supabase.auth.getUser();
-  const userId = u?.user?.id || null;
+  const user = await getCurrentUser();
+  const userId = user?.id || null;
 
   // fetch before (so we have org/case/title even if patch is partial)
   const before = await getCalendarEventById(id);
@@ -893,8 +906,8 @@ export async function updateCalendarEvent(id, patch, { activityType = "calendar_
 }
 
 export async function deleteCalendarEvent(id) {
-  const { data: u } = await supabase.auth.getUser();
-  const userId = u?.user?.id || null;
+  const user = await getCurrentUser();
+  const userId = user?.id || null;
 
   // fetch before delete so we can log it
   const before = await getCalendarEventById(id);

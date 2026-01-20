@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Button, Dropdown, Input, Space, Tag, Typography, message } from "antd";
+import { useMemo, useState } from "react";
+import { App, Button, Dropdown, Input, Space, Tag } from "antd";
 import {
   DownOutlined,
   UserOutlined,
@@ -13,16 +13,13 @@ import { useTranslations } from "next-intl";
 
 import { getStatusMeta, CASE_STATUSES } from "@/lib/ui/status";
 import { getPriorityMeta, PRIORITY_OPTIONS } from "@/lib/ui/priority";
-import { supabase } from "@/lib/supabase/client";
 
 import {
   assignCase,
-  getOrgMembers,
   updateCaseStatus,
   updateCasePriority,
 } from "@/lib/db";
-
-const { Text } = Typography;
+import { useUser, useWorkspace } from "@/contexts";
 
 /** Prevent Card onClick navigation when using dropdowns inside */
 function stop(e) {
@@ -36,8 +33,7 @@ function presetColorVar(color, level = 6) {
   return `var(--ant-color-${color}-${level}, var(--ant-color-primary, #1677ff))`;
 }
 
-function chipStyle(color) {
-  const accent = presetColorVar(color, 6);
+function chipStyle() {
   return {
     borderRadius: 999,
     border: `1px solid rgba(255,255,255,0.10)`,
@@ -82,32 +78,13 @@ export default function CaseInlineActions({
   onChanged,
 }) {
   const t = useTranslations();
+  const { message } = App.useApp();
   const [busy, setBusy] = useState(false);
-
-  // members (for assignment menu)
-  const [members, setMembers] = useState([]);
   const [assigneeSearch, setAssigneeSearch] = useState("");
 
-  const [me, setMe] = useState(null);
-
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.auth.getSession();
-      setMe(data?.session?.user || null);
-    })();
-  }, []);
-
-  useEffect(() => {
-    if (!orgId) return;
-    (async () => {
-      try {
-        const list = await getOrgMembers(orgId);
-        setMembers(list || []);
-      } catch {
-        setMembers([]);
-      }
-    })();
-  }, [orgId]);
+  // Use contexts for user and members
+  const { user: me } = useUser();
+  const { members } = useWorkspace();
 
   const statusMeta = getStatusMeta(status);
   const prMeta = getPriorityMeta(priority);

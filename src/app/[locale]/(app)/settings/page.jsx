@@ -7,11 +7,11 @@ import { useTranslations } from "next-intl";
 
 import { supabase } from "@/lib/supabase/client";
 import {
-  getActiveWorkspace,
   diagnosticsOrgAccess,
   upsertMyProfile,
   updateOrgSettings,
 } from "@/lib/db";
+import { useUser, useWorkspace } from "@/contexts";
 
 import {
   Alert,
@@ -53,82 +53,67 @@ export default function SettingsPage() {
   const screens = useBreakpoint();
   const isMobile = !screens.md;
 
-  const [loading, setLoading] = useState(true);
+  // Use contexts for user and workspace
+  const { user: sessionUser, profile, refreshProfile, loading: userLoading } = useUser();
+  const { workspace, isAdmin, isOwner, refreshWorkspace, loading: wsLoading } = useWorkspace();
+
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-
-  const [workspace, setWorkspace] = useState(null);
-  const [sessionUser, setSessionUser] = useState(null);
-
-  const [profile, setProfile] = useState(null);
   const [orgLogoUrl, setOrgLogoUrl] = useState(null);
-
   const [savingOrg, setSavingOrg] = useState(false);
-
   const [diag, setDiag] = useState(null);
   const [diagLoading, setDiagLoading] = useState(false);
 
   // used to bust org logo cache
   const [logoBust, setLogoBust] = useState(0);
   const params = useParams();
-  const locale = params?.locale || "he"; // או "en" לפי ברירת מחדל אצלך
-  
-  const isOwner =
-    !!workspace?.ownerUserId && !!sessionUser?.id
-      ? workspace.ownerUserId === sessionUser.id
-      : false;
+  const locale = params?.locale || "he";
 
-  const isAdmin = workspace?.role === "admin" || isOwner;
+  const loading = userLoading || wsLoading;
 
-  async function loadAll({ silent = false } = {}) {
-    try {
-      setError("");
-      if (!silent) setLoading(true);
-      if (silent) setRefreshing(true);
-
-      const { data: s } = await supabase.auth.getSession();
-      const user = s?.session?.user || null;
-
-      if (!user) {
-        router.replace(`/${locale}/login`);
+  // Fetch org logo when workspace changes
+  useEffect(() => {
+    async function fetchOrgLogo() {
+      if (!workspace?.orgId) {
+        setOrgLogoUrl(null);
         return;
       }
-
-      setSessionUser(user);
-
-      const ws = await getActiveWorkspace();
-      setWorkspace(ws);
-
-      // profile
-      const { data: p, error: pErr } = await supabase
-        .from("profiles")
-        .select("id, full_name, avatar_url, updated_at, created_at")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (pErr) throw pErr;
-      setProfile(p || { id: user.id, full_name: "", avatar_url: null });
-
-      // org logo + name (source of truth)
-      if (ws?.orgId) {
+      try {
         const { data: org, error: orgErr } = await supabase
           .from("organizations")
-          .select("logo_url, name")
-          .eq("id", ws.orgId)
+          .select("logo_url")
+          .eq("id", workspace.orgId)
           .maybeSingle();
 
         if (orgErr) throw orgErr;
-
         setOrgLogoUrl(org?.logo_url || null);
-      } else {
-        setOrgLogoUrl(null);
+      } catch (e) {
+        console.error("Failed to fetch org logo:", e);
+      }
+    }
+    fetchOrgLogo();
+  }, [workspace?.orgId]);
+
+  async function handleRefresh() {
+    try {
+      setError("");
+      setRefreshing(true);
+      await Promise.all([refreshProfile(), refreshWorkspace()]);
+
+      // Refetch org logo
+      if (workspace?.orgId) {
+        const { data: org } = await supabase
+          .from("organizations")
+          .select("logo_url")
+          .eq("id", workspace.orgId)
+          .maybeSingle();
+        setOrgLogoUrl(org?.logo_url || null);
       }
     } catch (e) {
       const msg = e?.message || t("settings.messages.couldntLoad");
       setError(msg);
       message.error(msg);
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
   }
@@ -146,11 +131,6 @@ export default function SettingsPage() {
       setDiagLoading(false);
     }
   }
-
-  useEffect(() => {
-    loadAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     if (!isAdmin || !workspace?.orgId) return;
@@ -175,7 +155,7 @@ export default function SettingsPage() {
         avatarUrl: profile?.avatar_url ?? null,
       });
       message.success(t("settings.messages.profileUpdated"));
-      await loadAll({ silent: true });
+      await refreshProfile();
     } catch (e) {
       message.error(e?.message || t("settings.messages.profileFailed"));
     }
@@ -208,7 +188,7 @@ export default function SettingsPage() {
       });
 
       message.success(t("settings.messages.avatarUpdated"));
-      await loadAll({ silent: true });
+      await refreshProfile();
     } catch (e) {
       message.error(e?.message || t("settings.messages.avatarFailed"));
       throw e;
@@ -250,7 +230,7 @@ export default function SettingsPage() {
       setLogoBust(Date.now());
 
       message.success(t("settings.messages.logoUpdated"));
-      await loadAll({ silent: true });
+      await refreshWorkspace();
       await runDiagnostics(workspace.orgId);
     } catch (e) {
       message.error(e?.message || t("settings.messages.logoFailed"));
@@ -279,7 +259,7 @@ export default function SettingsPage() {
       });
 
       message.success(t("settings.messages.orgUpdated"));
-      await loadAll({ silent: true });
+      await refreshWorkspace();
       await runDiagnostics(workspace.orgId);
     } catch (e) {
       message.error(e?.message || t("settings.messages.orgFailed"));
@@ -336,7 +316,7 @@ export default function SettingsPage() {
                   <Button
                     icon={<ReloadOutlined />}
                     loading={refreshing}
-                    onClick={() => loadAll({ silent: true })}
+                    onClick={handleRefresh}
                     block={isMobile}
                   >
                     {t("common.refresh")}

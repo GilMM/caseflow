@@ -10,6 +10,8 @@ import React, {
 import { App as AntdApp, ConfigProvider, theme as antdTheme } from "antd";
 import heIL from "antd/locale/he_IL";
 import enUS from "antd/locale/en_US";
+import { UserProvider } from "@/contexts/UserContext";
+import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 
 const ThemeCtx = createContext(null);
 const LocaleCtx = createContext(null);
@@ -99,7 +101,11 @@ export default function Providers({ children, locale, direction }) {
           direction={direction}
           locale={antdLocales[locale] || enUS}
         >
-          <AntdApp>{children}</AntdApp>
+          <AntdApp>
+            <UserProvider>
+              <WorkspaceProvider>{children}</WorkspaceProvider>
+            </UserProvider>
+          </AntdApp>
         </ConfigProvider>
       </LocaleCtx.Provider>
     </ThemeCtx.Provider>

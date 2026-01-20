@@ -33,6 +33,7 @@ import {
 
 import { supabase } from "@/lib/supabase/client";
 import { useThemeMode, useLocaleContext } from "@/app/[locale]/providers";
+import { useUser } from "@/contexts";
 import AnnouncementBanner from "@/app/[locale]/(app)/announcements/AnnouncementBanner";
 import { useAnnouncements } from "@/app/[locale]/(app)/announcements/useAnnouncements";
 import { useLanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -43,7 +44,6 @@ const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
 export default function AppShell({ children }) {
-  const router = useRouter();
   const pathname = usePathname();
   const screens = useBreakpoint();
   const isMobile = !screens.md;
@@ -64,7 +64,9 @@ export default function AppShell({ children }) {
 
   const { menuItems: languageMenuItems } = useLanguageSwitcher();
 
-  const [userEmail, setUserEmail] = useState("");
+  // Use context for user data
+  const { user } = useUser();
+  const userEmail = user?.email || "";
 
   // Drawer state (Mobile)
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -72,31 +74,16 @@ export default function AppShell({ children }) {
   // Announcements
   const { items: announcements } = useAnnouncements();
 
-  // ✅ Fill email quickly on first mount
-  useEffect(() => {
-    let alive = true;
-
-    supabase.auth.getUser().then(({ data }) => {
-      if (!alive) return;
-      setUserEmail(data?.user?.email || "");
-    });
-
-    return () => {
-      alive = false;
-    };
-  }, []);
-
+  // Redirect to login if no user
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
         window.location.assign(`/${locale}/login`);
-        return;
       }
-      setUserEmail(session.user.email || "");
     });
 
     return () => sub?.subscription?.unsubscribe?.();
-  }, [router, locale]);
+  }, [locale]);
 
   useEffect(() => {
     if (drawerOpen) setDrawerOpen(false);
