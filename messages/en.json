@@ -5,14 +5,14 @@
     "cancel": "Cancel",
     "reset": "Reset",
     "loading": "Loading...",
-    "shown": "shown",
-    "total": "total",
-    "active": "active",
+    "shown": "Shown",
+    "total": "Total",
+    "active": "Active",
     "inactive": "Inactive",
     "open": "Open",
     "closed": "Closed",
     "new": "New",
-    "more": "more",
+    "more": "More",
     "clear": "Clear",
     "clearFilters": "Clear filters",
     "required": "(required)",
@@ -26,7 +26,7 @@
     "next": "Next",
     "previous": "Previous",
     "search": "Search",
-    "noResults": "No results",
+    "noResults": "No results found",
     "error": "Error",
     "success": "Success",
     "warning": "Warning",
@@ -37,12 +37,15 @@
     "none": "None",
     "untitled": "Untitled",
     "unnamed": "Unnamed",
-    "unassigned": "Unassigned",
     "noQueue": "No queue",
     "workspace": "Workspace",
-    "workspaceNone": "none",
-    "unknown": "unknown",
-    "noMoreItems": "No more items"
+    "workspaceNone": "None",
+    "unknown": "Unknown",
+    "unassigned": "Unassigned",
+    "close": "Close",
+    "noMoreItems": "No more items",
+    "note": "Note",
+    "tip": "Tip"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -65,18 +68,18 @@
   "auth": {
     "login": {
       "title": "Sign in",
-      "subtitle": "Access your workspace and manage cases.",
+      "subtitle": "Sign in to manage cases in your workspace.",
       "email": "Email",
       "password": "Password",
       "emailPlaceholder": "name@company.com",
       "passwordPlaceholder": "Your password",
-      "emailRequired": "Email is required",
-      "emailInvalid": "Enter a valid email",
-      "passwordRequired": "Password is required",
+      "emailRequired": "Please enter an email address",
+      "emailInvalid": "Please enter a valid email address",
+      "passwordRequired": "Please enter a password",
       "signIn": "Sign in",
       "noAccount": "Don't have an account?",
       "createOne": "Create one",
-      "failed": "Login failed",
+      "failed": "Sign in failed",
       "footer": "CaseFlow • By GilM"
     },
     "register": {
@@ -87,17 +90,17 @@
       "confirmPassword": "Confirm password",
       "emailPlaceholder": "name@company.com",
       "passwordPlaceholder": "Create a password",
-      "confirmPlaceholder": "Repeat password",
-      "emailRequired": "Email is required",
-      "emailInvalid": "Enter a valid email",
-      "passwordRequired": "Password is required",
-      "passwordMinLength": "Use at least 8 characters",
+      "confirmPlaceholder": "Repeat your password",
+      "emailRequired": "Please enter an email address",
+      "emailInvalid": "Please enter a valid email address",
+      "passwordRequired": "Please enter a password",
+      "passwordMinLength": "Password must be at least 8 characters",
       "confirmRequired": "Please confirm your password",
       "passwordMismatch": "Passwords do not match",
       "createAccount": "Create account",
       "hasAccount": "Already have an account?",
       "signIn": "Sign in",
-      "success": "Account created. You're in!",
+      "success": "Account created and signed in successfully",
       "successConfirm": "Account created. Check your email to confirm, then sign in.",
       "failed": "Registration failed",
       "footer": "CaseFlow • By GilM"
@@ -106,27 +109,27 @@
   },
   "onboarding": {
     "pills": {
-      "rlsSecured": "RLS-secured",
+      "rlsSecured": "RLS secured",
       "fastSetup": "Fast setup",
       "multiTenant": "Multi-tenant"
     },
     "welcome": "Welcome to CaseFlow",
     "subtitle": "Create your workspace or join an existing organization with an invite. In less than a minute you'll be inside the dashboard.",
-    "error": "Onboarding error",
+    "error": "Join error",
     "features": {
       "caseManagement": "Case management",
-      "caseManagementDesc": "Open, track, and resolve requests with queues and priorities.",
+      "caseManagementDesc": "Open, track and resolve requests with queues and priorities.",
       "teamsRoles": "Teams & roles",
-      "teamsRolesDesc": "Admins manage members. Agents handle cases. Viewers stay read-only.",
-      "dbSecurity": "Database-first security",
-      "dbSecurityDesc": "Permissions are enforced in Supabase RLS—not only in the UI."
+      "teamsRolesDesc": "Admins manage users. Agents handle cases. Viewers are read-only.",
+      "dbSecurity": "Database-level security",
+      "dbSecurityDesc": "Permissions are enforced in Supabase RLS — not only in the UI."
     },
-    "tip": "Tip: If you were invited, paste the token on the right and you'll see a preview before joining.",
+    "tip": "Tip: If you were invited, paste the token on the side and you'll see a preview before joining.",
     "getStarted": "Get started",
     "takesSeconds": "Takes ~30 seconds",
     "create": {
       "title": "Create",
-      "description": "Start a new workspace and become admin.",
+      "description": "Start a new workspace and become an admin.",
       "firstName": "First name",
       "firstNamePlaceholder": "e.g., Gil",
       "firstNameRequired": "Enter your first name",
@@ -136,14 +139,14 @@
       "orgNameRequired": "Enter an organization name",
       "orgNameTooShort": "Too short",
       "createWorkspace": "Create workspace",
-      "hint": "You'll be able to invite users later from Settings."
+      "hint": "You can invite users later from Settings."
     },
     "join": {
       "title": "Join",
       "description": "Paste an invite token to join a team.",
       "inviteToken": "Invite token",
       "inviteTokenPlaceholder": "Paste token here…",
-      "inviteTokenRequired": "Paste invite token",
+      "inviteTokenRequired": "Paste an invite token",
       "checkingInvite": "Checking invite…",
       "inviteExpired": "Invite expired",
       "inviteExpiredDesc": "Ask an admin to send a new invite.",
@@ -152,7 +155,7 @@
       "expires": "Expires: {date}",
       "acceptInvite": "Accept invite",
       "hint": "You'll only see organizations you were invited to.",
-      "troubleHint": "Having trouble? Make sure you're logged in, then paste the invite token again."
+      "troubleHint": "Having trouble? Make sure you're signed in, then paste the token again."
     },
     "messages": {
       "orgCreated": "Organization created",
@@ -178,26 +181,26 @@
       "role": "Role",
       "realtime": "Realtime",
       "refreshTooltip": "Refresh dashboard data",
-      "goToCases": "Go to Cases",
+      "goToCases": "Go to cases",
       "updated": "Updated",
-      "none": "none"
+      "none": "None"
     },
     "kpis": {
-      "open": "Open",
+      "open": "Open cases",
       "notClosed": "Not closed",
       "openTooltip": "Share of open cases out of all cases in the workspace",
-      "openFooter": "Not closed • quick workload indicator",
+      "openFooter": "Quick workload indicator",
       "newToday": "New today",
-      "since00": "Since 00:00",
-      "newTodayFooter": "Created since 00:00 • triage queue candidate",
+      "since00": "Since midnight",
+      "newTodayFooter": "Cases created today",
       "resolved": "Resolved",
       "thisWeek": "This week",
-      "resolvedFooter": "Simple weekly throughput • good for demos",
+      "resolvedFooter": "Weekly throughput",
       "urgentOpen": "Urgent open",
       "priorityUrgent": "Priority: urgent",
-      "urgentTooltip": "Urgent cases as a % of open cases",
-      "urgentFooter": "Priority = urgent • escalation signal",
-      "live": "live"
+      "urgentTooltip": "Urgent cases out of open cases",
+      "urgentFooter": "Escalation signal",
+      "live": "Live"
     },
     "myWork": {
       "title": "My work",
@@ -205,27 +208,27 @@
       "assigned": "Assigned",
       "created": "Created",
       "noCases": "No assigned open cases",
-      "tip": "Tip: add \"Assign\" action next"
+      "tip": "Tip: add an \"Assign\" action next"
     },
     "liveActivity": {
       "title": "Live activity",
-      "realtime": "realtime",
+      "realtime": "Realtime",
       "noActivity": "No recent activity",
-      "noActivityHint": "Add a note or change a status to see it here",
-      "viewAll": "View all"
+      "noActivityHint": "Once activity happens — it will show here",
+      "viewAll": "View all activity"
     },
     "statusDistribution": {
       "title": "Status distribution",
-      "total": "total"
+      "total": "Total"
     },
     "upcomingEvents": {
       "title": "Upcoming events",
       "openCalendar": "Open calendar",
-      "allDay": "all-day",
+      "allDay": "All-day",
       "event": "Event",
       "openCase": "Open case",
       "noEvents": "No upcoming events",
-      "noEventsHint": "Create an event from Calendar to see it here",
+      "noEventsHint": "Create an event in Calendar to see it here",
       "untitledEvent": "Untitled event"
     },
     "liveUpdate": "Live update received",
@@ -239,7 +242,7 @@
     "header": {
       "title": "Cases",
       "list": "List",
-      "queueFiltered": "Queue filtered",
+      "queueFiltered": "Filtered by queue",
       "shownTotal": "{shown} shown • {total} total",
       "refreshTooltip": "Refresh cases list",
       "newCase": "New case"
@@ -265,7 +268,7 @@
       "tryClearing": "Try clearing filters or create a new case."
     },
     "new": {
-      "title": "New Case",
+      "title": "New case",
       "caseDetails": "Case details",
       "couldntCreate": "Couldn't create case",
       "noWorkspace": "No workspace found",
@@ -294,27 +297,23 @@
         "hint": "Fill the form and create a case in one click",
         "backToCases": "Back to cases"
       },
-      "cases": {
-        "new": {
-          "sidebar": {
-            "quickTipsTitle": "Quick tips",
-            "tipTitleShort": "Keep the title short and searchable.",
-            "tipStepsInDescription": "Put steps + error messages in the description.",
-            "tipUrgentPrefix": "Use",
-            "tipUrgentSuffix": "only for escalations.",
-            "defaults": "Defaults",
-            "queueSelected": "Queue selected",
-            "queueLabel": "Queue",
-            "nextPolishTitle": "Next polish (optional)",
-            "nextPolishDesc": "On create: auto add activity note + \"Assign to me\"."
-          }
-        }
+      "sidebar": {
+        "quickTipsTitle": "Quick tips",
+        "tipTitleShort": "Keep the title short and searchable.",
+        "tipStepsInDescription": "Put steps + error messages in the description.",
+        "tipUrgentPrefix": "Use",
+        "tipUrgentSuffix": "only for escalations.",
+        "defaults": "Defaults",
+        "queueSelected": "Queue selected",
+        "queueLabel": "Queue",
+        "nextPolishTitle": "Next polish (optional)",
+        "nextPolishDesc": "On create: auto add activity note + \"Assign to me\"."
       }
     },
     "status": {
       "new": "New",
-      "inProgress": "In Progress",
-      "waitingCustomer": "Waiting Customer",
+      "inProgress": "In progress",
+      "waitingCustomer": "Waiting for customer",
       "resolved": "Resolved",
       "closed": "Closed"
     },
@@ -323,13 +322,6 @@
       "normal": "Normal",
       "high": "High",
       "urgent": "Urgent"
-    },
-    "actions": {
-      "status": "Status",
-      "assignee": "Assignee",
-      "assignToMe": "Assign to me",
-      "unassign": "Unassign",
-      "searchMember": "Search member…"
     },
     "messages": {
       "refreshed": "Cases refreshed",
@@ -370,16 +362,19 @@
       "calendarCreated": "Calendar event created",
       "calendarUpdated": "Calendar event updated",
       "calendarMoved": "Calendar event moved",
-      "calendarDeleted": "Calendar event deleted",
+      "calendarDeleted": "Calendar event removed",
 
       "calendar_created": "Calendar event created",
       "calendar_updated": "Calendar event updated",
       "calendar_moved": "Calendar event moved",
-      "calendar_deleted": "Calendar event deleted"
+      "calendar_deleted": "Calendar event removed"
     },
-    "announcements": {
-      "title": "Announcements",
-      "close": "Close announcement"
+    "actions": {
+      "status": "Status",
+      "assignee": "Assign to",
+      "assignToMe": "Assign to me",
+      "unassign": "Unassign",
+      "searchMember": "Search member…"
     }
   },
   "contacts": {
@@ -398,6 +393,59 @@
       "allDepartments": "All departments",
       "hint": "Contacts are internal employees. We'll link them to cases as \"Requester\"."
     },
+    "modal": {
+      "newTitle": "New contact",
+      "editTitle": "Edit contact",
+      "fullName": "Full name",
+      "fullNameRequired": "Full name is required",
+      "fullNamePlaceholder": "e.g., David Cohen",
+      "email": "Email",
+      "emailInvalid": "Invalid email",
+      "emailPlaceholder": "name@company.com",
+      "phone": "Phone",
+      "phonePlaceholder": "+972...",
+      "department": "Department",
+      "departmentPlaceholder": "e.g., IT, HR, Marketing",
+      "jobTitle": "Job title",
+      "jobTitlePlaceholder": "e.g., Helpdesk Specialist",
+      "location": "Location",
+      "locationPlaceholder": "e.g., Office / Remote",
+      "active": "Active",
+      "notes": "Notes",
+      "notesPlaceholder": "Internal notes…",
+      "tip": "Next: link this contact to cases as a requester and show all cases per person."
+    },
+    "upsert": {
+      "titleCreate": "New contact",
+      "titleEdit": "Edit contact",
+      "fields": {
+        "fullName": "Full name",
+        "email": "Email",
+        "phone": "Phone",
+        "department": "Department",
+        "jobTitle": "Job title",
+        "location": "Location",
+        "active": "Active",
+        "notes": "Notes"
+      },
+      "placeholders": {
+        "fullName": "e.g., David Cohen",
+        "email": "name@company.com",
+        "phone": "+972...",
+        "department": "e.g., IT, HR",
+        "jobTitle": "e.g., Support agent",
+        "location": "e.g., HQ / Remote",
+        "notes": "Internal notes…"
+      },
+      "validation": {
+        "fullNameRequired": "Please enter a full name",
+        "emailInvalid": "Invalid email address"
+      },
+      "tip": {
+        "title": "Tip",
+        "description": "Next we’ll link this contact to cases as a requester and show all cases for this person."
+      }
+    },
     "list": {
       "title": "People",
       "noWorkspace": "No workspace",
@@ -414,7 +462,7 @@
     "actions": {
       "activate": "Activate",
       "deactivate": "Deactivate",
-      "toggleTooltip": "Activate / Deactivate"
+      "toggleTooltip": "Toggle active/inactive"
     }
   },
   "queues": {
@@ -425,33 +473,71 @@
       "refreshTooltip": "Refresh queues list",
       "newQueue": "New queue"
     },
+    "modal": {
+      "newTitle": "New queue",
+      "editTitle": "Edit queue",
+      "name": "Queue name",
+      "nameRequired": "Please enter a queue name",
+      "nameMin": "Name must be at least 2 characters",
+      "namePlaceholder": "e.g., Support, Billing, Onboarding…",
+      "active": "Active",
+      "default": "Default",
+      "defaultHint": "Setting this queue as default will unset default from other queues in the workspace."
+    },
+    "upsert": {
+      "titleCreate": "New queue",
+      "titleEdit": "Edit queue",
+      "fields": {
+        "name": "Queue name",
+        "active": "Active",
+        "default": "Default"
+      },
+      "placeholders": {
+        "name": "e.g., Support, Billing, Onboarding…"
+      },
+      "validation": {
+        "nameRequired": "Please enter a queue name",
+        "nameMin": "Name must be at least 2 characters"
+      },
+      "note": {
+        "title": "Note",
+        "description": "Setting a default queue will unset the default from other queues in the workspace."
+      }
+    },
     "filters": {
-      "searchPlaceholder": "Search queue by name or ID…",
+      "searchPlaceholder": "Search queues by name or ID…",
       "allStates": "All states",
       "active": "Active",
       "inactive": "Inactive",
       "allQueues": "All queues",
       "defaultOnly": "Default only",
-      "hint": "Default queue is used for \"New Case\" routing (MVP)."
+      "hint": "Default queue is used for \"New case\" routing (MVP)."
     },
     "kpis": {
       "default": "Default"
     },
     "list": {
       "showing": "Showing {count}",
+      "created": "Created {time}",
+      "id": "ID: {id}",
+      "default": "Default",
+      "untitled": "Untitled",
       "noWorkspace": "No workspace",
       "noWorkspaceDesc": "Create org + membership to start managing queues.",
       "tableNotAvailable": "Queues table not available",
       "tableNotAvailableDesc": "Create the queues table (and RLS), then this page will light up.",
-      "untitled": "Untitled queue",
-      "default": "Default",
-      "toggleTooltip": "Activate / Deactivate queue",
-      "id": "ID: {id}",
-      "created": "Created {time}",
-      "nextHint": "Next: routing rules, SLA, auto-assignment.",
+      "nextHint": "Next: queue settings (name, SLA, members).",
       "open": "Open →",
       "noMatch": "No queues match your filters",
-      "tryClearing": "Try clearing filters or create a new queue."
+      "tryClearing": "Try clearing filters or create a new queue.",
+      "toggleTooltip": "Toggle active/inactive"
+    },
+    "actions": {
+      "edit": "Edit",
+      "setDefault": "Set default",
+      "default": "Default",
+      "viewCases": "View cases",
+      "toggleActive": "Activate / Deactivate queue"
     }
   },
   "calendar": {
@@ -459,52 +545,56 @@
       "title": "Calendar",
       "month": "Month",
       "week": "Week",
-      "view": "View",
-      "eventCount": "{count} events",
       "refreshTooltip": "Refresh calendar",
-      "newEvent": "New event"
+      "newEvent": "New event",
+      "eventCount": "{count} events",
+      "view": "View"
+    },
+    "view": {
+      "month": "Month",
+      "week": "Week"
     },
     "event": {
       "untitled": "Untitled event",
-      "today": "Today",
-      "more": "+{count} more",
-      "allDay": "All-day",
       "new": "New",
-      "noEvents": "No events",
-      "noEventsHint": "Tap \"New\" to create one for this day",
-      "editEvent": "Edit event",
       "newEvent": "New event",
+      "editEvent": "Edit event",
       "title": "Title",
+      "titlePlaceholder": "e.g., Customer meeting",
       "titleRequired": "Title is required",
-      "titlePlaceholder": "e.g., Customer onboarding call",
       "description": "Description",
-      "descriptionPlaceholder": "Optional notes",
-      "location": "Location",
-      "locationPlaceholder": "Optional (Zoom / Office / Address)",
-      "allDayLabel": "All day",
+      "descriptionPlaceholder": "Add event details...",
+      "startEnd": "Start & end",
       "dateRange": "Date range",
-      "startEnd": "Start / end",
-      "timeRangeRequired": "Time range is required",
-      "linkedCaseId": "Linked Case ID",
-      "optional": "optional",
-      "caseIdPlaceholder": "Paste a Case UUID to link (optional)",
-      "validCaseUuid": "Please paste a valid Case UUID",
-      "color": "Color (optional)",
-      "colorPlaceholder": "e.g., #1677ff or 'red' (optional)",
-      "delete": "Delete",
-      "openCase": "Open case",
-      "linkCaseTip": "Tip: link an existing case by ID",
-      "save": "Save",
-      "noOrg": "No org",
       "startTimeRequired": "Start time is required",
+      "timeRangeRequired": "Please enter a valid time range",
+      "allDay": "All-day",
+      "allDayLabel": "All-day event",
+      "location": "Location",
+      "locationPlaceholder": "Add a location...",
+      "linkedCaseId": "Linked case",
+      "caseIdPlaceholder": "Case ID (UUID)",
+      "validCaseUuid": "Please enter a valid UUID",
+      "linkCaseTip": "Link this event to an existing case",
+      "openCase": "Open case",
+      "color": "Color",
+      "colorPlaceholder": "Select a color",
+      "optional": "(optional)",
+      "save": "Save",
+      "delete": "Delete event",
+      "more": "More",
+      "today": "Today",
       "eventCreated": "Event created",
       "eventUpdated": "Event updated",
-      "permissionDenied": "Permission denied (RLS). Check calendar_events policies for case_id nullable support.",
-      "saveFailed": "Failed to save event",
       "eventDeleted": "Event deleted",
-      "deletePermissionDenied": "Permission denied (RLS). Check delete policy for calendar_events.",
-      "deleteFailed": "Delete failed",
-      "loadFailed": "Failed to load event"
+      "saveFailed": "Failed to save event",
+      "deleteFailed": "Failed to delete event",
+      "loadFailed": "Failed to load event",
+      "noOrg": "Organization not found",
+      "permissionDenied": "Permission denied",
+      "deletePermissionDenied": "You do not have permission to delete this event",
+      "noEvents": "No events",
+      "noEventsHint": "Create an event to see it here"
     }
   },
   "settings": {
@@ -520,118 +610,82 @@
     "profile": {
       "title": "Profile",
       "displayName": "Display name",
+      "placeholder": "Enter display name",
+      "tooShort": "Too short (min 2 characters)",
       "avatar": "Avatar",
       "uploadAvatar": "Upload avatar",
       "updateHint": "Update your display name and avatar.",
-      "storedIn": "Stored in Supabase Storage bucket",
-      "placeholder": "e.g., Gil Meshulami",
-      "tooShort": "Too short"
+      "storedIn": "Stored in Supabase Storage"
     },
     "security": {
-      "title": "Security (RLS)",
+      "title": "Security",
       "email": "Email",
       "password": "Password",
       "changePassword": "Change password",
-      "dataScoped": "Data is scoped by org membership using Row Level Security (RLS).",
-      "runDiagnostics": "Run diagnostics",
+      "role": "Role",
+      "activeMembers": "Active members",
       "member": "Member",
-      "role": "role: {role}",
-      "activeMembers": "active members: {count}",
-      "notLoaded": "Not loaded",
-      "diagAvailable": "Diagnostics available for admins",
-      "diagDescription": "Create an organization and make sure you are an admin."
+      "dataScoped": "Data is scoped to your workspace",
+      "diagAvailable": "Diagnostics available",
+      "diagDescription": "Check permissions and data access",
+      "runDiagnostics": "Run diagnostics",
+      "notLoaded": "Not loaded"
     },
     "org": {
       "title": "Organization",
       "orgName": "Organization name",
+      "placeholder": "Enter organization name",
+      "nameRequired": "Organization name is required",
+      "tooShort": "Too short (min 2 characters)",
+      "updateHint": "Update organization name and logo",
+      "saveOrganization": "Save organization",
       "logo": "Logo",
       "uploadLogo": "Upload logo",
-      "updateHint": "Update organization name and logo.",
-      "placeholder": "e.g., Acme Support",
-      "nameRequired": "Name is required",
-      "tooShort": "Too short",
-      "saveOrganization": "Save organization",
-      "storedIn": "Stored in Supabase Storage bucket"
-    },
-    "workspace": {
-      "title": "Workspace",
-      "org": "Org",
-      "role": "Role",
-      "realtime": "Realtime",
-      "realtimeDesc": "Subscribed to activity streams (postgres_changes)",
-      "manageUsers": "Manage users",
-      "manageUsersTooltip": "Manage members & invites",
-      "requestAccess": "Request access",
-      "manageHint": "Manage members and invites for this workspace.",
-      "adminsOnlyHint": "This area is available to admins only.",
-      "noActiveWorkspace": "No active workspace",
-      "noWorkspaceDesc": "Create an organization + membership first. Then settings will show org context.",
-      "orgNameRequired": "Organization name is required"
-    },
-    "announcements": {
-      "title": "Announcements",
-      "refresh": "Refresh",
-      "headerHint": "These messages appear in the top header ticker for everyone.",
-      "titleLabel": "Title",
-      "titlePlaceholder": "Optional (e.g., Maintenance)",
-      "messageLabel": "Message",
-      "messageRequired": "Message is required",
-      "messageMax": "Max 200 characters",
-      "messagePlaceholder": "Short message recommended (ticker)",
-      "addAnnouncement": "Add announcement",
-      "active": "Active",
-      "message": "Message",
-      "deleteConfirm": "Delete this announcement?",
-      "announcementAdded": "Announcement added",
-      "failedLoad": "Failed to load announcements",
-      "failedAdd": "Failed to add announcement",
-      "failedUpdate": "Failed to update",
-      "deleted": "Deleted",
-      "deleteFailed": "Delete failed"
+      "storedIn": "Stored in Supabase Storage"
     },
     "users": {
       "title": "User Management",
       "admin": "Admin",
       "primaryAdmin": "Primary admin protected",
       "manageHint": "Manage members and invites for this organization",
-      "backToSettings": "Back to Settings",
+      "backToSettings": "Back to settings",
       "adminsOnly": "Admins only",
-      "noPermission": "You do not have permission to manage users.",
+      "noPermission": "You don't have permission to manage users.",
       "membersTab": "Members ({count})",
       "invitesTab": "Invites ({count})",
       "noMembers": "No members found",
-      "failedLoad": "Failed to load users management",
-      "cannotOpen": "Cannot open user management",
-      "adminOnly": "Admin only",
       "user": "User",
+      "email": "Email",
       "role": "Role",
+      "status": "Status",
       "active": "Active",
+      "inactive": "Inactive",
       "joined": "Joined",
       "owner": "Owner",
-      "ownerProtected": "Owner is protected",
-      "cantChangeSelf": "You can't change yourself",
-      "updating": "Updating…",
-      "inactive": "Inactive",
-      "email": "Email",
-      "status": "Status",
-      "created": "Created",
-      "copyInviteLink": "Copy invite link",
-      "revokeInvite": "Revoke invite",
-      "revokeConfirm": "Revoke invite?",
-      "revoke": "Revoke",
-      "noInvites": "No invites yet",
+      "ownerProtected": "Owner protected",
+      "admin_role": "Admin",
+      "agent_role": "Agent",
+      "viewer_role": "Viewer",
+      "adminOnly": "Admin only",
+      "cantChangeSelf": "You can't change your own role",
+      "updating": "Updating...",
       "createInvite": "Create invite",
+      "inviteTip": "Share the invite link with new users",
       "emailRequired": "Email is required",
-      "emailInvalid": "Invalid email",
-      "inviteTip": "Tip: the link is copied automatically. The invited user must be logged-in with the same email.",
+      "emailInvalid": "Invalid email address",
+      "copyInviteLink": "Copy invite link",
       "linkCopied": "Link copied",
-      "copyFailed": "Couldn't copy automatically. Copy from desktop browser.",
+      "copyFailed": "Copy failed",
+      "created": "Created",
       "accepted": "Accepted",
       "expired": "Expired",
       "pending": "Pending",
-      "admin_role": "Admin",
-      "agent_role": "Agent",
-      "viewer_role": "Viewer"
+      "revokeInvite": "Revoke invite",
+      "revoke": "Revoke",
+      "revokeConfirm": "Are you sure you want to revoke this invite?",
+      "noInvites": "No invites",
+      "cannotOpen": "Cannot open invites",
+      "failedLoad": "Failed to load users"
     },
     "messages": {
       "couldntLoad": "Couldn't load settings",
@@ -650,7 +704,7 @@
       "items": "Persist profile in profiles • Workspace switcher • Notifications • SLA per queue"
     },
     "invites": {
-      "created": "Invite created & link copied",
+      "created": "Invite created and link copied",
       "createdNoLink": "Invite created",
       "copyHint": "Copy from the list",
       "failedCreate": "Failed to create invite",
@@ -661,16 +715,82 @@
       "memberActivated": "Member activated",
       "memberDeactivated": "Member deactivated",
       "failedMember": "Failed to update member"
+    },
+    "workspace": {
+      "title": "Workspace",
+      "org": "Organization",
+      "role": "Role",
+      "realtime": "Realtime",
+      "realtimeDesc": "Automatic updates to dashboard and cases",
+      "manageUsers": "Manage users",
+      "manageUsersTooltip": "Manage members and invites",
+      "manageHint": "Invite users, change roles, and create invites",
+      "adminsOnlyHint": "Only admins can manage users",
+      "requestAccess": "Request access from admin",
+      "noActiveWorkspace": "No active workspace",
+      "noWorkspaceDesc": "Create an organization to get started",
+      "orgNameRequired": "Organization name is required"
+    },
+    "announcements": {
+      "title": "Announcements",
+      "headerHint": "These messages appear in the top ticker for everyone.",
+      "titleLabel": "Title",
+      "titlePlaceholder": "e.g., Scheduled maintenance",
+      "message": "Message",
+      "messageLabel": "Message",
+      "messagePlaceholder": "Add details about the announcement...",
+      "messageRequired": "Message is required",
+      "messageMax": "Message must be up to 500 characters",
+      "active": "Active",
+      "addAnnouncement": "Add announcement",
+      "announcementAdded": "Announcement added",
+      "failedAdd": "Failed to add announcement",
+      "failedUpdate": "Failed to update announcement",
+      "deleted": "Announcement deleted",
+      "deleteFailed": "Failed to delete announcement",
+      "deleteConfirm": "Are you sure you want to delete this announcement?",
+      "failedLoad": "Failed to load announcements",
+      "refresh": "Refresh announcements"
     }
   },
   "announcements": {
-    "close": "Close announcement"
+    "close": "Close announcement",
+    "title": "Announcements"
   },
   "time": {
-    "secondsAgo": "{count}s ago",
-    "minutesAgo": "{count}m ago",
-    "hoursAgo": "{count}h ago",
-    "daysAgo": "{count}d ago",
-    "justNow": "just now"
+    "secondsAgo": "{count} seconds ago",
+    "minutesAgo": "{count} minutes ago",
+    "hoursAgo": "{count} hours ago",
+    "daysAgo": "{count} days ago",
+    "justNow": "Just now"
+  },
+  "caseDetails": {
+    "notFound": {
+      "title": "Not found",
+      "subtitle": "The case does not exist or you don't have permission to view it."
+    },
+    "meta": {
+      "created": "Created:"
+    },
+    "sections": {
+      "description": "Description",
+      "quickStatus": "Quick status",
+      "addNote": "Add note",
+      "timeline": "Timeline"
+    },
+    "note": {
+      "placeholder": "Write an internal note…",
+      "add": "Add note"
+    },
+    "tips": {
+      "mobileQuickStatus": "Tip: tap a status to update quickly"
+    },
+    "messages": {
+      "loadFailed": "Failed to load case",
+      "noteAdded": "Note added",
+      "noteAddFailed": "Failed to add note",
+      "statusUpdated": "Status updated to {status}",
+      "statusUpdateFailed": "Failed to update status"
+    }
   }
 }

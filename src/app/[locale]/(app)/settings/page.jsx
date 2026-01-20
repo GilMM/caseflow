@@ -19,7 +19,6 @@ import {
   Button,
   Card,
   Col,
-  Form,
   Grid,
   Row,
   Space,
@@ -68,9 +67,6 @@ export default function SettingsPage() {
 
   const [diag, setDiag] = useState(null);
   const [diagLoading, setDiagLoading] = useState(false);
-
-  const [profileForm] = Form.useForm();
-  const [orgForm] = Form.useForm();
 
   // used to bust org logo cache
   const [logoBust, setLogoBust] = useState(0);
@@ -124,10 +120,6 @@ export default function SettingsPage() {
         if (orgErr) throw orgErr;
 
         setOrgLogoUrl(org?.logo_url || null);
-
-        orgForm.setFieldsValue({
-          name: org?.name || ws?.orgName || "",
-        });
       } else {
         setOrgLogoUrl(null);
       }
@@ -211,8 +203,7 @@ export default function SettingsPage() {
       const url = pub?.publicUrl || null;
 
       await upsertMyProfile({
-        fullName:
-          profileForm.getFieldValue("full_name") || profile?.full_name || null,
+        fullName: profile?.full_name || null,
         avatarUrl: url,
       });
 
@@ -248,11 +239,7 @@ export default function SettingsPage() {
         .getPublicUrl(path);
       const url = pub?.publicUrl || null;
 
-      const name = (
-        orgForm.getFieldValue("name") ||
-        workspace?.orgName ||
-        ""
-      ).trim();
+      const name = (workspace?.orgName || "").trim();
       await updateOrgSettings({
         orgId: workspace.orgId,
         name: name || workspace?.orgName || "Workspace",
@@ -389,7 +376,6 @@ export default function SettingsPage() {
               onSaveProfile={onSaveProfile}
               onUploadAvatar={onUploadAvatar}
               isMobile={isMobile}
-              form={profileForm}
             />
 
             {isAdmin && workspace?.orgId ? (
@@ -423,7 +409,6 @@ export default function SettingsPage() {
                 savingOrg={savingOrg}
                 onUploadLogo={onUploadOrgLogo}
                 isMobile={isMobile}
-                form={orgForm}
                 onSaveOrg={onSaveOrg}
                 isOwner={isOwner}
                 logoBust={logoBust}

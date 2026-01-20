@@ -9,9 +9,9 @@ import { initials, safeSrc } from "./helpers";
 
 const { Text } = Typography;
 
-export default function ProfileCard({ sessionUser, profile, onSaveProfile, onUploadAvatar, isMobile, form }) {
+export default function ProfileCard({ sessionUser, profile, onSaveProfile, onUploadAvatar, isMobile }) {
   const t = useTranslations();
-  const profileForm = form;
+  const [profileForm] = Form.useForm();
 
   useEffect(() => {
     profileForm?.setFieldsValue({ full_name: profile?.full_name || "" });

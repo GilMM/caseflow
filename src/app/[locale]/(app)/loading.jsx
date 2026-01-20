@@ -1,12 +1,12 @@
 // src/app/[locale]/(app)/loading.jsx
 
-import { Skeleton, Space, Card, Row, Col } from "antd";
+import { Skeleton, Card, Row, Col } from "antd";
 
 export default function AppLoading() {
   return (
-    <Space orientation ="vertical" size={16} style={{ width: "100%", padding: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%", padding: 16 }}>
       {/* Header skeleton */}
-      <Skeleton.Input active style={{ width: 200, height: 32 }} />
+      <Skeleton active title={{ width: 200 }} paragraph={false} />
 
       {/* KPI cards skeleton */}
       <Row gutter={[16, 16]}>
@@ -23,6 +23,6 @@ export default function AppLoading() {
       <Card style={{ borderRadius: 12 }}>
         <Skeleton active paragraph={{ rows: 6 }} />
       </Card>
-    </Space>
+    </div>
   );
 }

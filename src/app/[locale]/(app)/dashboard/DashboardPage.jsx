@@ -53,15 +53,15 @@ export default function DashboardPage() {
 
   const lastToastRef = useRef(0);
   const [events, setEvents] = useState([]);
-const pathname = usePathname();
-const { locale } = useLocaleContext();
+  const pathname = usePathname();
+  const { locale } = useLocaleContext();
 
-const withLocale = (to) => {
-  const segs = pathname.split("/").filter(Boolean);
-  const rest = segs[0] === locale ? segs.slice(1).join("/") : segs.join("/");
-  // to is like "/cases" or `/cases/${id}`
-  return `/${locale}${to}`;
-};
+  const withLocale = (to) => {
+    const segs = pathname.split("/").filter(Boolean);
+    const rest = segs[0] === locale ? segs.slice(1).join("/") : segs.join("/");
+    // to is like "/cases" or `/cases/${id}`
+    return `/${locale}${to}`;
+  };
 
   const displayUser = (userId) => {
     if (!userId) return t("common.unknown");
@@ -148,7 +148,7 @@ const withLocale = (to) => {
         () => {
           loadAll({ silent: true });
           maybeToast(t("dashboard.activityUpdated"));
-        }
+        },
       )
       .subscribe();
 
@@ -161,7 +161,7 @@ const withLocale = (to) => {
         () => {
           loadAll({ silent: true });
           maybeToast(t("dashboard.calendarUpdated"));
-        }
+        },
       )
       .subscribe();
 
@@ -193,7 +193,7 @@ const withLocale = (to) => {
   const resolvedThisWeekCount = stats?.resolvedThisWeekCount || 0;
 
   return (
-    <Space orientation ="vertical" size={14} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={14} style={{ width: "100%" }}>
       <DashboardHero
         loading={loading}
         refreshing={refreshing}
@@ -248,14 +248,13 @@ const withLocale = (to) => {
         </Col>
 
         <Col xs={24} lg={12}>
-        <LiveActivityCard
-  loading={loading}
-  activity={activity}
-  displayUser={displayUser}
-  onViewAll={() => router.push(`/${locale}/cases`)}
-  onOpenCase={(id) => router.push(`/${locale}/cases/${id}`)}
-/>
-
+          <LiveActivityCard
+            loading={loading}
+            activity={activity}
+            displayUser={displayUser}
+            onViewAll={() => router.push(`/${locale}/cases`)}
+            onOpenCase={(id) => router.push(`/${locale}/cases/${id}`)}
+          />
         </Col>
       </Row>
     </Space>

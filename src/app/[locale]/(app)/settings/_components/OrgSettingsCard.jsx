@@ -28,13 +28,12 @@ export default function OrgSettingsCard({
   savingOrg,
   onUploadLogo,
   isMobile,
-  form,
   onSaveOrg,
   isOwner,
   logoBust,
 }) {
   const t = useTranslations();
-  const orgForm = form;
+  const [orgForm] = Form.useForm();
 
   useEffect(() => {
     if (!workspace?.orgId) return;

@@ -18,10 +18,7 @@ export default function InvitesPanel({
   message,
 }) {
   const [inviteForm] = Form.useForm();
-if (process.env.NODE_ENV === "development") {
-  console.log("useForm created here ↓");
-  console.log(new Error().stack);
-}
+
   return (
     <Space orientation="vertical" size={12} style={{ width: "100%" }}>
       <Card
