@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { getActiveWorkspace } from "@/lib/db";
+import { invalidateWorkspaceCache } from "@/lib/workspaceCache";
 import { App } from "antd";
 
 import {
@@ -283,7 +284,8 @@ function normalizeInviteToken(input) {
       if (memErr) throw memErr;
 
       message.success("Organization created");
-      router.replace("/");
+      invalidateWorkspaceCache();
+      router.replace("/?refresh=1");
       router.refresh?.();
     } catch (e) {
       setError(e?.message || "Failed to create organization");
@@ -307,7 +309,8 @@ function normalizeInviteToken(input) {
       if (error) throw error;
 
       message.success("Joined organization");
-      router.replace("/");
+      invalidateWorkspaceCache();
+      router.replace("/?refresh=1");
       router.refresh?.();
     } catch (e) {
       setError(e?.message || "Failed to accept invite");

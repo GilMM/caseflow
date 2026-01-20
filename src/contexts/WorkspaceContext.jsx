@@ -156,6 +156,22 @@ export function WorkspaceProvider({ children }) {
     let mounted = true;
 
     async function init() {
+      // Check for refresh parameter in URL (e.g., after creating org)
+      if (typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("refresh") === "1") {
+          // Remove the parameter from URL
+          params.delete("refresh");
+          const newUrl = params.toString()
+            ? `${window.location.pathname}?${params}`
+            : window.location.pathname;
+          window.history.replaceState({}, "", newUrl);
+          // Force refresh workspace by clearing cache
+          invalidateWorkspaceCache();
+          membersCache = { data: null, orgId: null, timestamp: 0 };
+        }
+      }
+
       const ws = await fetchWorkspace();
       if (!mounted) return;
 
