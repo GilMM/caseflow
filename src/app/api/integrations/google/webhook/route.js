@@ -8,9 +8,12 @@ import { createClient } from "@supabase/supabase-js";
  */
 export async function POST(req) {
   try {
-    const secret = req.headers.get("x-webhook-secret");
+    const secret = (req.headers.get("x-webhook-secret") || "").trim();
     if (!secret) {
-      return NextResponse.json({ error: "Missing x-webhook-secret" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Missing x-webhook-secret" },
+        { status: 401 },
+      );
     }
 
     const body = await req.json().catch(() => null);
@@ -21,42 +24,65 @@ export async function POST(req) {
     // minimal payload validation
     const title = String(body.title ?? "").trim();
     const description = String(body.description ?? "").trim();
-    const externalRef = body.external_ref ? String(body.external_ref).trim() : null;
+    const externalRef = body.external_ref
+      ? String(body.external_ref).trim()
+      : null;
 
     if (!title) {
       return NextResponse.json({ error: "Missing title" }, { status: 400 });
     }
 
     // Normalize priority to your enum values (based on your table: normal/high/urgent)
-    const rawPriority = String(body.priority ?? "normal").trim().toLowerCase();
-    const priority = ["normal", "high", "urgent"].includes(rawPriority) ? rawPriority : "normal";
+    const rawPriority = String(body.priority ?? "normal")
+      .trim()
+      .toLowerCase();
+    const priority = ["normal", "high", "urgent"].includes(rawPriority)
+      ? rawPriority
+      : "normal";
 
     // Service role client (bypasses RLS)
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
     );
 
     // 1) Find integration by secret
     const { data: integration, error: intErr } = await supabase
       .from("org_google_sheets_integrations")
-      .select("id, org_id, is_enabled, default_queue_id, connected_by_user_id, create_rule")
+      .select(
+        "id, org_id, is_enabled, default_queue_id, connected_by_user_id, create_rule",
+      )
       .eq("webhook_secret", secret)
       .maybeSingle();
 
     if (intErr) {
       console.error("integration lookup error:", intErr);
-      return NextResponse.json({ error: "Integration lookup failed" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Integration lookup failed" },
+        { status: 500 },
+      );
     }
     if (!integration || !integration.is_enabled) {
-      return NextResponse.json({ error: "Integration not found/disabled" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Integration not found/disabled" },
+        { status: 404 },
+      );
     }
 
     // 2) Optional rule check (statusEquals)
     const statusEquals = integration?.create_rule?.statusEquals ?? "new";
-    const incomingStatus = String(body.status ?? "").trim().toLowerCase();
-    if (statusEquals && incomingStatus && incomingStatus !== String(statusEquals).toLowerCase()) {
-      return NextResponse.json({ ok: true, skipped: true, reason: "Rule not matched" }, { status: 200 });
+    const incomingStatus = String(body.status ?? "")
+      .trim()
+      .toLowerCase();
+    if (
+      statusEquals &&
+      incomingStatus &&
+      incomingStatus !== String(statusEquals).toLowerCase()
+    ) {
+      return NextResponse.json(
+        { ok: true, skipped: true, reason: "Rule not matched" },
+        { status: 200 },
+      );
     }
 
     // 3) Insert case with required fields
