@@ -6,11 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import { supabase } from "@/lib/supabase/client";
-import {
-  diagnosticsOrgAccess,
-  upsertMyProfile,
-  updateOrgSettings,
-} from "@/lib/db";
+import { diagnosticsOrgAccess, upsertMyProfile, updateOrgSettings } from "@/lib/db";
 import { useUser, useWorkspace } from "@/contexts";
 
 import {
@@ -28,12 +24,7 @@ import {
   Typography,
 } from "antd";
 
-import {
-  SettingOutlined,
-  ReloadOutlined,
-  WifiOutlined,
-  LogoutOutlined,
-} from "@ant-design/icons";
+import { SettingOutlined, ReloadOutlined, WifiOutlined, LogoutOutlined } from "@ant-design/icons";
 
 import ProfileCard from "./_components/ProfileCard";
 import OrgSettingsCard from "./_components/OrgSettingsCard";
@@ -41,6 +32,7 @@ import WorkspaceCard from "./_components/WorkspaceCard";
 import SecurityCard from "./_components/SecurityCard";
 import { getExt } from "./_components/helpers";
 import AnnouncementsManager from "./_components/AnnouncementsManager";
+import GoogleSheetsIntegrationCard from "./_components/GoogleSheetsIntegrationCard";
 
 const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
@@ -53,9 +45,33 @@ export default function SettingsPage() {
   const screens = useBreakpoint();
   const isMobile = !screens.md;
 
-  // Use contexts for user and workspace
-  const { user: sessionUser, profile, refreshProfile, loading: userLoading } = useUser();
-  const { workspace, isAdmin, isOwner, refreshWorkspace, loading: wsLoading } = useWorkspace();
+  const params = useParams();
+  const locale = params?.locale || "he";
+
+  const {
+    user: sessionUser,
+    profile,
+    refreshProfile,
+    loading: userLoading,
+  } = useUser();
+
+  const {
+    workspace,
+    isAdmin,
+    isOwner,
+    refreshWorkspace,
+    loading: wsLoading,
+  } = useWorkspace();
+
+  // ✅ resolve orgId once, use everywhere
+  const resolvedOrgId =
+    workspace?.orgId ||
+    workspace?.org_id ||
+    workspace?.org?.id ||
+    workspace?.id ||
+    null;
+
+  const loading = userLoading || wsLoading;
 
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -66,15 +82,33 @@ export default function SettingsPage() {
 
   // used to bust org logo cache
   const [logoBust, setLogoBust] = useState(0);
-  const params = useParams();
-  const locale = params?.locale || "he";
 
-  const loading = userLoading || wsLoading;
+  const [queues, setQueues] = useState([]);
 
-  // Fetch org logo when workspace changes
+  useEffect(() => {
+    async function fetchQueues() {
+      if (!resolvedOrgId) return;
+      try {
+        const { data, error } = await supabase
+          .from("queues")
+          .select("id, name")
+          .eq("org_id", resolvedOrgId)
+          .eq("is_active", true)
+          .order("created_at", { ascending: true });
+
+        if (error) throw error;
+        setQueues(data || []);
+      } catch (e) {
+        console.error("Failed to fetch queues:", e);
+      }
+    }
+
+    fetchQueues();
+  }, [resolvedOrgId]);
+
   useEffect(() => {
     async function fetchOrgLogo() {
-      if (!workspace?.orgId) {
+      if (!resolvedOrgId) {
         setOrgLogoUrl(null);
         return;
       }
@@ -82,7 +116,7 @@ export default function SettingsPage() {
         const { data: org, error: orgErr } = await supabase
           .from("organizations")
           .select("logo_url")
-          .eq("id", workspace.orgId)
+          .eq("id", resolvedOrgId)
           .maybeSingle();
 
         if (orgErr) throw orgErr;
@@ -91,21 +125,23 @@ export default function SettingsPage() {
         console.error("Failed to fetch org logo:", e);
       }
     }
+
     fetchOrgLogo();
-  }, [workspace?.orgId]);
+  }, [resolvedOrgId]);
 
   async function handleRefresh() {
     try {
       setError("");
       setRefreshing(true);
+
       await Promise.all([refreshProfile(), refreshWorkspace()]);
 
       // Refetch org logo
-      if (workspace?.orgId) {
+      if (resolvedOrgId) {
         const { data: org } = await supabase
           .from("organizations")
           .select("logo_url")
-          .eq("id", workspace.orgId)
+          .eq("id", resolvedOrgId)
           .maybeSingle();
         setOrgLogoUrl(org?.logo_url || null);
       }
@@ -133,20 +169,19 @@ export default function SettingsPage() {
   }
 
   useEffect(() => {
-    if (!isAdmin || !workspace?.orgId) return;
-    runDiagnostics(workspace.orgId);
+    if (!isAdmin || !resolvedOrgId) return;
+    runDiagnostics(resolvedOrgId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, workspace?.orgId]);
+  }, [isAdmin, resolvedOrgId]);
 
   async function logout() {
     try {
       await supabase.auth.signOut({ scope: "local" });
     } finally {
       router.replace(`/${locale}/login`);
-      router.refresh(); // מבטיח ניקוי state בצד לקוח
+      router.refresh();
     }
   }
-  
 
   async function onSaveProfile(values) {
     try {
@@ -196,13 +231,13 @@ export default function SettingsPage() {
   }
 
   async function onUploadOrgLogo(file) {
-    if (!workspace?.orgId) throw new Error("No org");
+    if (!resolvedOrgId) throw new Error("No org");
     if (!isAdmin) throw new Error(t("settings.users.adminsOnly"));
 
     setSavingOrg(true);
     try {
       const ext = getExt(file?.name);
-      const path = `${workspace.orgId}.${ext}`;
+      const path = `${resolvedOrgId}.${ext}`;
 
       const { error: upErr } = await supabase.storage
         .from("org-logos")
@@ -214,24 +249,22 @@ export default function SettingsPage() {
 
       if (upErr) throw upErr;
 
-      const { data: pub } = supabase.storage
-        .from("org-logos")
-        .getPublicUrl(path);
+      const { data: pub } = supabase.storage.from("org-logos").getPublicUrl(path);
       const url = pub?.publicUrl || null;
 
       const name = (workspace?.orgName || "").trim();
       await updateOrgSettings({
-        orgId: workspace.orgId,
+        orgId: resolvedOrgId,
         name: name || workspace?.orgName || "Workspace",
         logoUrl: url,
       });
 
-      // ✅ bust AFTER success
+      // bust AFTER success
       setLogoBust(Date.now());
 
       message.success(t("settings.messages.logoUpdated"));
       await refreshWorkspace();
-      await runDiagnostics(workspace.orgId);
+      await runDiagnostics(resolvedOrgId);
     } catch (e) {
       message.error(e?.message || t("settings.messages.logoFailed"));
       throw e;
@@ -241,7 +274,7 @@ export default function SettingsPage() {
   }
 
   async function onSaveOrg(values) {
-    if (!workspace?.orgId) return;
+    if (!resolvedOrgId) return;
     if (!isAdmin) return;
 
     const name = (values?.name || "").trim();
@@ -253,14 +286,14 @@ export default function SettingsPage() {
     setSavingOrg(true);
     try {
       await updateOrgSettings({
-        orgId: workspace.orgId,
+        orgId: resolvedOrgId,
         name,
         logoUrl: orgLogoUrl || null,
       });
 
       message.success(t("settings.messages.orgUpdated"));
       await refreshWorkspace();
-      await runDiagnostics(workspace.orgId);
+      await runDiagnostics(resolvedOrgId);
     } catch (e) {
       message.error(e?.message || t("settings.messages.orgFailed"));
     } finally {
@@ -270,7 +303,7 @@ export default function SettingsPage() {
 
   return (
     <Spin spinning={loading} size="large">
-      <Space orientation="vertical" size={14} style={{ width: "100%" }}>
+      <Space direction="vertical" size={14} style={{ width: "100%" }}>
         {/* Header */}
         <Card
           style={{
@@ -281,22 +314,32 @@ export default function SettingsPage() {
         >
           <Row justify="space-between" align="middle" gutter={[12, 12]}>
             <Col xs={24} md="auto">
-              <Space orientation="vertical" size={2} style={{ width: "100%" }}>
+              <Space direction="vertical" size={2} style={{ width: "100%" }}>
                 <Title level={isMobile ? 4 : 3} style={{ margin: 0 }}>
                   {t("settings.header.title")}
                 </Title>
 
                 <Space wrap size={8}>
                   {workspace?.orgName ? (
-                    <Tag color="blue">{t("common.workspace")}: {workspace.orgName}</Tag>
+                    <Tag color="blue">
+                      {t("common.workspace")}: {workspace.orgName}
+                    </Tag>
                   ) : (
-                    <Tag>{t("common.workspace")}: {t("common.workspaceNone")}</Tag>
+                    <Tag>
+                      {t("common.workspace")}: {t("common.workspaceNone")}
+                    </Tag>
                   )}
 
-                  <Tag icon={<SettingOutlined />}>{t("settings.header.configuration")}</Tag>
+                  <Tag icon={<SettingOutlined />}>
+                    {t("settings.header.configuration")}
+                  </Tag>
+
                   {isOwner ? <Tag color="gold">{t("settings.header.owner")}</Tag> : null}
+
                   {workspace?.role ? (
-                    <Tag color="geekblue">{t("settings.header.role", { role: workspace.role })}</Tag>
+                    <Tag color="geekblue">
+                      {t("settings.header.role", { role: workspace.role })}
+                    </Tag>
                   ) : null}
 
                   <Tag color="green" icon={<WifiOutlined />}>
@@ -358,10 +401,11 @@ export default function SettingsPage() {
               isMobile={isMobile}
             />
 
-            {isAdmin && workspace?.orgId ? (
-              <AnnouncementsManager
-                orgId={workspace.orgId}
-                isAdmin={isAdmin}
+            {isAdmin && resolvedOrgId ? (
+              <GoogleSheetsIntegrationCard
+                orgId={resolvedOrgId}
+                queues={queues}
+                returnTo={`/${locale}/settings`}
                 isMobile={isMobile}
               />
             ) : null}
@@ -376,13 +420,11 @@ export default function SettingsPage() {
               isMobile={isMobile}
               onManageUsers={() => router.push(`/${locale}/settings/users`)}
               onRequestAccess={() =>
-                message.info(
-                  t("settings.messages.adminsOnlyManage")
-                )
+                message.info(t("settings.messages.adminsOnlyManage"))
               }
             />
 
-            {isAdmin && workspace?.orgId ? (
+            {isAdmin && resolvedOrgId ? (
               <OrgSettingsCard
                 workspace={workspace}
                 orgLogoUrl={orgLogoUrl}
@@ -395,12 +437,20 @@ export default function SettingsPage() {
               />
             ) : null}
 
+            {isAdmin && resolvedOrgId ? (
+              <AnnouncementsManager
+                orgId={resolvedOrgId}
+                isAdmin={isAdmin}
+                isMobile={isMobile}
+              />
+            ) : null}
+
             <SecurityCard
               isAdmin={isAdmin}
-              orgId={workspace?.orgId || null}
+              orgId={resolvedOrgId}
               diag={diag}
               diagLoading={diagLoading}
-              onRunDiagnostics={() => runDiagnostics(workspace.orgId)}
+              onRunDiagnostics={() => runDiagnostics(resolvedOrgId)}
               isMobile={isMobile}
             />
           </Col>
@@ -408,7 +458,7 @@ export default function SettingsPage() {
 
         {/* Roadmap */}
         <Card style={{ borderRadius: 16 }}>
-          <Space orientation="vertical" size={6}>
+          <Space direction="vertical" size={6}>
             <Text strong>{t("settings.nextUpgrades.title")}</Text>
             <Text type="secondary" style={{ fontSize: 12 }}>
               {t("settings.nextUpgrades.items")}

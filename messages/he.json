@@ -778,6 +778,95 @@
     "daysAgo": "לפני {count} ימים",
     "justNow": "ממש עכשיו"
   },
+  "integrations": {
+    "googleSheets": {
+      "card": {
+        "title": "אינטגרציית Google Sheets",
+        "subtitle": "סנכרן פניות מ-Google Sheets"
+      },
+      "tags": {
+        "notConnected": "לא מחובר",
+        "connected": "מחובר"
+      },
+      "steps": {
+        "connect": "חיבור Google",
+        "create": "יצירת Sheet",
+        "install": "התקנת סקריפט",
+        "ready": "מוכן"
+      },
+      "actions": {
+        "connect": "התחבר ל-Google",
+        "refresh": "רענן",
+        "createAndConnect": "צור וחבר",
+        "installScript": "התקן סקריפט",
+        "openSheet": "פתח Sheet",
+        "openSheetAuthorize": "פתח Sheet ואשר הרשאות",
+        "openScript": "פתח סקריפט",
+        "reinstallRebind": "התקן מחדש / קשר מחדש",
+        "runSetupAgain": "הרץ הגדרה מחדש",
+        "disconnect": "נתק",
+        "copy": "העתק"
+      },
+      "state": {
+        "connect": {
+          "title": "Google לא מחובר",
+          "desc": "כדי ליצור Sheet אוטומטי ולהתקין Apps Script + Trigger, חבר חשבון Google עם OAuth."
+        },
+        "create": {
+          "title": "Google מחובר — צריך ליצור Sheet",
+          "desc": "בחר תור ברירת מחדל, ואז ניצור Sheet ונקים Apps Script + Trigger אוטומטית."
+        },
+        "ready": {
+          "title": "האינטגרציה מוכנה",
+          "desc": "ה-Sheet והסקריפט מותקנים. ייתכן שתצטרך לאשר הרשאות פעם אחת.",
+          "authTitle": "ייתכן שנדרש אישור הרשאות",
+          "authDesc": "פתח את ה-Sheet → תפריט CaseFlow → הפעל אוטומציה (פעם אחת). אחרי זה זה רץ אוטומטית."
+        },
+        "install": {
+          "title": "Sheet נוצר — התקן סקריפט",
+          "desc": "ה-Sheet קיים. עכשיו התקן את Apps Script כדי לאפשר אוטומציה.",
+          "noteTitle": "אישור הרשאות חד-פעמי",
+          "noteDesc": "אחרי ההתקנה, פתח את ה-Sheet פעם אחת ואשר הרשאות (דרישת אבטחה של Google)."
+        }
+      },
+      "fields": {
+        "defaultQueue": {
+          "label": "תור ברירת מחדל",
+          "placeholder": "בחר תור ברירת מחדל",
+          "help": "פניות מה-Sheet ינותבו לתור זה."
+        }
+      },
+      "labels": {
+        "sheetId": "מזהה Sheet",
+        "sheetUrl": "כתובת Sheet",
+        "scriptUrl": "כתובת סקריפט"
+      },
+      "tooltips": {
+        "pickQueue": "בחר תור קודם",
+        "reinstall": "התקן מחדש את הסקריפט אם משהו נשבר",
+        "setupAgain": "הרץ הגדרה מחדש ליצירת Sheet + סקריפט חדשים"
+      },
+      "hints": {
+        "redirectHint": "GET /api/integrations/google/auth/start?orgId=...&returnTo=...",
+        "endpointCreate": "Endpoint:"
+      },
+      "messages": {
+        "pickDefaultQueue": "בחר תור ברירת מחדל לפני יצירת ה-Sheet.",
+        "setupOk": "ה-Sheet נוצר והסקריפט הותקן בהצלחה.",
+        "installOk": "הסקריפט הותקן. פתח את ה-Sheet פעם אחת ואשר הרשאות.",
+        "disconnected": "החיבור ל-Google נותק. התחבר מחדש כדי לאשר הרשאות.",
+        "copied": "הועתק"
+      },
+      "errors": {
+        "uiTitle": "שגיאה בטעינת סטטוס",
+        "loadStatus": "נכשל בטעינת סטטוס Google Sheets",
+        "setupFailed": "ההגדרה נכשלה",
+        "installFailed": "ההתקנה נכשלה",
+        "installEndpointMissing": "ה-API של התקנת הסקריפט עדיין לא קיים. צור את ה-endpoint ונסה שוב.",
+        "disconnectFailed": "הניתוק נכשל"
+      }
+    }
+  },
   "caseDetails": {
     "notFound": {
       "title": "לא נמצא",

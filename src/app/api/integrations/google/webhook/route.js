@@ -1,19 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-/**
- * Webhook endpoint called by Google Apps Script.
- * Identifies org via x-webhook-secret, then creates a Case with required fields:
- * org_id, queue_id, created_by.
- */
 export async function POST(req) {
   try {
     const secret = (req.headers.get("x-webhook-secret") || "").trim();
     if (!secret) {
-      return NextResponse.json(
-        { error: "Missing x-webhook-secret" },
-        { status: 401 },
-      );
+      return NextResponse.json({ error: "Missing x-webhook-secret" }, { status: 401 });
     }
 
     const body = await req.json().catch(() => null);
@@ -21,71 +13,42 @@ export async function POST(req) {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    // minimal payload validation
     const title = String(body.title ?? "").trim();
     const description = String(body.description ?? "").trim();
-    const externalRef = body.external_ref
-      ? String(body.external_ref).trim()
-      : null;
+    const externalRef = body.external_ref ? String(body.external_ref).trim() : null;
 
-    if (!title) {
-      return NextResponse.json({ error: "Missing title" }, { status: 400 });
-    }
+    if (!title) return NextResponse.json({ error: "Missing title" }, { status: 400 });
+    if (!externalRef) return NextResponse.json({ error: "Missing external_ref" }, { status: 400 });
 
-    // Normalize priority to your enum values (based on your table: normal/high/urgent)
-    const rawPriority = String(body.priority ?? "normal")
-      .trim()
-      .toLowerCase();
-    const priority = ["normal", "high", "urgent"].includes(rawPriority)
-      ? rawPriority
-      : "normal";
+    const rawPriority = String(body.priority ?? "normal").trim().toLowerCase();
+    const priority = ["low", "normal", "high", "urgent"].includes(rawPriority) ? rawPriority : "normal";
 
-    // Service role client (bypasses RLS)
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    // 1) Find integration by secret
     const { data: integration, error: intErr } = await supabase
       .from("org_google_sheets_integrations")
-      .select(
-        "id, org_id, is_enabled, default_queue_id, connected_by_user_id, create_rule",
-      )
+      .select("org_id,is_enabled,default_queue_id,connected_by_user_id,create_rule")
       .eq("webhook_secret", secret)
       .maybeSingle();
 
     if (intErr) {
       console.error("integration lookup error:", intErr);
-      return NextResponse.json(
-        { error: "Integration lookup failed" },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: "Integration lookup failed" }, { status: 500 });
     }
     if (!integration || !integration.is_enabled) {
-      return NextResponse.json(
-        { error: "Integration not found/disabled" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Integration not found/disabled" }, { status: 404 });
     }
 
-    // 2) Optional rule check (statusEquals)
+    // optional rule: statusEquals
     const statusEquals = integration?.create_rule?.statusEquals ?? "new";
-    const incomingStatus = String(body.status ?? "")
-      .trim()
-      .toLowerCase();
-    if (
-      statusEquals &&
-      incomingStatus &&
-      incomingStatus !== String(statusEquals).toLowerCase()
-    ) {
-      return NextResponse.json(
-        { ok: true, skipped: true, reason: "Rule not matched" },
-        { status: 200 },
-      );
+    const incomingStatus = String(body.status ?? "").trim().toLowerCase();
+    if (statusEquals && incomingStatus && incomingStatus !== String(statusEquals).toLowerCase()) {
+      return NextResponse.json({ ok: true, skipped: true, reason: "Rule not matched" }, { status: 200 });
     }
 
-    // 3) Insert case with required fields
     const caseRow = {
       org_id: integration.org_id,
       queue_id: integration.default_queue_id,
@@ -103,22 +66,27 @@ export async function POST(req) {
     const { data: inserted, error: insErr } = await supabase
       .from("cases")
       .insert(caseRow)
-      .select("id, org_id, queue_id, title, status, priority, external_ref")
+      .select("id")
       .single();
 
     if (insErr) {
-      // Duplicate external_ref (org_id, external_ref unique index)
+      // Dedupe (unique org_id + external_ref)
       if (insErr.code === "23505") {
-        return NextResponse.json({ ok: true, deduped: true }, { status: 200 });
+        const { data: existing } = await supabase
+          .from("cases")
+          .select("id")
+          .eq("org_id", integration.org_id)
+          .eq("external_ref", externalRef)
+          .maybeSingle();
+
+        return NextResponse.json({ ok: true, deduped: true, caseId: existing?.id || null }, { status: 200 });
       }
+
       console.error("case insert error:", insErr);
-      return NextResponse.json({ error: insErr }, { status: 500 });
+      return NextResponse.json({ error: "Case insert failed", details: insErr }, { status: 500 });
     }
 
-    // Optional: create case activity (nice for audit trail)
-    // If you want this now, tell me ואשלח לך insert מותאם לטבלת case_activities אצלך.
-
-    return NextResponse.json({ ok: true, case: inserted }, { status: 200 });
+    return NextResponse.json({ ok: true, caseId: inserted.id }, { status: 200 });
   } catch (e) {
     console.error("webhook fatal:", e);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

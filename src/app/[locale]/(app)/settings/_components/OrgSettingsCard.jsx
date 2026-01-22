@@ -63,9 +63,14 @@ export default function OrgSettingsCard({
           </Avatar>
         </Col>
         <Col flex="auto" style={{ minWidth: 0 }}>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {t("settings.org.updateHint")}
-          </Text>
+          <Space direction="vertical" size={0} style={{ width: "100%" }}>
+            <Text strong style={{ fontSize: 14, wordBreak: "break-word" }}>
+              {workspace?.orgName || "Organization"}
+            </Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {t("settings.org.updateHint")}
+            </Text>
+          </Space>
         </Col>
       </Row>
 
@@ -108,9 +113,14 @@ export default function OrgSettingsCard({
           </div>
         </Form.Item>
 
-        <Button type="primary" htmlType="submit" loading={savingOrg} block={isMobile}>
-          {t("settings.org.saveOrganization")}
-        </Button>
+        <Space wrap style={{ width: "100%" }}>
+          <Button onClick={() => orgForm.resetFields()} block={isMobile}>
+            {t("common.reset")}
+          </Button>
+          <Button type="primary" htmlType="submit" loading={savingOrg} block={isMobile}>
+            {t("settings.org.saveOrganization")}
+          </Button>
+        </Space>
       </Form>
     </Card>
   );

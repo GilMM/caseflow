@@ -769,6 +769,95 @@
     "daysAgo": "{count} days ago",
     "justNow": "Just now"
   },
+  "integrations": {
+    "googleSheets": {
+      "card": {
+        "title": "Google Sheets Integration",
+        "subtitle": "Sync cases from Google Sheets"
+      },
+      "tags": {
+        "notConnected": "Not connected",
+        "connected": "Connected"
+      },
+      "steps": {
+        "connect": "Connect Google",
+        "create": "Create Sheet",
+        "install": "Install Script",
+        "ready": "Ready"
+      },
+      "actions": {
+        "connect": "Connect Google",
+        "refresh": "Refresh",
+        "createAndConnect": "Create & Connect",
+        "installScript": "Install Script",
+        "openSheet": "Open Sheet",
+        "openSheetAuthorize": "Open Sheet & Authorize",
+        "openScript": "Open Script",
+        "reinstallRebind": "Reinstall / Rebind",
+        "runSetupAgain": "Run Setup Again",
+        "disconnect": "Disconnect",
+        "copy": "Copy"
+      },
+      "state": {
+        "connect": {
+          "title": "Google not connected",
+          "desc": "To create an automatic Sheet and install Apps Script + Trigger, connect a Google account with OAuth."
+        },
+        "create": {
+          "title": "Google connected — need to create Sheet",
+          "desc": "Select a Default Queue, then we'll create a Sheet and set up Apps Script + Trigger automatically."
+        },
+        "ready": {
+          "title": "Integration ready",
+          "desc": "The Sheet and Script are installed. You may need to authorize once.",
+          "authTitle": "Authorization may be required",
+          "authDesc": "Open the Sheet → CaseFlow menu → Enable automation (once). After that it runs automatically."
+        },
+        "install": {
+          "title": "Sheet created — install script",
+          "desc": "The Sheet exists. Now install the Apps Script to enable automation.",
+          "noteTitle": "One-time authorization",
+          "noteDesc": "After installation, open the Sheet once and approve permissions (Google security requirement)."
+        }
+      },
+      "fields": {
+        "defaultQueue": {
+          "label": "Default Queue",
+          "placeholder": "Select default queue",
+          "help": "Cases from the Sheet will be routed to this queue."
+        }
+      },
+      "labels": {
+        "sheetId": "Sheet ID",
+        "sheetUrl": "Sheet URL",
+        "scriptUrl": "Script URL"
+      },
+      "tooltips": {
+        "pickQueue": "Select a queue first",
+        "reinstall": "Reinstall the script if something broke",
+        "setupAgain": "Run setup again to recreate Sheet + Script"
+      },
+      "hints": {
+        "redirectHint": "GET /api/integrations/google/auth/start?orgId=...&returnTo=...",
+        "endpointCreate": "Endpoint:"
+      },
+      "messages": {
+        "pickDefaultQueue": "Select a Default Queue before creating the Sheet.",
+        "setupOk": "Sheet created and script installed successfully.",
+        "installOk": "Script installed. Open the Sheet once and authorize permissions.",
+        "disconnected": "Google connection disconnected. Reconnect to authorize permissions.",
+        "copied": "Copied"
+      },
+      "errors": {
+        "uiTitle": "Error loading status",
+        "loadStatus": "Failed to load Google Sheets status",
+        "setupFailed": "Setup failed",
+        "installFailed": "Install failed",
+        "installEndpointMissing": "The Install Script API doesn't exist yet. Create the endpoint and try again.",
+        "disconnectFailed": "Disconnect failed"
+      }
+    }
+  },
   "caseDetails": {
     "notFound": {
       "title": "Not found",
