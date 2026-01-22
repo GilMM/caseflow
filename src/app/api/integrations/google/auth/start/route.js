@@ -17,6 +17,7 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const orgId = searchParams.get("orgId");
   const returnTo = searchParams.get("returnTo") || "/en/settings";
+
   if (!orgId) {
     return NextResponse.json({ error: "Missing orgId" }, { status: 400 });
   }
@@ -31,7 +32,7 @@ export async function GET(req) {
   return NextResponse.redirect(
     buildGoogleAuthUrl({
       state,
-      redirectUri, // ✅ חשוב
+      redirectUri,
     }),
   );
 }
