@@ -37,6 +37,7 @@ import { useUser } from "@/contexts";
 import AnnouncementBanner from "@/app/[locale]/(app)/announcements/AnnouncementBanner";
 import { useAnnouncements } from "@/app/[locale]/(app)/announcements/useAnnouncements";
 import { useLanguageSwitcher } from "@/components/LanguageSwitcher";
+import OrgSwitcher from "@/components/OrgSwitcher";
 import { locales } from "@/i18n/config";
 
 const { Header, Sider, Content } = Layout;
@@ -381,22 +382,26 @@ export default function AppShell({ children }) {
               </Text>
             </Space>
 
-            <Dropdown menu={userMenu} trigger={["click"]} placement={isRTL ? "bottomLeft" : "bottomRight"}>
-              <Button>
-                <Space>
-                  <Text
-                    style={{
-                      maxWidth: isMobile ? 120 : 260,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {effectiveEmail}
-                  </Text>
-                </Space>
-              </Button>
-            </Dropdown>
+            <Space size={8}>
+              <OrgSwitcher />
+
+              <Dropdown menu={userMenu} trigger={["click"]} placement={isRTL ? "bottomLeft" : "bottomRight"}>
+                <Button>
+                  <Space>
+                    <Text
+                      style={{
+                        maxWidth: isMobile ? 120 : 260,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {effectiveEmail}
+                    </Text>
+                  </Space>
+                </Button>
+              </Dropdown>
+            </Space>
           </Header>
 
           <Content

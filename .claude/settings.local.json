@@ -16,7 +16,8 @@
       "Bash(cmd /c \"del /f /q \\\\?\\\\c:\\\\Users\\\\GMesh\\\\caseflow\\\\nul\")",
       "Bash(dir \"c:\\\\Users\\\\GMesh\\\\caseflow\")",
       "Bash(dir \"c:\\\\Users\\\\GMesh\\\\caseflow\\\\src\" /s /b *.tsx)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(git stash show:*)"
     ]
   }
 }

@@ -5,7 +5,8 @@
       "Bash(wc:*)"
     ],
     "additionalDirectories": [
-      "/Users/gilmeshulami/caseflow/caseflow-1/messages"
+      "/Users/gilmeshulami/caseflow/caseflow-1/messages",
+      "c:\\Users\\GMesh\\caseflow\\node_modules"
     ]
   }
 }

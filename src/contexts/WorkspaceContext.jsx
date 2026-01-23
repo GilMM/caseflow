@@ -9,7 +9,7 @@ import {
   useMemo,
 } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { getOrgMembers } from "@/lib/db";
+import { getOrgMembers, getMyWorkspaces } from "@/lib/db";
 import {
   getCachedWorkspace,
   setCachedWorkspace,
@@ -28,6 +28,7 @@ const MEMBERS_CACHE_TTL = 60000; // 1 minute
 
 export function WorkspaceProvider({ children }) {
   const [workspace, setWorkspace] = useState(null);
+  const [workspaces, setWorkspaces] = useState([]); // All user's orgs
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [membersLoading, setMembersLoading] = useState(false);
@@ -64,15 +65,41 @@ export function WorkspaceProvider({ children }) {
     }
 
     try {
-      const { data, error } = await supabase
+      // 1) Get current user
+      const { data: sessionData } = await supabase.auth.getSession();
+      const currentUserId = sessionData?.session?.user?.id;
+      if (!currentUserId) {
+        setWorkspace(null);
+        return null;
+      }
+
+      // 2) Check if user has an active_org_id in user_workspaces
+      let activeOrgId = null;
+      const { data: wsData } = await supabase
+        .from("user_workspaces")
+        .select("active_org_id")
+        .eq("user_id", currentUserId)
+        .maybeSingle();
+
+      if (wsData?.active_org_id) {
+        activeOrgId = wsData.active_org_id;
+      }
+
+      // 3) Get membership - either for active org or first available
+      let query = supabase
         .from("org_memberships")
         .select(
           "org_id, role, is_active, created_at, organizations:org_id ( id, name, logo_url, owner_user_id )",
         )
-        .eq("is_active", true)
-        .order("created_at", { ascending: false })
-        .limit(1);
+        .eq("is_active", true);
 
+      if (activeOrgId) {
+        query = query.eq("org_id", activeOrgId);
+      } else {
+        query = query.order("created_at", { ascending: false }).limit(1);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
 
       const m = data?.[0];
@@ -96,6 +123,27 @@ export function WorkspaceProvider({ children }) {
       console.error("Failed to fetch workspace:", e);
       setWorkspace(null);
       return null;
+    }
+  }, []);
+
+  const fetchAllWorkspaces = useCallback(async () => {
+    try {
+      const list = await getMyWorkspaces();
+      // Transform to cleaner format
+      const transformed = (list || []).map((m) => ({
+        orgId: m.org_id,
+        orgName: m.organizations?.name || "Workspace",
+        orgLogoUrl: m.organizations?.logo_url || null,
+        role: m.role,
+        isActive: m.is_active,
+        ownerUserId: m.organizations?.owner_user_id || null,
+      }));
+      setWorkspaces(transformed);
+      return transformed;
+    } catch (e) {
+      console.error("Failed to fetch workspaces:", e);
+      setWorkspaces([]);
+      return [];
     }
   }, []);
 
@@ -134,6 +182,35 @@ export function WorkspaceProvider({ children }) {
       setMembersLoading(false);
     }
   }, []);
+
+  const switchWorkspace = useCallback(async (orgId) => {
+    try {
+      const res = await fetch("/api/orgs/active", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to switch org");
+      }
+
+      // Clear caches and refetch
+      invalidateWorkspaceCache();
+      membersCache = { data: null, orgId: null, timestamp: 0 };
+
+      const ws = await fetchWorkspace();
+      if (ws?.orgId) {
+        await fetchMembers(ws.orgId);
+      }
+
+      return ws;
+    } catch (e) {
+      console.error("Failed to switch workspace:", e);
+      throw e;
+    }
+  }, [fetchWorkspace, fetchMembers]);
 
   const refreshWorkspace = useCallback(async () => {
     invalidateWorkspaceCache();
@@ -180,6 +257,9 @@ export function WorkspaceProvider({ children }) {
       if (ws?.orgId) {
         fetchMembers(ws.orgId); // ✅ בלי await (לא חוסם הרשאות)
       }
+
+      // Fetch all workspaces for org switcher
+      fetchAllWorkspaces();
     }
 
     init();
@@ -197,9 +277,11 @@ export function WorkspaceProvider({ children }) {
             fetchMembers(ws.orgId);
           }
         });
+        fetchAllWorkspaces();
       } else {
         // User logged out
         setWorkspace(null);
+        setWorkspaces([]);
         setMembers([]);
       }
     });
@@ -223,11 +305,13 @@ export function WorkspaceProvider({ children }) {
 
   const value = {
     workspace,
+    workspaces,
     members,
     loading,
     membersLoading,
     refreshWorkspace,
     refreshMembers,
+    switchWorkspace,
     isOwner,
     isAdmin,
     orgId: workspace?.orgId || null,

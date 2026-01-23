@@ -68,6 +68,46 @@
   "app": {
     "builtBy": "נבנה על ידי"
   },
+  "orgSwitcher": {
+    "yourOrganizations": "הארגונים שלך",
+    "switched": "הארגון הוחלף",
+    "switchFailed": "נכשל בהחלפת ארגון",
+    "createNew": "צור ארגון חדש",
+    "joinExisting": "הצטרף עם הזמנה"
+  },
+  "newOrg": {
+    "title": "הוספת ארגון",
+    "subtitle": "צור ארגון חדש או הצטרף לארגון קיים עם הזמנה.",
+    "createTab": "צור חדש",
+    "joinTab": "הצטרף לקיים",
+    "createDesc": "התחל ארגון חדש והפוך למנהל שלו.",
+    "joinDesc": "הדבק טוקן הזמנה כדי להצטרף לארגון קיים.",
+    "orgName": "שם הארגון",
+    "orgNamePlaceholder": "לדוגמה: תמיכת אקמי",
+    "orgNameRequired": "יש להזין שם ארגון",
+    "orgNameTooShort": "השם קצר מדי",
+    "createButton": "צור ארגון",
+    "createHint": "תוכל להזמין חברי צוות מעמוד ההגדרות.",
+    "inviteToken": "טוקן הזמנה",
+    "tokenPlaceholder": "הדבק טוקן הזמנה כאן...",
+    "tokenRequired": "יש להדביק טוקן הזמנה",
+    "checking": "בודק הזמנה...",
+    "inviteTo": "הזמנה ל:",
+    "role": "תפקיד",
+    "expires": "פג תוקף",
+    "inviteExpired": "ההזמנה פגה",
+    "inviteExpiredDesc": "בקש ממנהל לשלוח לך הזמנה חדשה.",
+    "joinButton": "הצטרף לארגון",
+    "joinHint": "אחרי ההצטרפות, תוכל לעבור בין ארגונים מהכותרת.",
+    "invalidInvite": "טוקן הזמנה לא תקין",
+    "enterOrgName": "יש להזין שם ארגון",
+    "notAuthenticated": "לא מחובר",
+    "orgCreated": "הארגון נוצר בהצלחה",
+    "createFailed": "נכשל ביצירת הארגון",
+    "pasteToken": "יש להדביק טוקן הזמנה",
+    "joinedOrg": "הצטרפת לארגון בהצלחה",
+    "joinFailed": "נכשל בהצטרפות לארגון"
+  },
   "auth": {
     "login": {
       "title": "התחברות",

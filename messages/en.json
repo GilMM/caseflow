@@ -68,6 +68,46 @@
   "app": {
     "builtBy": "Built by"
   },
+  "orgSwitcher": {
+    "yourOrganizations": "Your organizations",
+    "switched": "Switched organization",
+    "switchFailed": "Failed to switch organization",
+    "createNew": "Create new organization",
+    "joinExisting": "Join with invite"
+  },
+  "newOrg": {
+    "title": "Add Organization",
+    "subtitle": "Create a new organization or join an existing one with an invite.",
+    "createTab": "Create New",
+    "joinTab": "Join Existing",
+    "createDesc": "Start a new organization and become its admin.",
+    "joinDesc": "Paste an invite token to join an existing organization.",
+    "orgName": "Organization name",
+    "orgNamePlaceholder": "e.g., Acme Support",
+    "orgNameRequired": "Please enter an organization name",
+    "orgNameTooShort": "Name is too short",
+    "createButton": "Create Organization",
+    "createHint": "You'll be able to invite team members from the settings page.",
+    "inviteToken": "Invite token",
+    "tokenPlaceholder": "Paste invite token here...",
+    "tokenRequired": "Please paste an invite token",
+    "checking": "Checking invite...",
+    "inviteTo": "Invite to:",
+    "role": "Role",
+    "expires": "Expires",
+    "inviteExpired": "Invite expired",
+    "inviteExpiredDesc": "Ask an admin to send you a new invite.",
+    "joinButton": "Join Organization",
+    "joinHint": "After joining, you can switch between organizations from the header.",
+    "invalidInvite": "Invalid invite token",
+    "enterOrgName": "Please enter organization name",
+    "notAuthenticated": "Not authenticated",
+    "orgCreated": "Organization created successfully",
+    "createFailed": "Failed to create organization",
+    "pasteToken": "Please paste an invite token",
+    "joinedOrg": "Successfully joined organization",
+    "joinFailed": "Failed to join organization"
+  },
   "auth": {
     "login": {
       "title": "Sign in",
