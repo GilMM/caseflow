@@ -13,7 +13,7 @@ import {
   Tag,
   Typography,
 } from "antd";
-import { ArrowRightOutlined, AppstoreOutlined } from "@ant-design/icons";
+import { ArrowRightOutlined, AppstoreOutlined, PaperClipOutlined } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
 import { queueColor } from "@/lib/ui/queue";
 
@@ -30,6 +30,7 @@ export default function CasesList({
   hasMore,
   loadingMore,
   onLoadMore,
+  attachmentCounts = {},
 }) {
   const t = useTranslations();
   const list = filtered || [];
@@ -233,10 +234,18 @@ export default function CasesList({
                       {t("cases.list.created", { time: timeAgo(c.created_at) })}
                     </Text>
 
-                    {/* Open/Closed */}
+                    {/* Open/Closed + Attachments */}
                     <Space size={10} align="center">
                       <Badge status={isOpen ? "processing" : "default"} />
                       <Text type="secondary">{isOpen ? t("common.open") : t("common.closed")}</Text>
+                      {attachmentCounts[c.id] > 0 && (
+                        <Space size={4} style={{ opacity: 0.7 }}>
+                          <PaperClipOutlined style={{ fontSize: 12 }} />
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            {attachmentCounts[c.id]}
+                          </Text>
+                        </Space>
+                      )}
                     </Space>
                   </Space>
                 </Col>

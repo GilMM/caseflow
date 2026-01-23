@@ -382,6 +382,20 @@
       "searchMember": "Search member…"
     }
   },
+  "attachments": {
+    "title": "Attachments",
+    "addFiles": "Add files",
+    "noAttachments": "No attachments",
+    "uploaded": "File uploaded successfully",
+    "uploadFailed": "Failed to upload file",
+    "deleted": "File deleted",
+    "deleteFailed": "Failed to delete file",
+    "invalidType": "Invalid file type. Supported: images and PDF",
+    "tooLarge": "File is too large. Maximum 10MB",
+    "maxFilesReached": "Maximum {max} files reached",
+    "filesAttached": "{count} files",
+    "stagedCount": "{count} files will be uploaded when case is created"
+  },
   "contacts": {
     "header": {
       "title": "Contacts",

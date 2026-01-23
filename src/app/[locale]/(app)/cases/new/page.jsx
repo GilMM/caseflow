@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useLocaleContext } from "@/app/[locale]/providers";
 
 import { supabase } from "@/lib/supabase/client";
-import { createCase, getMyWorkspaces, getActiveWorkspace } from "@/lib/db";
+import { createCase, getMyWorkspaces, getActiveWorkspace, uploadCaseAttachment } from "@/lib/db";
 
 import { App, Col, Form, Row, Space, Spin } from "antd";
 
@@ -43,6 +43,9 @@ if (process.env.NODE_ENV === "development") {
   // contacts
   const [contacts, setContacts] = useState([]);
   const [contactsLoading, setContactsLoading] = useState(false);
+
+  // staged attachments (files to upload after case creation)
+  const [stagedFiles, setStagedFiles] = useState([]);
 
   // watch priority for sidebar tag
   const priority = Form.useWatch("priority", form);
@@ -233,6 +236,17 @@ const { locale } = useLocaleContext();
         requesterContactId: values.requester_contact_id || null,
       });
 
+      // Upload staged attachments after case creation
+      if (stagedFiles.length > 0) {
+        const uploadPromises = stagedFiles.map((file) =>
+          uploadCaseAttachment({ caseId, orgId, file }).catch((err) => {
+            console.error("Failed to upload attachment:", err);
+            return null;
+          })
+        );
+        await Promise.all(uploadPromises);
+      }
+
       message.success("Case created");
       router.push(`/${locale}/cases/${caseId}`);
     } catch (e) {
@@ -284,6 +298,9 @@ const { locale } = useLocaleContext();
             requesterOptions={requesterOptions}
             filterOption={filterOption}
             locale={locale}
+            stagedFiles={stagedFiles}
+            onAddStagedFile={(file) => setStagedFiles((prev) => [...prev, file])}
+            onRemoveStagedFile={(index) => setStagedFiles((prev) => prev.filter((_, i) => i !== index))}
           />
         </Col>
 

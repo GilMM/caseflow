@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { supabase } from "@/lib/supabase/client";
-import { getActiveWorkspace } from "@/lib/db";
+import { getActiveWorkspace, getCaseAttachmentCounts } from "@/lib/db";
 
 import { Card, Col, Row, Space, Spin, Typography, message } from "antd";
 
@@ -28,6 +28,7 @@ export default function CasesPage() {
   const [queueId, setQueueId] = useState(searchParams.get("queue") || "all");
 
   const [rows, setRows] = useState([]);
+  const [attachmentCounts, setAttachmentCounts] = useState({});
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -95,6 +96,13 @@ export default function CasesPage() {
       setRows(data || []);
       setHasMore((data || []).length === PAGE_SIZE);
 
+      // Load attachment counts for displayed cases
+      if (data?.length) {
+        const caseIds = data.map((c) => c.id);
+        const counts = await getCaseAttachmentCounts(caseIds);
+        setAttachmentCounts(counts);
+      }
+
       const now = Date.now();
       if (silent && now - lastToastRef.current > 7000) {
         lastToastRef.current = now;
@@ -140,6 +148,11 @@ export default function CasesPage() {
       if (data && data.length > 0) {
         setRows((prev) => [...prev, ...data]);
         setHasMore(data.length === PAGE_SIZE);
+
+        // Load attachment counts for new cases
+        const newCaseIds = data.map((c) => c.id);
+        const newCounts = await getCaseAttachmentCounts(newCaseIds);
+        setAttachmentCounts((prev) => ({ ...prev, ...newCounts }));
       } else {
         setHasMore(false);
       }
@@ -264,6 +277,7 @@ export default function CasesPage() {
         hasMore={hasMore}
         loadingMore={loadingMore}
         onLoadMore={loadMore}
+        attachmentCounts={attachmentCounts}
       />
     </Space>
   );

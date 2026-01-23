@@ -13,12 +13,15 @@ import {
   Tag,
   Typography,
   Tooltip,
-  message,
+  Upload,
   App,
 } from "antd";
 import {
+  DeleteOutlined,
+  PaperClipOutlined,
   PlusOutlined,
   ThunderboltOutlined,
+  UploadOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
@@ -43,7 +46,10 @@ export default function NewCaseForm({
   contactsLoading,
   requesterOptions,
   filterOption,
-  locale, // ✅ חדש: נעביר locale כדי שה-API ידע
+  locale,
+  stagedFiles = [],
+  onAddStagedFile,
+  onRemoveStagedFile,
 }) {
   const t = useTranslations();
   const priority = Form.useWatch("priority", form) || "normal";
@@ -350,6 +356,133 @@ export default function NewCaseForm({
                 </Space>
               )}
             />
+          </Form.Item>
+
+          {/* Attachments */}
+          <Form.Item label={t("attachments.title")}>
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              {stagedFiles.length > 0 && (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))",
+                    gap: 8,
+                  }}
+                >
+                  {stagedFiles.map((file, index) => {
+                    const isImage = file.type?.startsWith("image/");
+                    const previewUrl = isImage ? URL.createObjectURL(file) : null;
+
+                    return (
+                      <div
+                        key={index}
+                        style={{
+                          position: "relative",
+                          borderRadius: 8,
+                          overflow: "hidden",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                          background: "rgba(255,255,255,0.02)",
+                        }}
+                      >
+                        {isImage ? (
+                          <div
+                            style={{
+                              width: "100%",
+                              paddingTop: "100%",
+                              position: "relative",
+                            }}
+                          >
+                            <img
+                              src={previewUrl}
+                              alt={file.name}
+                              style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div
+                            style={{
+                              padding: 12,
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            <PaperClipOutlined style={{ fontSize: 24, opacity: 0.5 }} />
+                            <Text
+                              ellipsis={{ tooltip: file.name }}
+                              style={{ fontSize: 11, maxWidth: "100%" }}
+                            >
+                              {file.name}
+                            </Text>
+                          </div>
+                        )}
+                        <Button
+                          type="text"
+                          danger
+                          size="small"
+                          icon={<DeleteOutlined />}
+                          onClick={() => onRemoveStagedFile(index)}
+                          style={{
+                            position: "absolute",
+                            top: 4,
+                            right: 4,
+                            background: "rgba(0,0,0,0.5)",
+                            borderRadius: 4,
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <Upload
+                accept="image/*,.pdf"
+                showUploadList={false}
+                beforeUpload={(file) => {
+                  const isValidType =
+                    file.type.startsWith("image/") || file.type === "application/pdf";
+                  if (!isValidType) {
+                    message.error(t("attachments.invalidType"));
+                    return Upload.LIST_IGNORE;
+                  }
+
+                  const isLt10M = file.size / 1024 / 1024 < 10;
+                  if (!isLt10M) {
+                    message.error(t("attachments.tooLarge"));
+                    return Upload.LIST_IGNORE;
+                  }
+
+                  if (stagedFiles.length >= 10) {
+                    message.error(t("attachments.maxFilesReached", { max: 10 }));
+                    return Upload.LIST_IGNORE;
+                  }
+
+                  onAddStagedFile(file);
+                  return false; // prevent auto upload
+                }}
+                multiple
+                disabled={busy}
+              >
+                <Button icon={<UploadOutlined />} disabled={busy || stagedFiles.length >= 10}>
+                  {t("attachments.addFiles")}
+                </Button>
+              </Upload>
+
+              {stagedFiles.length > 0 && (
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {t("attachments.stagedCount", { count: stagedFiles.length })}
+                </Text>
+              )}
+            </Space>
           </Form.Item>
 
           <Space style={{ marginTop: 6 }}>

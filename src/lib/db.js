@@ -959,3 +959,127 @@ export async function getUpcomingCalendarEvents(orgId, { limit = 6 } = {}) {
   if (error) throw error;
   return data || [];
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Case Attachments
+// ═══════════════════════════════════════════════════════════════════
+
+const ATTACHMENTS_BUCKET = "case-attachments";
+
+/**
+ * Upload a file to Supabase Storage and create attachment record.
+ * Returns the attachment object { id, url, file_name, file_type, file_size }.
+ */
+export async function uploadCaseAttachment({ caseId, orgId, file }) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+
+  // Generate unique filename
+  const ext = file.name.split(".").pop() || "bin";
+  const uniqueName = `${orgId}/${caseId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+
+  // Upload to storage
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from(ATTACHMENTS_BUCKET)
+    .upload(uniqueName, file, {
+      cacheControl: "3600",
+      upsert: false,
+    });
+
+  if (uploadError) throw uploadError;
+
+  // Get public URL
+  const { data: urlData } = supabase.storage
+    .from(ATTACHMENTS_BUCKET)
+    .getPublicUrl(uniqueName);
+
+  const publicUrl = urlData?.publicUrl;
+
+  // Create database record
+  const { data: attachment, error: dbError } = await supabase
+    .from("case_attachments")
+    .insert({
+      case_id: caseId,
+      org_id: orgId,
+      file_name: file.name,
+      file_type: file.type,
+      file_size: file.size,
+      storage_path: uniqueName,
+      url: publicUrl,
+      uploaded_by: user.id,
+    })
+    .select("id, url, file_name, file_type, file_size, created_at")
+    .single();
+
+  if (dbError) {
+    // Cleanup storage if DB insert fails
+    await supabase.storage.from(ATTACHMENTS_BUCKET).remove([uniqueName]);
+    throw dbError;
+  }
+
+  return attachment;
+}
+
+/**
+ * Get all attachments for a case.
+ */
+export async function getCaseAttachments(caseId) {
+  const { data, error } = await supabase
+    .from("case_attachments")
+    .select("id, url, file_name, file_type, file_size, created_at, uploaded_by")
+    .eq("case_id", caseId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+}
+
+/**
+ * Delete a case attachment.
+ */
+export async function deleteCaseAttachment(attachmentId) {
+  // Get attachment to find storage path
+  const { data: attachment, error: fetchError } = await supabase
+    .from("case_attachments")
+    .select("id, storage_path")
+    .eq("id", attachmentId)
+    .single();
+
+  if (fetchError) throw fetchError;
+
+  // Delete from storage
+  if (attachment.storage_path) {
+    await supabase.storage
+      .from(ATTACHMENTS_BUCKET)
+      .remove([attachment.storage_path]);
+  }
+
+  // Delete from database
+  const { error: deleteError } = await supabase
+    .from("case_attachments")
+    .delete()
+    .eq("id", attachmentId);
+
+  if (deleteError) throw deleteError;
+}
+
+/**
+ * Get attachment count for multiple cases (for list view indicator).
+ * Returns { [caseId]: count }
+ */
+export async function getCaseAttachmentCounts(caseIds) {
+  if (!caseIds?.length) return {};
+
+  const { data, error } = await supabase
+    .from("case_attachments")
+    .select("case_id")
+    .in("case_id", caseIds);
+
+  if (error) throw error;
+
+  const counts = {};
+  for (const row of data || []) {
+    counts[row.case_id] = (counts[row.case_id] || 0) + 1;
+  }
+  return counts;
+}

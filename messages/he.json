@@ -382,6 +382,20 @@
       "searchMember": "חפש חבר צוות…"
     }
   },
+  "attachments": {
+    "title": "קבצים מצורפים",
+    "addFiles": "הוסף קבצים",
+    "noAttachments": "אין קבצים מצורפים",
+    "uploaded": "הקובץ הועלה בהצלחה",
+    "uploadFailed": "העלאת הקובץ נכשלה",
+    "deleted": "הקובץ נמחק",
+    "deleteFailed": "מחיקת הקובץ נכשלה",
+    "invalidType": "סוג קובץ לא נתמך. נתמכים: תמונות ו-PDF",
+    "tooLarge": "הקובץ גדול מדי. מקסימום 10MB",
+    "maxFilesReached": "הגעת למקסימום {max} קבצים",
+    "filesAttached": "{count} קבצים",
+    "stagedCount": "{count} קבצים יועלו עם יצירת הפנייה"
+  },
   "contacts": {
     "header": {
       "title": "אנשי קשר",

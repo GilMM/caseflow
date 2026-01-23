@@ -21,6 +21,7 @@ import { ArrowLeftOutlined, CheckOutlined } from "@ant-design/icons";
 
 import CaseAssignment from "@/components/cases/CaseAssignment";
 import CaseTimeline from "@/components/cases/CaseTimeline";
+import CaseAttachments from "@/components/cases/CaseAttachments";
 
 import { CASE_STATUSES, getStatusMeta } from "@/lib/ui/status";
 import { getPriorityMeta } from "@/lib/ui/priority";
@@ -31,6 +32,9 @@ import {
   getCaseById,
   updateCaseStatus,
   getOrgMembers,
+  getCaseAttachments,
+  uploadCaseAttachment,
+  deleteCaseAttachment,
 } from "@/lib/db";
 
 const { Title, Text } = Typography;
@@ -72,11 +76,13 @@ export default function CaseDetailsPage() {
   const [row, setRow] = useState(null);
   const [items, setItems] = useState([]);
   const [userMap, setUserMap] = useState({});
+  const [attachments, setAttachments] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [note, setNote] = useState("");
   const [busyNote, setBusyNote] = useState(false);
   const [busyStatus, setBusyStatus] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
 
   const createdLabel = useMemo(() => tCase("meta.created"), [tCase]);
 
@@ -86,9 +92,11 @@ export default function CaseDetailsPage() {
     try {
       const c = await getCaseById(id);
       const acts = await getCaseActivities(id);
+      const atts = await getCaseAttachments(id);
 
       setRow(c);
       setItems(acts);
+      setAttachments(atts || []);
 
       if (c?.org_id) {
         const members = await getOrgMembers(c.org_id);
@@ -103,6 +111,27 @@ export default function CaseDetailsPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function onUploadAttachment(file) {
+    if (!row) return;
+    setUploadingAttachment(true);
+    try {
+      const attachment = await uploadCaseAttachment({
+        caseId: row.id,
+        orgId: row.org_id,
+        file,
+      });
+      setAttachments((prev) => [...prev, attachment]);
+      return attachment;
+    } finally {
+      setUploadingAttachment(false);
+    }
+  }
+
+  async function onDeleteAttachment(attachmentId) {
+    await deleteCaseAttachment(attachmentId);
+    setAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
   }
 
   useEffect(() => {
@@ -241,6 +270,22 @@ export default function CaseDetailsPage() {
               {row.description || "—"}
             </div>
           </div>
+
+          {/* Attachments */}
+          {(attachments.length > 0 || true) && (
+            <>
+              <Divider style={{ margin: "12px 0" }} />
+              <div style={{ display: "grid", gap: 10 }}>
+                <Text strong>{t("attachments.title")}</Text>
+                <CaseAttachments
+                  attachments={attachments}
+                  onUpload={onUploadAttachment}
+                  onDelete={onDeleteAttachment}
+                  uploading={uploadingAttachment}
+                />
+              </div>
+            </>
+          )}
 
           <Divider style={{ margin: "12px 0" }} />
 
