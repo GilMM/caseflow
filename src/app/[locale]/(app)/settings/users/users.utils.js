@@ -6,7 +6,8 @@ export function initials(nameOrEmail) {
   if (!s) return "?";
   const parts = s.split(/\s+/).filter(Boolean);
   const a = parts[0]?.[0] || "";
-  const b = parts.length > 1 ? parts[parts.length - 1]?.[0] : parts[0]?.[1] || "";
+  const b =
+    parts.length > 1 ? parts[parts.length - 1]?.[0] : parts[0]?.[1] || "";
   return (a + b).toUpperCase() || "?";
 }
 
@@ -32,11 +33,11 @@ export function timeAgo(iso, t) {
 export function inviteStatusTag(inv, t) {
   const now = Date.now();
   const exp = inv.expires_at ? new Date(inv.expires_at).getTime() : null;
-  if (inv.accepted_at) return <Tag color="green">{t("settings.users.accepted")}</Tag>;
+  if (inv.accepted_at)
+    return <Tag color="green">{t("settings.users.accepted")}</Tag>;
   if (exp && exp < now) return <Tag>{t("settings.users.expired")}</Tag>;
   return <Tag color="blue">{t("settings.users.pending")}</Tag>;
 }
-
 
 export function appOrigin() {
   const env = (process.env.NEXT_PUBLIC_APP_URL || "").trim();
@@ -55,4 +56,16 @@ export function appOrigin() {
 
 export function inviteLinkFromToken(token) {
   return `${appOrigin()}/i/${encodeURIComponent(token)}`;
+}
+
+/**
+ * Check if user is considered "online" based on last_sign_in_at.
+ * Online = signed in within the last 15 minutes.
+ */
+export function isOnline(lastSeenAt) {
+  if (!lastSeenAt) return false;
+  const time = new Date(lastSeenAt).getTime();
+  const now = Date.now();
+  const windowMs = 3 * 60 * 1000; // 3 דקות
+  return now - time < windowMs;
 }

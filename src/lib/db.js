@@ -448,7 +448,7 @@ export async function getInviteByToken(token) {
 }
 
 export async function listOrgMembers(orgId) {
-  const { data, error } = await supabase.rpc("list_org_members", {
+  const { data, error } = await supabase.rpc("list_org_members_v2", {
     p_org_id: orgId,
   });
   if (error) throw error;
@@ -470,6 +470,15 @@ export async function setMemberActive({ orgId, userId, isActive }) {
     p_user_id: userId,
     p_is_active: isActive,
   });
+  if (error) throw error;
+}
+
+export async function removeOrgMember({ orgId, userId }) {
+  const { error } = await supabase
+    .from("org_memberships")
+    .delete()
+    .eq("org_id", orgId)
+    .eq("user_id", userId);
   if (error) throw error;
 }
 

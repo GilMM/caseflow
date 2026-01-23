@@ -13,7 +13,10 @@
       "Bash(tee:*)",
       "Bash(del \"\\\\?\\\\c:\\\\Users\\\\GMesh\\\\caseflow\\\\nul\")",
       "Bash(powershell -Command \"Remove-Item -LiteralPath ''\\\\?\\\\c:\\\\Users\\\\GMesh\\\\caseflow\\\\nul'' -Force\")",
-      "Bash(cmd /c \"del /f /q \\\\?\\\\c:\\\\Users\\\\GMesh\\\\caseflow\\\\nul\")"
+      "Bash(cmd /c \"del /f /q \\\\?\\\\c:\\\\Users\\\\GMesh\\\\caseflow\\\\nul\")",
+      "Bash(dir \"c:\\\\Users\\\\GMesh\\\\caseflow\")",
+      "Bash(dir \"c:\\\\Users\\\\GMesh\\\\caseflow\\\\src\" /s /b *.tsx)",
+      "Bash(findstr:*)"
     ]
   }
 }

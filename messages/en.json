@@ -674,6 +674,13 @@
       "adminOnly": "Admin only",
       "cantChangeSelf": "You can't change your own role",
       "updating": "Updating...",
+      "actions": "Actions",
+      "removeMember": "Remove from organization",
+      "removeConfirm": "Remove member",
+      "removeConfirmDesc": "Are you sure you want to remove this member from the organization?",
+      "lastSeen": "Last seen",
+      "online": "Online",
+      "neverLoggedIn": "Never logged in",
       "createInvite": "Create invite",
       "inviteTip": "Share the invite link with new users",
       "emailRequired": "Email is required",
@@ -719,7 +726,9 @@
       "failedRole": "Failed to update role",
       "memberActivated": "Member activated",
       "memberDeactivated": "Member deactivated",
-      "failedMember": "Failed to update member"
+      "failedMember": "Failed to update member",
+      "memberRemoved": "Member removed from organization",
+      "failedRemove": "Failed to remove member"
     },
     "workspace": {
       "title": "Workspace",

@@ -683,6 +683,13 @@
       "adminOnly": "מנהל בלבד",
       "cantChangeSelf": "לא ניתן לשנות את התפקיד שלך",
       "updating": "מעדכן...",
+      "actions": "פעולות",
+      "removeMember": "הסר מהארגון",
+      "removeConfirm": "הסרת משתמש",
+      "removeConfirmDesc": "האם אתה בטוח שברצונך להסיר משתמש זה מהארגון?",
+      "lastSeen": "נראה לאחרונה",
+      "online": "מחובר",
+      "neverLoggedIn": "לא התחבר מעולם",
       "createInvite": "צור הזמנה",
       "inviteTip": "שתף את קישור ההזמנה עם משתמשים חדשים",
       "emailRequired": "אימייל הוא חובה",
@@ -728,7 +735,9 @@
       "failedRole": "נכשל בעדכון התפקיד",
       "memberActivated": "החבר הופעל",
       "memberDeactivated": "החבר הושבת",
-      "failedMember": "נכשל בעדכון החבר"
+      "failedMember": "נכשל בעדכון החבר",
+      "memberRemoved": "המשתמש הוסר מהארגון",
+      "failedRemove": "נכשל בהסרת המשתמש"
     },
     "workspace": {
       "title": "סביבת עבודה",

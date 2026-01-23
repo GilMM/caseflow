@@ -10,13 +10,23 @@ import { getActiveWorkspace } from "@/lib/db";
 import {
   listOrgMembers,
   setMemberRole,
-  setMemberActive,
   createOrgInvite,
   getOrgInvites,
   revokeOrgInvite,
+  removeOrgMember,
 } from "@/lib/db";
 
-import { Alert, App, Card, Grid, Space, Spin, Table, Tabs, Typography } from "antd";
+import {
+  Alert,
+  App,
+  Card,
+  Grid,
+  Space,
+  Spin,
+  Table,
+  Tabs,
+  Typography,
+} from "antd";
 
 import UsersHeader from "./UsersHeader";
 import MemberCard from "./MemberCard";
@@ -99,8 +109,10 @@ export default function UsersManagementPage() {
     try {
       setMembersLoading(true);
       const rows = await listOrgMembers(orgId);
+      console.log("listOrgMembers rows:", rows);
       setMembers(rows || []);
     } catch (e) {
+      console.error("listOrgMembers error:", e);
       setMembers([]);
       message.error(e?.message || t("settings.users.failedLoad"));
     } finally {
@@ -158,6 +170,32 @@ export default function UsersManagementPage() {
     }
   }
 
+  useEffect(() => {
+    if (!workspace?.orgId) return;
+
+    let timer = null;
+
+    const tick = async () => {
+      try {
+        if (document.visibilityState !== "visible") return;
+        await supabase.rpc("touch_presence", { p_org_id: workspace.orgId });
+      } catch {
+        // לא חייבים להציג שגיאה למשתמש על זה
+      }
+    };
+
+    tick(); // פעם אחת מיד
+    timer = setInterval(tick, 60_000); // כל דקה
+
+    const onVis = () => tick();
+    document.addEventListener("visibilitychange", onVis);
+
+    return () => {
+      if (timer) clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [workspace?.orgId]);
+
   async function onRevokeInvite(inviteId) {
     try {
       await revokeOrgInvite(inviteId);
@@ -181,14 +219,14 @@ export default function UsersManagementPage() {
     }
   }
 
-  async function onToggleMemberActive(orgId, userId, isActive) {
+  async function onRemoveMember(orgId, userId) {
     try {
       setMembersUpdating(true);
-      await setMemberActive({ orgId, userId, isActive });
-      message.success(isActive ? t("settings.invites.memberActivated") : t("settings.invites.memberDeactivated"));
+      await removeOrgMember({ orgId, userId });
+      message.success(t("settings.invites.memberRemoved"));
       await loadMembers(orgId);
     } catch (e) {
-      message.error(e?.message || t("settings.invites.failedMember"));
+      message.error(e?.message || t("settings.invites.failedRemove"));
     } finally {
       setMembersUpdating(false);
     }
@@ -201,8 +239,9 @@ export default function UsersManagementPage() {
       membersUpdating,
       sessionUserId: sessionUser?.id,
       orgId: workspace?.orgId,
-      onChangeMemberRole: (orgId, userId, role) => onChangeMemberRole(orgId, userId, role),
-      onToggleMemberActive: (orgId, userId, isActive) => onToggleMemberActive(orgId, userId, isActive),
+      onChangeMemberRole: (orgId, userId, role) =>
+        onChangeMemberRole(orgId, userId, role),
+      onRemoveMember: (orgId, userId) => onRemoveMember(orgId, userId),
     });
   }, [t, ownerUserId, membersUpdating, sessionUser?.id, workspace?.orgId]);
 
@@ -232,10 +271,22 @@ export default function UsersManagementPage() {
         onRefresh={() => boot({ silent: true })}
       />
 
-      {error ? <Alert type="error" showIcon title={t("settings.users.cannotOpen")} description={error} /> : null}
+      {error ? (
+        <Alert
+          type="error"
+          showIcon
+          title={t("settings.users.cannotOpen")}
+          description={error}
+        />
+      ) : null}
 
       {!isAdmin ? (
-        <Alert type="warning" showIcon title={t("settings.users.adminOnly")} description={t("settings.users.noPermission")} />
+        <Alert
+          type="warning"
+          showIcon
+          title={t("settings.users.adminOnly")}
+          description={t("settings.users.noPermission")}
+        />
       ) : (
         <Card style={{ borderRadius: 16 }}>
           <Tabs
@@ -244,7 +295,9 @@ export default function UsersManagementPage() {
             items={[
               {
                 key: "members",
-                label: t("settings.users.membersTab", { count: members.length }),
+                label: t("settings.users.membersTab", {
+                  count: members.length,
+                }),
                 children: !isMobile ? (
                   <Table
                     rowKey="user_id"
@@ -255,7 +308,11 @@ export default function UsersManagementPage() {
                     scroll={{ x: 900 }}
                   />
                 ) : (
-                  <Space orientation="vertical" size={10} style={{ width: "100%", opacity: membersLoading ? 0.7 : 1 }}>
+                  <Space
+                    orientation="vertical"
+                    size={10}
+                    style={{ width: "100%", opacity: membersLoading ? 0.7 : 1 }}
+                  >
                     {(members || []).length ? (
                       members.map((r) => (
                         <MemberCard
@@ -266,12 +323,14 @@ export default function UsersManagementPage() {
                           membersUpdating={membersUpdating}
                           orgId={workspace?.orgId}
                           onChangeMemberRole={onChangeMemberRole}
-                          onToggleMemberActive={onToggleMemberActive}
+                          onRemoveMember={onRemoveMember}
                         />
                       ))
                     ) : (
                       <Card size="small" style={{ borderRadius: 14 }}>
-                        <Text type="secondary">{t("settings.users.noMembers")}</Text>
+                        <Text type="secondary">
+                          {t("settings.users.noMembers")}
+                        </Text>
                       </Card>
                     )}
                   </Space>
@@ -279,7 +338,9 @@ export default function UsersManagementPage() {
               },
               {
                 key: "invites",
-                label: t("settings.users.invitesTab", { count: invites.length }),
+                label: t("settings.users.invitesTab", {
+                  count: invites.length,
+                }),
                 children: (
                   <div style={{ opacity: creatingInvite ? 0.85 : 1 }}>
                     <InvitesPanel

@@ -1,9 +1,19 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Avatar, Card, Divider, Select, Space, Switch, Tag, Typography } from "antd";
-import { CrownOutlined } from "@ant-design/icons";
-import { initials, timeAgo } from "./users.utils";
+import {
+  Avatar,
+  Button,
+  Card,
+  Divider,
+  Popconfirm,
+  Select,
+  Space,
+  Tag,
+  Typography,
+} from "antd";
+import { CrownOutlined, DeleteOutlined } from "@ant-design/icons";
+import { initials, timeAgo, isOnline } from "./users.utils";
 
 const { Text } = Typography;
 
@@ -14,14 +24,18 @@ export default function MemberCard({
   membersUpdating,
   orgId,
   onChangeMemberRole,
-  onToggleMemberActive,
+  onRemoveMember,
 }) {
   const t = useTranslations();
-  const label = ((r?.full_name || r?.email || t("settings.users.user"))?.trim?.() || r?.email || t("settings.users.user"));
+  const label =
+    (r?.full_name || r?.email || t("settings.users.user"))?.trim?.() ||
+    r?.email ||
+    t("settings.users.user");
   const sub = r?.email || "—";
   const isOwnerRow = !!ownerUserId && r?.user_id === ownerUserId;
-  const disableEdit = membersUpdating || r.user_id === sessionUserId || isOwnerRow;
-  const isActive = !!r?.is_active;
+  const disableEdit =
+    membersUpdating || r.user_id === sessionUserId || isOwnerRow;
+  const online = isOnline(r?.presence_last_seen_at || r?.last_sign_in_at);
 
   return (
     <Card size="small" style={{ borderRadius: 14 }}>
@@ -42,7 +56,10 @@ export default function MemberCard({
                 ) : null}
               </Space>
 
-              <Text type="secondary" style={{ fontSize: 12, wordBreak: "break-word" }}>
+              <Text
+                type="secondary"
+                style={{ fontSize: 12, wordBreak: "break-word" }}
+              >
                 {sub}
               </Text>
 
@@ -72,30 +89,57 @@ export default function MemberCard({
               onChange={(role) => onChangeMemberRole(orgId, r.user_id, role)}
             />
             {disableEdit ? (
-              <Text type="secondary" style={{ fontSize: 11, display: "block", marginTop: 6 }}>
+              <Text
+                type="secondary"
+                style={{ fontSize: 11, display: "block", marginTop: 6 }}
+              >
                 {isOwnerRow
                   ? t("settings.users.ownerProtected")
                   : r.user_id === sessionUserId
-                  ? t("settings.users.cantChangeSelf")
-                  : t("settings.users.updating")}
+                    ? t("settings.users.cantChangeSelf")
+                    : t("settings.users.updating")}
               </Text>
             ) : null}
           </div>
 
           <Space style={{ width: "100%", justifyContent: "space-between" }}>
-            <Space size={8}>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {t("settings.users.lastSeen")}
+            </Text>
+            {online ? (
+              <Tag color="green">{t("settings.users.online")}</Tag>
+            ) : r?.presence_last_seen_at || r?.last_sign_in_at ? (
               <Text type="secondary" style={{ fontSize: 12 }}>
-                {t("settings.users.active")}
+                {timeAgo(r.presence_last_seen_at || r.last_sign_in_at, t)}
               </Text>
-              <Tag color={isActive ? "green" : "default"}>{isActive ? t("common.active") : t("settings.users.inactive")}</Tag>
-            </Space>
-
-            <Switch
-              checked={isActive}
-              disabled={disableEdit}
-              onChange={(checked) => onToggleMemberActive(orgId, r.user_id, checked)}
-            />
+            ) : (
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {t("settings.users.neverLoggedIn")}
+              </Text>
+            )}
           </Space>
+
+          {!isOwnerRow && (
+            <Popconfirm
+              title={t("settings.users.removeConfirm")}
+              description={t("settings.users.removeConfirmDesc")}
+              onConfirm={() => onRemoveMember(orgId, r.user_id)}
+              okText={t("common.yes")}
+              cancelText={t("common.no")}
+              disabled={disableEdit}
+            >
+              <Button
+                type="text"
+                danger
+                block
+                icon={<DeleteOutlined />}
+                disabled={disableEdit}
+                style={{ marginTop: 8 }}
+              >
+                {t("settings.users.removeMember")}
+              </Button>
+            </Popconfirm>
+          )}
         </Space>
       </Space>
     </Card>
