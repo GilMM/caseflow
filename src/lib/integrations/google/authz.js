@@ -23,7 +23,7 @@ export async function requireSessionUser() {
   return { supabase, user: data.user };
 }
 
-export async function requireOrgAdmin(orgId) {
+export async function requireOrgAdminRoute(orgId) {
   const { supabase, user } = await requireSessionUser();
 
   const { data: m, error } = await supabase
@@ -39,3 +39,6 @@ export async function requireOrgAdmin(orgId) {
 
   return { supabase, user };
 }
+
+/** Backward-compat alias (optional) */
+export const requireOrgAdmin = ({ orgId }) => requireOrgAdminRoute(orgId);
