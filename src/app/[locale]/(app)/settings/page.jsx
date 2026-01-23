@@ -409,6 +409,16 @@ export default function SettingsPage() {
                 isMobile={isMobile}
               />
             ) : null}
+
+            
+            <SecurityCard
+              isAdmin={isAdmin}
+              orgId={resolvedOrgId}
+              diag={diag}
+              diagLoading={diagLoading}
+              onRunDiagnostics={() => runDiagnostics(resolvedOrgId)}
+              isMobile={isMobile}
+            />
           </Col>
 
           {/* RIGHT */}
@@ -445,14 +455,6 @@ export default function SettingsPage() {
               />
             ) : null}
 
-            <SecurityCard
-              isAdmin={isAdmin}
-              orgId={resolvedOrgId}
-              diag={diag}
-              diagLoading={diagLoading}
-              onRunDiagnostics={() => runDiagnostics(resolvedOrgId)}
-              isMobile={isMobile}
-            />
           </Col>
         </Row>
 
