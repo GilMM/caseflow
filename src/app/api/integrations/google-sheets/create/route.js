@@ -94,7 +94,12 @@ async function setupCaseFlowSheetTemplateB({ accessToken, spreadsheetId }) {
       // Status dropdown (col F = index 5)
       {
         setDataValidation: {
-          range: { sheetId: 0, startRowIndex: 1, startColumnIndex: 5, endColumnIndex: 6 },
+          range: {
+            sheetId: 0,
+            startRowIndex: 1,
+            startColumnIndex: 5,
+            endColumnIndex: 6,
+          },
           rule: {
             condition: {
               type: "ONE_OF_LIST",
@@ -102,6 +107,7 @@ async function setupCaseFlowSheetTemplateB({ accessToken, spreadsheetId }) {
                 { userEnteredValue: "draft" },
                 { userEnteredValue: "new" },
                 { userEnteredValue: "sent" },
+                { userEnteredValue: "closed" },
                 { userEnteredValue: "error" },
               ],
             },
@@ -114,7 +120,12 @@ async function setupCaseFlowSheetTemplateB({ accessToken, spreadsheetId }) {
       // Priority dropdown (col C = index 2)
       {
         setDataValidation: {
-          range: { sheetId: 0, startRowIndex: 1, startColumnIndex: 2, endColumnIndex: 3 },
+          range: {
+            sheetId: 0,
+            startRowIndex: 1,
+            startColumnIndex: 2,
+            endColumnIndex: 3,
+          },
           rule: {
             condition: {
               type: "ONE_OF_LIST",
@@ -130,6 +141,119 @@ async function setupCaseFlowSheetTemplateB({ accessToken, spreadsheetId }) {
           },
         },
       },
+      // Conditional formatting for Status column F
+      {
+        addConditionalFormatRule: {
+          index: 0,
+          rule: {
+            ranges: [
+              {
+                sheetId: 0,
+                startRowIndex: 1,
+                startColumnIndex: 5,
+                endColumnIndex: 6,
+              },
+            ], // F2:F
+            booleanRule: {
+              condition: {
+                type: "TEXT_EQ",
+                values: [{ userEnteredValue: "new" }],
+              },
+              format: {
+                backgroundColor: { red: 0.9, green: 0.95, blue: 1.0 },
+                textFormat: {
+                  foregroundColor: { red: 0.05, green: 0.35, blue: 0.85 },
+                  bold: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      {
+        addConditionalFormatRule: {
+          index: 0,
+          rule: {
+            ranges: [
+              {
+                sheetId: 0,
+                startRowIndex: 1,
+                startColumnIndex: 5,
+                endColumnIndex: 6,
+              },
+            ],
+            booleanRule: {
+              condition: {
+                type: "TEXT_EQ",
+                values: [{ userEnteredValue: "sent" }],
+              },
+              format: {
+                backgroundColor: { red: 0.93, green: 1.0, blue: 0.93 },
+                textFormat: {
+                  foregroundColor: { red: 0.15, green: 0.55, blue: 0.15 },
+                  bold: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      {
+        addConditionalFormatRule: {
+          index: 0,
+          rule: {
+            ranges: [
+              {
+                sheetId: 0,
+                startRowIndex: 1,
+                startColumnIndex: 5,
+                endColumnIndex: 6,
+              },
+            ],
+            booleanRule: {
+              condition: {
+                type: "TEXT_EQ",
+                values: [{ userEnteredValue: "error" }],
+              },
+              format: {
+                backgroundColor: { red: 1.0, green: 0.93, blue: 0.93 },
+                textFormat: {
+                  foregroundColor: { red: 0.8, green: 0.1, blue: 0.1 },
+                  bold: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      {
+        addConditionalFormatRule: {
+          index: 0,
+          rule: {
+            ranges: [
+              {
+                sheetId: 0,
+                startRowIndex: 1,
+                startColumnIndex: 5,
+                endColumnIndex: 6,
+              },
+            ],
+            booleanRule: {
+              condition: {
+                type: "TEXT_EQ",
+                values: [{ userEnteredValue: "closed" }],
+              },
+              format: {
+                backgroundColor: { red: 0.95, green: 0.95, blue: 0.95 },
+                textFormat: {
+                  foregroundColor: { red: 0.45, green: 0.45, blue: 0.45 },
+                  bold: true,
+                },
+              },
+            },
+          },
+        },
+      },
 
       // ✅ IMPORTANT:
       // כדי להשתמש ב-unprotectedRanges, חייבים שה-protectedRange יכסה "whole sheet"
@@ -140,18 +264,153 @@ async function setupCaseFlowSheetTemplateB({ accessToken, spreadsheetId }) {
             description: "Protected by CaseFlow",
             warningOnly: false,
             unprotectedRanges: [
-              { sheetId: 0, startRowIndex: 1, startColumnIndex: 0, endColumnIndex: 1 }, // A Title
-              { sheetId: 0, startRowIndex: 1, startColumnIndex: 1, endColumnIndex: 2 }, // B Description
-              { sheetId: 0, startRowIndex: 1, startColumnIndex: 5, endColumnIndex: 6 }, // F Status
+              {
+                sheetId: 0,
+                startRowIndex: 1,
+                startColumnIndex: 0,
+                endColumnIndex: 1,
+              }, // A Title
+              {
+                sheetId: 0,
+                startRowIndex: 1,
+                startColumnIndex: 1,
+                endColumnIndex: 2,
+              }, // B Description
+              {
+                sheetId: 0,
+                startRowIndex: 1,
+                startColumnIndex: 5,
+                endColumnIndex: 6,
+              }, // F Status
             ],
           },
         },
       },
 
       // Auto resize columns A:H
+      // Set column widths (A..H)
       {
-        autoResizeDimensions: {
-          dimensions: { sheetId: 0, dimension: "COLUMNS", startIndex: 0, endIndex: 8 },
+        updateDimensionProperties: {
+          range: {
+            sheetId: 0,
+            dimension: "COLUMNS",
+            startIndex: 0,
+            endIndex: 1,
+          }, // A
+          properties: { pixelSize: 260 },
+          fields: "pixelSize",
+        },
+      },
+      {
+        updateDimensionProperties: {
+          range: {
+            sheetId: 0,
+            dimension: "COLUMNS",
+            startIndex: 1,
+            endIndex: 2,
+          }, // B
+          properties: { pixelSize: 420 },
+          fields: "pixelSize",
+        },
+      },
+      {
+        updateDimensionProperties: {
+          range: {
+            sheetId: 0,
+            dimension: "COLUMNS",
+            startIndex: 2,
+            endIndex: 3,
+          }, // C
+          properties: { pixelSize: 130 },
+          fields: "pixelSize",
+        },
+      },
+      {
+        updateDimensionProperties: {
+          range: {
+            sheetId: 0,
+            dimension: "COLUMNS",
+            startIndex: 3,
+            endIndex: 4,
+          }, // D
+          properties: { pixelSize: 170 },
+          fields: "pixelSize",
+        },
+      },
+      {
+        updateDimensionProperties: {
+          range: {
+            sheetId: 0,
+            dimension: "COLUMNS",
+            startIndex: 4,
+            endIndex: 5,
+          }, // E
+          properties: { pixelSize: 240 },
+          fields: "pixelSize",
+        },
+      },
+      {
+        updateDimensionProperties: {
+          range: {
+            sheetId: 0,
+            dimension: "COLUMNS",
+            startIndex: 5,
+            endIndex: 6,
+          }, // F
+          properties: { pixelSize: 120 },
+          fields: "pixelSize",
+        },
+      },
+      {
+        updateDimensionProperties: {
+          range: {
+            sheetId: 0,
+            dimension: "COLUMNS",
+            startIndex: 6,
+            endIndex: 7,
+          }, // G
+          properties: { pixelSize: 160 },
+          fields: "pixelSize",
+        },
+      },
+      {
+        updateDimensionProperties: {
+          range: {
+            sheetId: 0,
+            dimension: "COLUMNS",
+            startIndex: 7,
+            endIndex: 8,
+          }, // H
+          properties: { pixelSize: 260 },
+          fields: "pixelSize",
+        },
+      },
+      // Strike-through entire row when Status (F) = "closed"
+      {
+        addConditionalFormatRule: {
+          index: 0,
+          rule: {
+            ranges: [
+              {
+                sheetId: 0,
+                startRowIndex: 1,
+                startColumnIndex: 0,
+                endColumnIndex: 8,
+              },
+            ], // A2:H
+            booleanRule: {
+              condition: {
+                type: "CUSTOM_FORMULA",
+                values: [{ userEnteredValue: '=$F2="closed"' }],
+              },
+              format: {
+                textFormat: {
+                  strikethrough: true,
+                  foregroundColor: { red: 0.55, green: 0.55, blue: 0.55 },
+                },
+              },
+            },
+          },
         },
       },
     ],
@@ -203,9 +462,13 @@ async function setupCaseFlowSheetTemplateB({ accessToken, spreadsheetId }) {
 export async function POST(req) {
   try {
     const { orgId, defaultQueueId } = await req.json().catch(() => ({}));
-    if (!orgId) return NextResponse.json({ error: "Missing orgId" }, { status: 400 });
+    if (!orgId)
+      return NextResponse.json({ error: "Missing orgId" }, { status: 400 });
     if (!defaultQueueId)
-      return NextResponse.json({ error: "Missing defaultQueueId" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing defaultQueueId" },
+        { status: 400 },
+      );
 
     // must be logged-in org admin, and we need the user id for connected_by_user_id
     const { user } = await requireOrgAdminRoute(orgId);
@@ -219,7 +482,8 @@ export async function POST(req) {
       .eq("org_id", orgId)
       .maybeSingle();
 
-    if (exErr) return NextResponse.json({ error: exErr.message }, { status: 500 });
+    if (exErr)
+      return NextResponse.json({ error: exErr.message }, { status: 500 });
 
     if (existing?.sheet_id && existing?.sheet_url) {
       return NextResponse.json({
@@ -247,7 +511,10 @@ export async function POST(req) {
     const sheet = await googleJson(res);
     if (!res.ok) {
       return NextResponse.json(
-        { error: sheet?.error?.message || "Failed to create spreadsheet", details: sheet },
+        {
+          error: sheet?.error?.message || "Failed to create spreadsheet",
+          details: sheet,
+        },
         { status: res.status || 500 },
       );
     }
@@ -295,7 +562,10 @@ export async function POST(req) {
   } catch (e) {
     console.error("CREATE SHEET ERROR:", e?.message, e?.details || e);
     return NextResponse.json(
-      { error: e?.message || "Create sheet failed", details: e?.details || null },
+      {
+        error: e?.message || "Create sheet failed",
+        details: e?.details || null,
+      },
       { status: e?.status || 500 },
     );
   }
