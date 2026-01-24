@@ -95,7 +95,7 @@ export async function GET(req) {
   await requireOrgAdminRoute(orgId);
 
   const baseUrl = resolveBaseUrl(req);
-  const redirectUri = `${baseUrl}/api/integrations/google/callback`;
+  const redirectUri = `${baseUrl}/api/integrations/google/auth/callback`;
 
   const state = encryptJson({ orgId, returnTo, ts: Date.now() });
   return NextResponse.redirect(buildGoogleAuthUrl({ state, redirectUri }));
