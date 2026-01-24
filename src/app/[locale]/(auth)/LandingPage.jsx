@@ -304,13 +304,13 @@ export default function LandingPage() {
                 <div style={{ textAlign: "center", marginTop: 20 }}>
                   <Space split={<span style={{ color: token.colorTextQuaternary }}>|</span>} size={16}>
                     <Link
-                      href={`${linkPrefix}/privacy`}
+                      href="/privacy"
                       style={{ color: token.colorTextSecondary, fontSize: 13 }}
                     >
                       {isHebrew ? "מדיניות פרטיות" : "Privacy Policy"}
                     </Link>
                     <Link
-                      href={`${linkPrefix}/terms`}
+                      href="/terms"
                       style={{ color: token.colorTextSecondary, fontSize: 13 }}
                     >
                       {isHebrew ? "תנאי שימוש" : "Terms of Service"}

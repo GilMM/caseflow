@@ -25,7 +25,8 @@ export async function middleware(req) {
   }
 
   // Strip locale prefix for path checks
-  const pathnameWithoutLocale = pathname.replace(/^\/(en|he)(?=\/|$)/, "") || "/";
+  const pathnameWithoutLocale =
+    pathname.replace(/^\/(en|he)(?=\/|$)/, "") || "/";
 
   // Public paths that don't require auth
   const isPublic =
@@ -34,7 +35,11 @@ export async function middleware(req) {
     pathnameWithoutLocale === "/register" ||
     pathnameWithoutLocale === "/onboarding" ||
     pathnameWithoutLocale.startsWith("/onboarding/") ||
-    pathnameWithoutLocale.startsWith("/i/");
+    pathnameWithoutLocale.startsWith("/i/") ||
+    pathnameWithoutLocale === "/privacy" ||
+    pathnameWithoutLocale === "/terms" ||
+    pathnameWithoutLocale.startsWith("/privacy/") ||
+    pathnameWithoutLocale.startsWith("/terms/");
 
   // For public routes, just return the intl response
   if (isPublic) {
@@ -62,7 +67,7 @@ export async function middleware(req) {
           });
         },
       },
-    }
+    },
   );
 
   const {
