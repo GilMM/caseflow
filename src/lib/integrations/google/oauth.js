@@ -47,17 +47,18 @@ export function buildGoogleAuthUrl({ state, redirectUri } = {}) {
   return `${GOOGLE_AUTH_BASE}?${params.toString()}`;
 }
 
-export async function exchangeCodeForTokens({ code }) {
+export async function exchangeCodeForTokens({ code , redirectUri }) {
   const clientId = mustEnv("GOOGLE_OAUTH_CLIENT_ID");
   const clientSecret = mustEnv("GOOGLE_OAUTH_CLIENT_SECRET");
-  const redirectUri = mustEnv("GOOGLE_OAUTH_REDIRECT_URI");
+  const finalRedirectUri = redirectUri || mustEnv("GOOGLE_OAUTH_REDIRECT_URI");
 
   const body = new URLSearchParams();
   body.set("code", code);
   body.set("client_id", clientId);
   body.set("client_secret", clientSecret);
-  body.set("redirect_uri", redirectUri);
+  body.set("redirect_uri", finalRedirectUri);
   body.set("grant_type", "authorization_code");
+
 
   const res = await fetch(GOOGLE_TOKEN_URL, {
     method: "POST",
