@@ -2,7 +2,10 @@
 
 import { NextResponse } from "next/server";
 import { decryptJson, encryptJson } from "@/lib/integrations/google/crypto";
-import { exchangeCodeForTokens, fetchGoogleEmail } from "@/lib/integrations/google/oauth";
+import {
+  exchangeCodeForTokens,
+  fetchGoogleEmail,
+} from "@/lib/integrations/google/oauth";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { requireOrgAdminRoute } from "@/lib/auth/requireOrgAdminRoute";
 
@@ -32,14 +35,14 @@ export async function GET(req) {
       );
     }
 
-    // 2) ensure user is allowed
+    // 2) ensure user is allowed (requires session cookie)
     await requireOrgAdminRoute(orgId);
 
-    // 3) IMPORTANT: redirect_uri MUST match what was sent in the auth request
-    // url.origin will be https://www.case-flow.org or https://case-flow.org etc.
-    const redirectUri = `${url.origin}/api/integrations/google/auth/callback`;
+    // ✅ IMPORTANT: must match EXACT redirect_uri used in the auth step
+    const redirectUri =
+      state?.redirectUri || `${url.origin}/api/integrations/google/auth/callback`;
 
-    // 4) exchange code -> tokens
+    // 3) exchange code -> tokens
     const tokens = await exchangeCodeForTokens({ code, redirectUri });
 
     const accessToken = tokens?.access_token;
@@ -53,11 +56,11 @@ export async function GET(req) {
       );
     }
 
-    // 5) fetch user email (optional but nice to store)
+    // 4) fetch user info
     const userInfo = await fetchGoogleEmail({ accessToken });
     const googleEmail = userInfo?.email || null;
 
-    // 6) persist (don't overwrite refresh token with null)
+    // 5) persist (don't overwrite refresh token with null)
     const admin = supabaseAdmin();
 
     const { data: existing, error: exErr } = await admin
@@ -107,15 +110,14 @@ export async function GET(req) {
       }
     }
 
-    // 7) redirect back (supports relative path)
+    // 6) redirect back
     return NextResponse.redirect(new URL(returnTo, url.origin));
   } catch (e) {
     console.error("GOOGLE CALLBACK ERROR:", e);
 
-    // ✅ Return actual message so we can debug (instead of generic Bad Request)
     return NextResponse.json(
       {
-        error: "OAuth callback failedd",
+        error: "OAuth callback failed",
         message: e?.message || String(e),
       },
       { status: 500 }

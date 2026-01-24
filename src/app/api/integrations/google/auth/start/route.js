@@ -27,12 +27,14 @@ export async function GET(req) {
   const baseUrl = resolvePublicBaseUrl(req);
   const redirectUri = `${baseUrl}/api/integrations/google/auth/callback`;
 
-  const state = encryptJson({ orgId, returnTo, ts: Date.now() });
+  // ✅ קריטי: לשים את redirectUri בתוך ה-state כדי שה-callback ישתמש בדיוק באותו ערך
+  const state = encryptJson({ orgId, returnTo, ts: Date.now(), redirectUri });
 
-  return NextResponse.redirect(
-    buildGoogleAuthUrl({
-      state,
-      redirectUri,
-    }),
-  );
+  const authUrl = buildGoogleAuthUrl({ state, redirectUri });
+
+  console.log("GOOGLE AUTH baseUrl =", baseUrl);
+  console.log("GOOGLE AUTH redirectUri =", redirectUri);
+  console.log("GOOGLE AUTH url =", authUrl);
+
+  return NextResponse.redirect(authUrl);
 }
