@@ -29,7 +29,9 @@ export function buildGoogleAuthUrl({ state, redirectUri } = {}) {
   const clientId = mustEnv("GOOGLE_OAUTH_CLIENT_ID");
 
   // אם לא מעבירים redirectUri מבחוץ – משתמשים ב ENV
-  const finalRedirect = (redirectUri || mustEnv("GOOGLE_OAUTH_REDIRECT_URI")).trim();
+  const finalRedirect = (
+    redirectUri || mustEnv("GOOGLE_OAUTH_REDIRECT_URI")
+  ).trim();
 
   const params = new URLSearchParams();
   params.set("client_id", clientId);
@@ -47,29 +49,36 @@ export function buildGoogleAuthUrl({ state, redirectUri } = {}) {
   return `${GOOGLE_AUTH_BASE}?${params.toString()}`;
 }
 
-export async function exchangeCodeForTokens({ code , redirectUri }) {
+export async function exchangeCodeForTokens({ code, redirectUri }) {
   const clientId = mustEnv("GOOGLE_OAUTH_CLIENT_ID");
   const clientSecret = mustEnv("GOOGLE_OAUTH_CLIENT_SECRET");
-  const finalRedirectUri = redirectUri || mustEnv("GOOGLE_OAUTH_REDIRECT_URI");
+
+  const finalRedirect = (
+    redirectUri || mustEnv("GOOGLE_OAUTH_REDIRECT_URI")
+  ).trim();
 
   const body = new URLSearchParams();
   body.set("code", code);
   body.set("client_id", clientId);
   body.set("client_secret", clientSecret);
-  body.set("redirect_uri", finalRedirectUri);
+  body.set("redirect_uri", finalRedirect);
   body.set("grant_type", "authorization_code");
 
-
-  const res = await fetch(GOOGLE_TOKEN_URL, {
+  const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
   });
 
   const data = await res.json().catch(() => null);
+
   if (!res.ok) {
-    throw new Error(data?.error_description || data?.error || "Token exchange failed");
+    // זה יתן לך הודעה אמיתית במקום "Bad Request"
+    throw new Error(
+      `Token exchange failed (${res.status}): ${data?.error || ""} ${data?.error_description || ""}`.trim(),
+    );
   }
+
   return data;
 }
 
@@ -91,7 +100,9 @@ export async function refreshAccessToken({ refreshToken }) {
 
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    throw new Error(data?.error_description || data?.error || "Token refresh failed");
+    throw new Error(
+      data?.error_description || data?.error || "Token refresh failed",
+    );
   }
   return data;
 }
@@ -103,7 +114,9 @@ export async function fetchGoogleEmail({ accessToken }) {
 
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    throw new Error(data?.error_description || data?.error || "Failed to fetch user info");
+    throw new Error(
+      data?.error_description || data?.error || "Failed to fetch user info",
+    );
   }
   return {
     email: data?.email || null,

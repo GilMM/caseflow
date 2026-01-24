@@ -1,64 +1,74 @@
+// src/app/api/integrations/google/auth/callback/route.js
+
 import { NextResponse } from "next/server";
-import { decryptJson } from "@/lib/integrations/google/crypto";
-import {
-  exchangeCodeForTokens,
-  fetchGoogleEmail,
-} from "@/lib/integrations/google/oauth";
+import { decryptJson, encryptJson } from "@/lib/integrations/google/crypto";
+import { exchangeCodeForTokens, fetchGoogleEmail } from "@/lib/integrations/google/oauth";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { requireOrgAdminRoute } from "@/lib/auth/requireOrgAdminRoute";
-import { encryptJson } from "@/lib/integrations/google/crypto";
 
 export async function GET(req) {
+  const url = new URL(req.url);
+
   try {
-    const url = new URL(req.url);
     const code = url.searchParams.get("code");
     const stateEnc = url.searchParams.get("state");
 
-    if (!code)
+    if (!code) {
       return NextResponse.json({ error: "Missing code" }, { status: 400 });
-    if (!stateEnc)
+    }
+    if (!stateEnc) {
       return NextResponse.json({ error: "Missing state" }, { status: 400 });
+    }
 
+    // 1) decode state
     const state = decryptJson(stateEnc);
     const orgId = state?.orgId;
     const returnTo = state?.returnTo || "/en/settings";
 
-    if (!orgId)
+    if (!orgId) {
       return NextResponse.json(
         { error: "Invalid state (missing orgId)" },
-        { status: 400 },
+        { status: 400 }
       );
+    }
 
+    // 2) ensure user is allowed
     await requireOrgAdminRoute(orgId);
-    const baseUrl = new URL(req.url).origin; // או resolvePublicBaseUrl אם אתה משתמש
-    const redirectUri = `${baseUrl}/api/integrations/google/auth/callback`;
 
+    // 3) IMPORTANT: redirect_uri MUST match what was sent in the auth request
+    // url.origin will be https://www.case-flow.org or https://case-flow.org etc.
+    const redirectUri = `${url.origin}/api/integrations/google/auth/callback`;
+
+    // 4) exchange code -> tokens
     const tokens = await exchangeCodeForTokens({ code, redirectUri });
 
     const accessToken = tokens?.access_token;
     const refreshToken = tokens?.refresh_token || null;
     const expiresIn = Number(tokens?.expires_in || 0);
 
-    if (!accessToken)
+    if (!accessToken) {
       return NextResponse.json(
         { error: "Missing access_token from Google" },
-        { status: 500 },
+        { status: 500 }
       );
+    }
 
+    // 5) fetch user email (optional but nice to store)
     const userInfo = await fetchGoogleEmail({ accessToken });
     const googleEmail = userInfo?.email || null;
 
+    // 6) persist (don't overwrite refresh token with null)
     const admin = supabaseAdmin();
 
-    // Get existing connection (so we don't overwrite refresh_token with null)
     const { data: existing, error: exErr } = await admin
       .from("org_google_connections")
       .select("*")
       .eq("org_id", orgId)
       .maybeSingle();
 
-    if (exErr)
+    if (exErr) {
       return NextResponse.json({ error: exErr.message }, { status: 500 });
+    }
 
     const tokenExpiresAt = expiresIn
       ? new Date(Date.now() + expiresIn * 1000).toISOString()
@@ -83,23 +93,32 @@ export async function GET(req) {
         .from("org_google_connections")
         .update(row)
         .eq("org_id", orgId);
-      if (upErr)
+
+      if (upErr) {
         return NextResponse.json({ error: upErr.message }, { status: 500 });
+      }
     } else {
       const { error: insErr } = await admin
         .from("org_google_connections")
         .insert({ ...row, created_at: new Date().toISOString() });
-      if (insErr)
+
+      if (insErr) {
         return NextResponse.json({ error: insErr.message }, { status: 500 });
+      }
     }
 
-    // redirect back
+    // 7) redirect back (supports relative path)
     return NextResponse.redirect(new URL(returnTo, url.origin));
   } catch (e) {
     console.error("GOOGLE CALLBACK ERROR:", e);
+
+    // ✅ Return actual message so we can debug (instead of generic Bad Request)
     return NextResponse.json(
-      { error: e?.message || "OAuth callback failed" },
-      { status: 500 },
+      {
+        error: "OAuth callback failed",
+        message: e?.message || String(e),
+      },
+      { status: 500 }
     );
   }
 }
