@@ -327,6 +327,38 @@ export default function LandingPage() {
             </Col>
           </Row>
         </Card>
+
+        {/* Footer with prominent legal links for Google verification */}
+        <div
+          style={{
+            marginTop: 24,
+            padding: "16px 24px",
+            borderRadius: 12,
+            background: token.colorBgContainer,
+            border: `1px solid ${token.colorBorderSecondary}`,
+            textAlign: "center",
+          }}
+        >
+          <Space direction="vertical" size={8}>
+            <Space split={<span style={{ color: token.colorTextQuaternary }}>|</span>} size={20}>
+              <Link
+                href={`${linkPrefix}/privacy`}
+                style={{ color: token.colorPrimary, fontSize: 14, fontWeight: 500 }}
+              >
+                {isHebrew ? "מדיניות פרטיות" : "Privacy Policy"}
+              </Link>
+              <Link
+                href={`${linkPrefix}/terms`}
+                style={{ color: token.colorPrimary, fontSize: 14, fontWeight: 500 }}
+              >
+                {isHebrew ? "תנאי שימוש" : "Terms of Service"}
+              </Link>
+            </Space>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              © {new Date().getFullYear()} CaseFlow. {isHebrew ? "כל הזכויות שמורות" : "All rights reserved"}.
+            </Text>
+          </Space>
+        </div>
       </div>
     </div>
   );
