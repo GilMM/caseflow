@@ -38,7 +38,7 @@ export default async function RootPage({ params }) {
     return (
       <>
         <LandingPage />
-        {/* Server-rendered links for Google SEO - uses native <a> tags, not Next.js Link */}
+        {/* Server-rendered links for Google SEO - uses native <a> tags with direct paths */}
         <div style={{
           position: 'fixed',
           bottom: 0,
@@ -51,8 +51,8 @@ export default async function RootPage({ params }) {
           fontSize: '13px',
           zIndex: 1000,
         }}>
-          <a href={`/${locale}/privacy`} style={{ color: '#1677ff', marginRight: '24px' }}>Privacy Policy</a>
-          <a href={`/${locale}/terms`} style={{ color: '#1677ff' }}>Terms of Service</a>
+          <a href="/privacy" style={{ color: '#1677ff', marginRight: '24px' }}>Privacy Policy</a>
+          <a href="/terms" style={{ color: '#1677ff' }}>Terms of Service</a>
         </div>
       </>
     );
