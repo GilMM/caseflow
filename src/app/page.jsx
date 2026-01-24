@@ -1,5 +1,7 @@
-import { redirect } from "next/navigation";
+// src/app/page.jsx
 
-export default function RootPage() {
-  redirect("/en");
+import LandingPublic from "@/components/LandingPublic";
+
+export default function RootPublicHomePage() {
+  return <LandingPublic />;
 }
