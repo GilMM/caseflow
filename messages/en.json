@@ -818,7 +818,14 @@
       "deleteFailed": "Failed to delete announcement",
       "deleteConfirm": "Are you sure you want to delete this announcement?",
       "failedLoad": "Failed to load announcements",
-      "refresh": "Refresh announcements"
+      "refresh": "Refresh announcements",
+      "untitled": "Untitled announcement",
+      "manage": "Manage announcements",
+      "manageTitle": "Manage announcements",
+      "manageHint": "Edit, delete or enable announcements. Changes apply immediately.",
+      "updated": "Announcement updated",
+      "editing": "Editing",
+      "noItemsHint": "No announcements yet. Add one, then you can manage or edit them."
     }
   },
   "announcements": {

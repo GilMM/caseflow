@@ -384,7 +384,7 @@ export default function SettingsPage() {
             <Alert
               type="error"
               showIcon
-              message={t("settings.messages.couldntLoad")}
+              title ={t("settings.messages.couldntLoad")}
               description={error}
             />
           </Card>
