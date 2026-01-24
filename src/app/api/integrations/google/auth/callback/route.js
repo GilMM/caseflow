@@ -115,7 +115,7 @@ export async function GET(req) {
     // ✅ Return actual message so we can debug (instead of generic Bad Request)
     return NextResponse.json(
       {
-        error: "OAuth callback failed",
+        error: "OAuth callback failedd",
         message: e?.message || String(e),
       },
       { status: 500 }
