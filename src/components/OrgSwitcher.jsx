@@ -47,7 +47,8 @@ export default function OrgSwitcher() {
     try {
       await switchWorkspace(orgId);
       message.success(t("switched"));
-      router.refresh();
+      // Full page reload to refresh all data
+      window.location.reload();
     } catch (e) {
       message.error(e?.message || t("switchFailed"));
     } finally {

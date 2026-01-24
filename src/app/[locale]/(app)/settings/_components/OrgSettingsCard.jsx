@@ -15,6 +15,7 @@ import {
   Tag,
   Typography,
   Upload,
+  theme,
 } from "antd";
 import { EditOutlined, UploadOutlined } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
@@ -33,6 +34,7 @@ export default function OrgSettingsCard({
   logoBust,
 }) {
   const t = useTranslations();
+  const { token } = theme.useToken();
   const [orgForm] = Form.useForm();
 
   useEffect(() => {
@@ -58,12 +60,25 @@ export default function OrgSettingsCard({
     >
       <Row gutter={[12, 12]} align="middle">
         <Col>
-          <Avatar shape="square" size={56} src={logoSrc}>
-            {initials(workspace?.orgName || "Org")}
-          </Avatar>
+          {logoSrc ? (
+            <Avatar shape="square" size={56} src={logoSrc} />
+          ) : (
+            <Avatar
+              shape="square"
+              size={56}
+              style={{
+                background: token.colorPrimaryBg,
+                color: token.colorPrimary,
+                fontSize: 24,
+                fontWeight: 600,
+              }}
+            >
+              {workspace?.orgName?.[0]?.toUpperCase() || "O"}
+            </Avatar>
+          )}
         </Col>
         <Col flex="auto" style={{ minWidth: 0 }}>
-          <Space direction="vertical" size={0} style={{ width: "100%" }}>
+          <Space orientation="vertical" size={0} style={{ width: "100%" }}>
             <Text strong style={{ fontSize: 14, wordBreak: "break-word" }}>
               {workspace?.orgName || "Organization"}
             </Text>

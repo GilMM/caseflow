@@ -372,7 +372,7 @@ export default function GoogleSheetsIntegrationCard({
 
   function renderStateConnect() {
     return (
-      <Space direction="vertical" size={12} style={{ width: "100%" }}>
+      <Space orientation="vertical" size={12} style={{ width: "100%" }}>
         <Alert
           type="info"
           showIcon
@@ -408,7 +408,7 @@ export default function GoogleSheetsIntegrationCard({
 
   function renderStateCreate() {
     return (
-      <Space direction="vertical" size={12} style={{ width: "100%" }}>
+      <Space orientation="vertical" size={12} style={{ width: "100%" }}>
         <Alert
           type="warning"
           showIcon
@@ -421,7 +421,7 @@ export default function GoogleSheetsIntegrationCard({
         />
 
         <SoftPanel>
-          <Space direction="vertical" size={8} style={{ width: "100%" }}>
+          <Space orientation="vertical" size={8} style={{ width: "100%" }}>
             <Text strong>{tx("fields.defaultQueue.label", "Default Queue")}</Text>
             <Select
               placeholder={tx("fields.defaultQueue.placeholder", "Select default queue")}
@@ -468,7 +468,7 @@ export default function GoogleSheetsIntegrationCard({
 
   function renderStateInstall() {
     return (
-      <Space direction="vertical" size={12} style={{ width: "100%" }}>
+      <Space orientation="vertical" size={12} style={{ width: "100%" }}>
         <Alert
           type="info"
           showIcon
@@ -480,7 +480,7 @@ export default function GoogleSheetsIntegrationCard({
         />
 
         <SoftPanel>
-          <Space direction="vertical" size={8} style={{ width: "100%" }}>
+          <Space orientation="vertical" size={8} style={{ width: "100%" }}>
             <MetaRow label={tx("labels.sheetId", "Sheet ID")} value={sheetId} />
           </Space>
         </SoftPanel>
@@ -532,7 +532,7 @@ export default function GoogleSheetsIntegrationCard({
 
   function renderStateReady() {
     return (
-      <Space direction="vertical" size={12} style={{ width: "100%" }}>
+      <Space orientation="vertical" size={12} style={{ width: "100%" }}>
         <Alert
           type="success"
           showIcon
@@ -660,7 +660,7 @@ export default function GoogleSheetsIntegrationCard({
       {loading ? (
         <Spin />
       ) : (
-        <Space direction="vertical" size={14} style={{ width: "100%" }}>
+        <Space orientation="vertical" size={14} style={{ width: "100%" }}>
           {lastError ? (
             <Alert
               type="error"

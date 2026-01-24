@@ -37,7 +37,7 @@ export default function QueueInlineActions({
 
   if (isMobile) {
     return (
-      <Space direction="vertical" size={8} style={{ width: "100%" }}>
+      <Space orientation="vertical" size={8} style={{ width: "100%" }}>
         <Button type="primary" icon={<InboxOutlined />} block onClick={onViewCases}>
           {t("queues.actions.viewCases")}
         </Button>

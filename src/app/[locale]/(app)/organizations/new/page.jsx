@@ -344,7 +344,7 @@ export default function NewOrganizationPage() {
                     icon={<CheckCircleOutlined />}
                     message={`${t("inviteTo")} ${invitePreview.org_name || invitePreview.org_id}`}
                     description={
-                      <Space direction="vertical" size={2}>
+                      <Space orientation="vertical" size={2}>
                         <Text type="secondary" style={{ fontSize: 12 }}>
                           {t("role")}: <b>{invitePreview.role}</b>
                         </Text>
@@ -385,7 +385,7 @@ export default function NewOrganizationPage() {
 
   return (
     <div style={{ maxWidth: 560, margin: "0 auto", padding: "24px 0" }}>
-      <Space direction="vertical" size={16} style={{ width: "100%" }}>
+      <Space orientation="vertical" size={16} style={{ width: "100%" }}>
         <Button
           type="text"
           icon={<ArrowLeftOutlined />}
@@ -400,7 +400,7 @@ export default function NewOrganizationPage() {
             border: `1px solid ${token.colorBorder}`,
           }}
         >
-          <Space direction="vertical" size={8} style={{ width: "100%", marginBottom: 16 }}>
+          <Space orientation="vertical" size={8} style={{ width: "100%", marginBottom: 16 }}>
             <Title level={3} style={{ margin: 0 }}>
               <ApartmentOutlined style={{ marginInlineEnd: 8 }} />
               {t("title")}

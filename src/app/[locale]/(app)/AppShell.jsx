@@ -29,6 +29,7 @@ import {
   MenuOutlined,
   CalendarOutlined,
   GlobalOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 
 import { supabase } from "@/lib/supabase/client";
@@ -386,20 +387,24 @@ export default function AppShell({ children }) {
               <OrgSwitcher />
 
               <Dropdown menu={userMenu} trigger={["click"]} placement={isRTL ? "bottomLeft" : "bottomRight"}>
-                <Button>
-                  <Space>
-                    <Text
-                      style={{
-                        maxWidth: isMobile ? 120 : 260,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {effectiveEmail}
-                    </Text>
-                  </Space>
-                </Button>
+                {isMobile ? (
+                  <Button icon={<UserOutlined />} />
+                ) : (
+                  <Button>
+                    <Space>
+                      <Text
+                        style={{
+                          maxWidth: 260,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {effectiveEmail}
+                      </Text>
+                    </Space>
+                  </Button>
+                )}
               </Dropdown>
             </Space>
           </Header>

@@ -303,7 +303,7 @@ export default function SettingsPage() {
 
   return (
     <Spin spinning={loading} size="large">
-      <Space direction="vertical" size={14} style={{ width: "100%" }}>
+      <Space orientation="vertical" size={14} style={{ width: "100%" }}>
         {/* Header */}
         <Card
           style={{
@@ -314,7 +314,7 @@ export default function SettingsPage() {
         >
           <Row justify="space-between" align="middle" gutter={[12, 12]}>
             <Col xs={24} md="auto">
-              <Space direction="vertical" size={2} style={{ width: "100%" }}>
+              <Space orientation="vertical" size={2} style={{ width: "100%" }}>
                 <Title level={isMobile ? 4 : 3} style={{ margin: 0 }}>
                   {t("settings.header.title")}
                 </Title>
@@ -460,7 +460,7 @@ export default function SettingsPage() {
 
         {/* Roadmap */}
         <Card style={{ borderRadius: 16 }}>
-          <Space direction="vertical" size={6}>
+          <Space orientation="vertical" size={6}>
             <Text strong>{t("settings.nextUpgrades.title")}</Text>
             <Text type="secondary" style={{ fontSize: 12 }}>
               {t("settings.nextUpgrades.items")}

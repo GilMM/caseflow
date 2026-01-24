@@ -18,11 +18,10 @@ export default function ProfileCard({ sessionUser, profile, onSaveProfile, onUpl
   }, [profileForm, profile?.full_name]);
 
   const userLabel = useMemo(() => {
-    const name = profileForm?.getFieldValue("full_name");
+    const name = profile?.full_name;
     const email = sessionUser?.email;
     return name || email || t("userMenu.account");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionUser, profile?.full_name]);
+  }, [sessionUser?.email, profile?.full_name, t]);
 
   const avatarUrl = safeSrc(profile?.avatar_url, profile?.updated_at);
 
@@ -48,7 +47,7 @@ export default function ProfileCard({ sessionUser, profile, onSaveProfile, onUpl
           </Avatar>
         </Col>
         <Col flex="auto" style={{ minWidth: 0 }}>
-          <Space orientation ="vertical" size={0} style={{ width: "100%" }}>
+          <Space orientation="vertical" size={0} style={{ width: "100%" }}>
             <Text strong style={{ fontSize: 14, wordBreak: "break-word" }}>
               {userLabel}
             </Text>

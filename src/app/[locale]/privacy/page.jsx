@@ -35,7 +35,7 @@ function Section({ title, children }) {
       }}
       bodyStyle={{ padding: 18 }}
     >
-      <Space direction="vertical" size={10} style={{ width: "100%" }}>
+      <Space orientation="vertical" size={10} style={{ width: "100%" }}>
         <Title level={5} style={{ margin: 0, color: token.colorText }}>
           {title}
         </Title>
@@ -61,7 +61,7 @@ function PageShell({ title, subtitle, rightTags, children, side }) {
       }}
     >
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <Space direction="vertical" size={14} style={{ width: "100%" }}>
+        <Space orientation="vertical" size={14} style={{ width: "100%" }}>
           {/* Header */}
           <Card
             style={{
@@ -73,7 +73,7 @@ function PageShell({ title, subtitle, rightTags, children, side }) {
           >
             <Row justify="space-between" align="middle" gutter={[12, 12]}>
               <Col xs={24} md="auto">
-                <Space direction="vertical" size={4} style={{ width: "100%" }}>
+                <Space orientation="vertical" size={4} style={{ width: "100%" }}>
                   <Title level={isMobile ? 4 : 3} style={{ margin: 0, color: token.colorText }}>
                     {title}
                   </Title>
@@ -106,7 +106,7 @@ function PageShell({ title, subtitle, rightTags, children, side }) {
             </Col>
 
             <Col xs={24} lg={8}>
-              <Space direction="vertical" size={12} style={{ width: "100%" }}>
+              <Space orientation="vertical" size={12} style={{ width: "100%" }}>
                 <Card
                   style={{
                     borderRadius: 16,
@@ -115,7 +115,7 @@ function PageShell({ title, subtitle, rightTags, children, side }) {
                   }}
                   bodyStyle={{ padding: 18 }}
                 >
-                  <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                  <Space orientation="vertical" size={8} style={{ width: "100%" }}>
                     <Title level={5} style={{ margin: 0, color: token.colorText }}>
                       Important Links
                     </Title>
@@ -123,7 +123,7 @@ function PageShell({ title, subtitle, rightTags, children, side }) {
                       These pages must be publicly accessible for Google Verification.
                     </Text>
                     <Divider style={{ margin: "6px 0" }} />
-                    <Space direction="vertical" size={6}>
+                    <Space orientation="vertical" size={6}>
                       <Link href="./terms">
                         <LinkOutlined /> Terms of Service
                       </Link>
@@ -145,7 +145,7 @@ function PageShell({ title, subtitle, rightTags, children, side }) {
                   }}
                   bodyStyle={{ padding: 18 }}
                 >
-                  <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                  <Space orientation="vertical" size={8} style={{ width: "100%" }}>
                     <Title level={5} style={{ margin: 0, color: token.colorText }}>
                       Tip for Google Review
                     </Title>
@@ -218,7 +218,7 @@ export default function PrivacyPage() {
           </>
         }
       >
-        <Space direction="vertical" size={12} style={{ width: "100%" }}>
+        <Space orientation="vertical" size={12} style={{ width: "100%" }}>
           <Section title={isHebrew ? "1. סקירה כללית" : "1. Overview"}>
             <Paragraph style={{ margin: 0 }}>
               {isHebrew ? (

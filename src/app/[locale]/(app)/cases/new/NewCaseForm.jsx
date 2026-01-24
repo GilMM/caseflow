@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   Alert,
   Avatar,
@@ -53,7 +53,6 @@ export default function NewCaseForm({
 }) {
   const t = useTranslations();
   const priority = Form.useWatch("priority", form) || "normal";
-
   const [aiFixing, setAiFixing] = useState(false);
 
   // ✅ translate priority options using messages: cases.priority.low/normal/high/urgent
@@ -66,45 +65,6 @@ export default function NewCaseForm({
     <Tag color={priorityColor(priority)}>{t(`cases.priority.${priority}`)}</Tag>
   );
   const { message } = App.useApp();
-  const [fixing, setFixing] = useState(false);
-
-  async function onFixSpelling() {
-    try {
-      setFixing(true);
-
-      const title = form.getFieldValue("title") || "";
-      const description = form.getFieldValue("description") || "";
-
-      const res = await fetch("/api/ai/spellcheck", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title,
-          description,
-          locale: "he", // או locale מה־context שלך
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Spellcheck failed");
-
-      if (!data.changedTitle && !data.changedDescription) {
-        message.info("No changes");
-        return;
-      }
-
-      form.setFieldsValue({
-        title: data.correctedTitle,
-        description: data.correctedDescription,
-      });
-
-      message.success("Fixed");
-    } catch (e) {
-      message.error(e?.message || "Failed");
-    } finally {
-      setFixing(false);
-    }
-  }
 
   async function fixSpelling() {
     try {
@@ -134,10 +94,10 @@ export default function NewCaseForm({
         throw new Error(data?.error || "AI spellcheck failed");
       }
 
-      const nextTitle = data?.title ?? title;
-      const nextDesc = data?.description ?? description;
+      const nextTitle = data?.correctedTitle ?? title;
+      const nextDesc = data?.correctedDescription ?? description;
 
-      const changed = nextTitle !== title || nextDesc !== description;
+      const changed = data?.changedTitle || data?.changedDescription;
 
       form.setFieldsValue({
         title: nextTitle,
@@ -156,24 +116,9 @@ export default function NewCaseForm({
     }
   }
 
-  // כפתור קטן ליד שדות טקסט — מקצועי ונקי
-  const FixButton = (
-    <Tooltip
-      title={
-        t("cases.new.aiFixTooltip") ||
-        "Fix spelling & minor grammar (Hebrew/English). Does not rewrite."
-      }
-    >
-      <Button onClick={onFixSpelling} loading={fixing}>
-        Fix spelling
-      </Button>
-    </Tooltip>
-  );
-
   return (
     <Card
       title={t("cases.new.caseDetails")}
-      extra={FixButton}
       style={{ borderRadius: 16 }}
     >
       {error ? (
@@ -360,7 +305,7 @@ export default function NewCaseForm({
 
           {/* Attachments */}
           <Form.Item label={t("attachments.title")}>
-            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+            <Space orientation="vertical" size={8} style={{ width: "100%" }}>
               {stagedFiles.length > 0 && (
                 <div
                   style={{
@@ -492,6 +437,28 @@ export default function NewCaseForm({
             >
               {t("common.cancel")}
             </Button>
+
+            <Tooltip
+              title={
+                t("cases.new.aiFixTooltip") ||
+                "Fix spelling & minor grammar (Hebrew/English). Does not rewrite."
+              }
+            >
+              <Button
+                onClick={fixSpelling}
+                loading={aiFixing}
+                disabled={busy}
+                icon={<span style={{ marginInlineEnd: 4 }}>✨</span>}
+                style={{
+                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  border: "none",
+                  color: "#fff",
+                  fontWeight: 500,
+                }}
+              >
+                {t("cases.new.aiFix")}
+              </Button>
+            </Tooltip>
 
             <Button
               type="primary"

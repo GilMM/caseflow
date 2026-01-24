@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import {
+  Avatar,
   Button,
   Card,
   Divider,
@@ -17,7 +18,7 @@ import {
   Grid,
   Spin,
 } from "antd";
-import { ArrowLeftOutlined, CheckOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, CheckOutlined, UserOutlined } from "@ant-design/icons";
 
 import CaseAssignment from "@/components/cases/CaseAssignment";
 import CaseTimeline from "@/components/cases/CaseTimeline";
@@ -195,7 +196,7 @@ export default function CaseDetailsPage() {
   if (!row) {
     return (
       <Card style={{ borderRadius: 16 }}>
-        <Space direction="vertical" size={6}>
+        <Space orientation="vertical" size={6}>
           <Title level={4} style={{ margin: 0 }}>
             {tCase("notFound.title")}
           </Title>
@@ -217,7 +218,7 @@ export default function CaseDetailsPage() {
   const p = getPriorityMeta(row.priority);
 
   return (
-    <Space direction="vertical" size={14} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={14} style={{ width: "100%" }}>
       <Button
         icon={<ArrowLeftOutlined />}
         onClick={backToCases}
@@ -228,7 +229,7 @@ export default function CaseDetailsPage() {
       </Button>
 
       <Card style={{ borderRadius: 16 }}>
-        <Space direction="vertical" size={10} style={{ width: "100%" }}>
+        <Space orientation="vertical" size={10} style={{ width: "100%" }}>
           {/* Header */}
           <div
             style={{
@@ -270,6 +271,31 @@ export default function CaseDetailsPage() {
               {row.description || "—"}
             </div>
           </div>
+
+          {/* Requester */}
+          {row.requester && (
+            <>
+              <Divider style={{ margin: "12px 0" }} />
+              <div style={{ display: "grid", gap: 10 }}>
+                <Text strong>{t("cases.new.requester")}</Text>
+                <Space size={12}>
+                  <Avatar size={40} icon={<UserOutlined />}>
+                    {row.requester.full_name?.[0]?.toUpperCase()}
+                  </Avatar>
+                  <div>
+                    <Text strong style={{ display: "block" }}>
+                      {row.requester.full_name || t("common.unnamed")}
+                    </Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      {[row.requester.email, row.requester.phone, row.requester.department]
+                        .filter(Boolean)
+                        .join(" • ") || "—"}
+                    </Text>
+                  </div>
+                </Space>
+              </div>
+            </>
+          )}
 
           {/* Attachments */}
           {(attachments.length > 0 || true) && (
@@ -356,7 +382,7 @@ export default function CaseDetailsPage() {
 
       {/* Add note */}
       <Card title={tCase("sections.addNote")} style={{ borderRadius: 16 }}>
-        <Space direction="vertical" size={10} style={{ width: "100%" }}>
+        <Space orientation="vertical" size={10} style={{ width: "100%" }}>
           <Input.TextArea
             value={note}
             onChange={(e) => setNote(e.target.value)}

@@ -133,12 +133,24 @@ export async function getCaseById(caseId) {
   const { data, error } = await supabase
     .from("cases")
     .select(
-      "id, org_id, title, description, status, priority, assigned_to, created_at, updated_at"
+      "id, org_id, title, description, status, priority, assigned_to, requester_contact_id, created_at, updated_at"
     )
     .eq("id", caseId)
     .single();
 
   if (error) throw error;
+
+  // Fetch requester separately if exists
+  if (data?.requester_contact_id) {
+    const { data: requester } = await supabase
+      .from("contacts")
+      .select("id, full_name, email, phone, department")
+      .eq("id", data.requester_contact_id)
+      .maybeSingle();
+
+    data.requester = requester || null;
+  }
+
   return data;
 }
 
