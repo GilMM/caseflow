@@ -24,10 +24,11 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [busy, setBusy] = useState(false);
-  const { locale } = useLocaleContext();
+  const { locale: rawLocale } = useLocaleContext();
+  const locale = (rawLocale === "en" || rawLocale === "he") ? rawLocale : "en";
   const t = useTranslations("auth.login");
 
-  const linkPrefix = locale === "en" ? "" : `/${locale}`;
+  const linkPrefix = `/${locale}`;
   const nextParam = safeNextPath(searchParams.get("next"));
 
   useEffect(() => {

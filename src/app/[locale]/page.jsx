@@ -1,5 +1,5 @@
 // src/app/[locale]/page.jsx
-// Root page - check auth and show dashboard
+// Root page - show landing for guests, dashboard for authenticated users
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
@@ -7,6 +7,7 @@ import { setRequestLocale } from "next-intl/server";
 import { locales } from "@/i18n/config";
 import AppShell from "./(app)/AppShell";
 import DashboardPage from "./(app)/dashboard/DashboardPage";
+import LandingPage from "./(auth)/LandingPage";
 
 export default async function RootPage({ params }) {
   const { locale: rawLocale } = await params;
@@ -30,11 +31,11 @@ export default async function RootPage({ params }) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const loginPath = locale === "en" ? "/login" : `/${locale}/login`;
-  const onboardingPath = locale === "en" ? "/onboarding" : `/${locale}/onboarding`;
+  const onboardingPath = `/${locale}/onboarding`;
 
+  // Show landing page for unauthenticated users
   if (!user) {
-    redirect(loginPath);
+    return <LandingPage />;
   }
 
   const { data: membership } = await supabase

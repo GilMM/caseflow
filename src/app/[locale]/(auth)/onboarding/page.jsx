@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { getActiveWorkspace } from "@/lib/db";
 import { invalidateWorkspaceCache } from "@/lib/workspaceCache";
@@ -12,12 +12,12 @@ import {
   Button,
   Card,
   Col,
-  Divider,
   Form,
   Input,
   Row,
   Space,
   Spin,
+  Steps,
   Tag,
   Typography,
   theme,
@@ -27,86 +27,23 @@ import {
   KeyOutlined,
   PlusOutlined,
   ArrowRightOutlined,
-  SafetyCertificateOutlined,
-  ThunderboltOutlined,
-  TeamOutlined,
-  InboxOutlined,
   UserOutlined,
+  CheckCircleOutlined,
+  RocketOutlined,
 } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 
-function Pill({ icon, label }) {
-  return (
-    <Tag
-      icon={icon}
-      style={{
-        borderRadius: 999,
-        padding: "4px 10px",
-        margin: 0,
-        userSelect: "none",
-      }}
-    >
-      {label}
-    </Tag>
-  );
-}
-
-function Feature({ icon, title, desc, token }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        gap: 12,
-        padding: 12,
-        borderRadius: 12,
-        border: `1px solid ${token.colorBorderSecondary || token.colorBorder}`,
-        background: token.colorBgContainer,
-      }}
-    >
-      <div
-        style={{
-          width: 34,
-          height: 34,
-          borderRadius: 10,
-          display: "grid",
-          placeItems: "center",
-          border: `1px solid ${
-            token.colorBorderSecondary || token.colorBorder
-          }`,
-          background:
-            "radial-gradient(400px 180px at 20% 20%, rgba(22,119,255,0.18), transparent 55%), radial-gradient(360px 160px at 80% 30%, rgba(82,196,26,0.14), transparent 55%)",
-          flex: "0 0 auto",
-        }}
-      >
-        {icon}
-      </div>
-      <div style={{ minWidth: 0 }}>
-        <div
-          style={{ fontWeight: 700, color: token.colorText, lineHeight: 1.2 }}
-        >
-          {title}
-        </div>
-        <div
-          style={{
-            fontSize: 12,
-            color: token.colorTextSecondary,
-            marginTop: 2,
-            lineHeight: 1.4,
-          }}
-        >
-          {desc}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function OnboardingPage() {
   const router = useRouter();
   const search = useSearchParams();
+  const params = useParams();
   const { token } = theme.useToken();
   const { message } = App.useApp();
+
+  const rawLocale = params?.locale;
+  const locale = (rawLocale === "en" || rawLocale === "he") ? rawLocale : "en";
+  const linkPrefix = `/${locale}`;
 
   const [booting, setBooting] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -133,19 +70,18 @@ export default function OnboardingPage() {
         const { data } = await supabase.auth.getSession();
         if (!data?.session) {
           const next = tokenFromUrl
-            ? `/onboarding?invite=${encodeURIComponent(tokenFromUrl)}`
-            : "/onboarding";
-          router.replace(`/login?next=${encodeURIComponent(next)}`);
+            ? `${linkPrefix}/onboarding?invite=${encodeURIComponent(tokenFromUrl)}`
+            : `${linkPrefix}/onboarding`;
+          router.replace(`${linkPrefix}/login?next=${encodeURIComponent(next)}`);
           return;
         }
 
         const ws = await getActiveWorkspace();
         if (ws?.orgId) {
-          router.replace("/");
+          router.replace(`${linkPrefix}/`);
           return;
         }
 
-        // Optional: prefill invite token from URL
         if (tokenFromUrl) {
           formInvite.setFieldsValue({ token: tokenFromUrl });
           await previewInvite(tokenFromUrl);
@@ -169,38 +105,28 @@ export default function OnboardingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, tokenFromUrl]);
 
-function normalizeInviteToken(input) {
-  let raw = (input || "").trim();
-  if (!raw) return "";
+  function normalizeInviteToken(input) {
+    let raw = (input || "").trim();
+    if (!raw) return "";
 
-  // מסיר תוספות של העתקה מצ'אט כמו " - " בסוף
-  raw = raw.replace(/[\s\-–—.,;:)\]]+$/g, "");
+    raw = raw.replace(/[\s\-–—.,;:)\]]+$/g, "");
 
-  // URL
-  if (raw.startsWith("http://") || raw.startsWith("https://")) {
-    try {
-      const u = new URL(raw);
+    if (raw.startsWith("http://") || raw.startsWith("https://")) {
+      try {
+        const u = new URL(raw);
+        const q = (u.searchParams.get("invite") || u.searchParams.get("token") || "").trim();
+        if (q) return q;
+        const m = u.pathname.match(/\/i\/([^/]+)/);
+        if (m?.[1]) return m[1].trim();
+        return "";
+      } catch {}
+    }
 
-      // ?invite= או ?token=
-      const q = (u.searchParams.get("invite") || u.searchParams.get("token") || "").trim();
-      if (q) return q;
+    const m = raw.match(/(?:invite|token)=([a-zA-Z0-9\-_]+)/);
+    if (m?.[1]) return m[1].trim();
 
-      // /i/<token>
-      const m = u.pathname.match(/\/i\/([^/]+)/);
-      if (m?.[1]) return m[1].trim();
-
-      return "";
-    } catch {}
+    return raw;
   }
-
-  // מישהו הדביק "invite=xxx" או "token=xxx"
-  const m = raw.match(/(?:invite|token)=([a-zA-Z0-9\-_]+)/);
-  if (m?.[1]) return m[1].trim();
-
-  // אחרת: טוקן נקי
-  return raw;
-}
-
 
   async function previewInvite(raw) {
     const tokenVal = normalizeInviteToken(raw);
@@ -254,7 +180,6 @@ function normalizeInviteToken(input) {
       const userId = sessionData?.session?.user?.id;
       if (!userId) throw new Error("Not authenticated");
 
-      // ✅ Save first name in Auth metadata (MVP)
       {
         const { error: metaErr } = await supabase.auth.updateUser({
           data: { first_name: firstName },
@@ -262,7 +187,6 @@ function normalizeInviteToken(input) {
         if (metaErr) throw metaErr;
       }
 
-      // ✅ Create org with owner_user_id
       const { data: org, error: orgErr } = await supabase
         .from("organizations")
         .insert({
@@ -285,7 +209,7 @@ function normalizeInviteToken(input) {
 
       message.success("Organization created");
       invalidateWorkspaceCache();
-      router.replace("/?refresh=1");
+      router.replace(`${linkPrefix}/?refresh=1`);
       router.refresh?.();
     } catch (e) {
       setError(e?.message || "Failed to create organization");
@@ -310,7 +234,7 @@ function normalizeInviteToken(input) {
 
       message.success("Joined organization");
       invalidateWorkspaceCache();
-      router.replace("/?refresh=1");
+      router.replace(`${linkPrefix}/?refresh=1`);
       router.refresh?.();
     } catch (e) {
       setError(e?.message || "Failed to accept invite");
@@ -321,7 +245,7 @@ function normalizeInviteToken(input) {
 
   if (booting) {
     return (
-      <div style={{ height: "60vh", display: "grid", placeItems: "center" }}>
+      <div style={{ height: "100vh", display: "grid", placeItems: "center" }}>
         <Spin size="large" />
       </div>
     );
@@ -330,350 +254,293 @@ function normalizeInviteToken(input) {
   return (
     <div
       style={{
-        minHeight: "calc(100vh - 56px - 36px)",
-        display: "grid",
-        placeItems: "center",
-        padding: "18px 0",
+        minHeight: "100vh",
+        background: token.colorBgLayout,
+        padding: "40px 16px",
       }}
     >
-      <div style={{ width: "100%", maxWidth: 1120, padding: "0 2px" }}>
-        <Card
-          style={{
-            borderRadius: 20,
-            border: `1px solid ${token.colorBorder}`,
-            overflow: "hidden",
-            background:
-              "radial-gradient(1200px 600px at 20% 10%, rgba(22,119,255,0.14), transparent 60%), radial-gradient(1000px 500px at 80% 20%, rgba(82,196,26,0.12), transparent 55%)",
-          }}
-          styles={{ body: { padding: 0 } }}
-        >
-          <Row gutter={0} style={{ minHeight: 520 }}>
-            <Col xs={24} lg={11} style={{ padding: 22 }}>
-              <Space orientation="vertical" size={14} style={{ width: "100%" }}>
-                <Space wrap size={8}>
-                  <Pill
-                    icon={<SafetyCertificateOutlined />}
-                    label="RLS-secured"
-                  />
-                  <Pill icon={<ThunderboltOutlined />} label="Fast setup" />
-                  <Pill icon={<TeamOutlined />} label="Multi-tenant" />
-                </Space>
+      <div style={{ maxWidth: 900, margin: "0 auto" }}>
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 14,
+              background: `linear-gradient(135deg, ${token.colorPrimary} 0%, ${token.colorPrimaryActive} 100%)`,
+              display: "inline-grid",
+              placeItems: "center",
+              marginBottom: 16,
+            }}
+          >
+            <RocketOutlined style={{ fontSize: 28, color: "#fff" }} />
+          </div>
+          <Title level={2} style={{ margin: 0, marginBottom: 8 }}>
+            Set up your workspace
+          </Title>
+          <Text type="secondary" style={{ fontSize: 15 }}>
+            Create a new organization or join an existing one with an invite token
+          </Text>
+        </div>
 
-                <div>
-                  <Title level={2} style={{ margin: 0, lineHeight: 1.15 }}>
-                    Welcome to{" "}
-                    <span style={{ color: token.colorPrimary }}>CaseFlow</span>
-                  </Title>
-                  <Text type="secondary" style={{ fontSize: 14 }}>
-                    Create your workspace or join an existing organization with
-                    an invite. In less than a minute you’ll be inside the
-                    dashboard.
-                  </Text>
-                </div>
+        {/* Progress indicator */}
+        <div style={{ maxWidth: 400, margin: "0 auto 32px" }}>
+          <Steps
+            size="small"
+            current={1}
+            items={[
+              { title: "Account", icon: <CheckCircleOutlined /> },
+              { title: "Workspace" },
+              { title: "Dashboard" },
+            ]}
+          />
+        </div>
 
-                {error ? (
-                  <Alert
-                    type="error"
-                    showIcon
-                    title="Onboarding error"
-                    description={error}
-                  />
-                ) : null}
+        {error && (
+          <Alert
+            type="error"
+            showIcon
+            title={error}
+            style={{ marginBottom: 24, maxWidth: 600, margin: "0 auto 24px" }}
+          />
+        )}
 
-                <Divider style={{ margin: "2px 0" }} />
-
-                <Space
-                  orientation="vertical"
-                  size={10}
-                  style={{ width: "100%" }}
-                >
-                  <Feature
-                    token={token}
-                    icon={
-                      <InboxOutlined style={{ color: token.colorPrimary }} />
-                    }
-                    title="Case management"
-                    desc="Open, track, and resolve requests with queues and priorities."
-                  />
-                  <Feature
-                    token={token}
-                    icon={
-                      <TeamOutlined style={{ color: token.colorSuccess }} />
-                    }
-                    title="Teams & roles"
-                    desc="Admins manage members. Agents handle cases. Viewers stay read-only."
-                  />
-                  <Feature
-                    token={token}
-                    icon={
-                      <SafetyCertificateOutlined
-                        style={{ color: token.colorPrimary }}
-                      />
-                    }
-                    title="Database-first security"
-                    desc="Permissions are enforced in Supabase RLS—not only in the UI."
-                  />
-                </Space>
-
-                <div style={{ marginTop: 6 }}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Tip: If you were invited, paste the token on the right and
-                    you’ll see a preview before joining.
-                  </Text>
-                </div>
-              </Space>
-            </Col>
-
-            <Col
-              xs={24}
-              lg={13}
+        {/* Cards */}
+        <Row gutter={[20, 20]} justify="center">
+          <Col xs={24} md={12} lg={11}>
+            <Card
               style={{
-                padding: 22,
-                background: token.colorBgContainer,
-                borderLeft: `1px solid ${token.colorBorder}`,
+                borderRadius: 16,
+                height: "100%",
+                border: `1px solid ${token.colorBorderSecondary}`,
               }}
+              styles={{ body: { padding: 24 } }}
             >
-              <Space orientation="vertical" size={12} style={{ width: "100%" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <Title level={4} style={{ margin: 0 }}>
-                    Get started
-                  </Title>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Takes ~30 seconds
-                  </Text>
+              <Space orientation="vertical" size={16} style={{ width: "100%" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      background: token.colorPrimaryBg,
+                      display: "grid",
+                      placeItems: "center",
+                    }}
+                  >
+                    <ApartmentOutlined
+                      style={{ fontSize: 22, color: token.colorPrimary }}
+                    />
+                  </div>
+                  <div>
+                    <Title level={4} style={{ margin: 0 }}>
+                      Create Organization
+                    </Title>
+                    <Text type="secondary" style={{ fontSize: 13 }}>
+                      Start fresh with your own workspace
+                    </Text>
+                  </div>
                 </div>
 
-                <Row gutter={[12, 12]}>
-                  <Col xs={24} md={12}>
-                    <Card
-                      title={
-                        <Space>
-                          <ApartmentOutlined />
-                          Create
-                        </Space>
-                      }
-                      style={{ borderRadius: 16, height: "100%" }}
-                      styles={{ paddingTop: 10 }}
-                    >
-                      <Text
-                        type="secondary"
-                        style={{ display: "block", marginBottom: 10 }}
-                      >
-                        Start a new workspace and become admin.
-                      </Text>
+                <Form
+                  form={formOrg}
+                  layout="vertical"
+                  onFinish={createOrg}
+                  requiredMark={false}
+                >
+                  <Form.Item
+                    name="first_name"
+                    label="Your first name"
+                    rules={[
+                      { required: true, message: "Enter your first name" },
+                      { min: 2, message: "Too short" },
+                    ]}
+                  >
+                    <Input
+                      prefix={<UserOutlined />}
+                      placeholder="e.g., Gil"
+                      disabled={busy}
+                      autoComplete="given-name"
+                      size="large"
+                    />
+                  </Form.Item>
 
-                      <Form
-                        form={formOrg}
-                        layout="vertical"
-                        onFinish={createOrg}
-                        requiredMark={false}
-                      >
-                        <Form.Item
-                          name="first_name"
-                          label="First name"
-                          rules={[
-                            {
-                              required: true,
-                              message: "Enter your first name",
-                            },
-                            { min: 2, message: "Too short" },
-                          ]}
-                        >
-                          <Input
-                            prefix={<UserOutlined />}
-                            placeholder="e.g., Gil"
-                            disabled={busy}
-                            autoComplete="given-name"
-                          />
-                        </Form.Item>
+                  <Form.Item
+                    name="name"
+                    label="Organization name"
+                    rules={[
+                      { required: true, message: "Enter an organization name" },
+                      { min: 2, message: "Too short" },
+                    ]}
+                  >
+                    <Input
+                      prefix={<ApartmentOutlined />}
+                      placeholder="e.g., Acme Support"
+                      disabled={busy}
+                      autoComplete="organization"
+                      size="large"
+                    />
+                  </Form.Item>
 
-                        <Form.Item
-                          name="name"
-                          label="Organization name"
-                          rules={[
-                            {
-                              required: true,
-                              message: "Enter an organization name",
-                            },
-                            { min: 2, message: "Too short" },
-                          ]}
-                        >
-                          <Input
-                            placeholder="e.g., Acme Support"
-                            disabled={busy}
-                            autoComplete="organization"
-                          />
-                        </Form.Item>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    htmlType="submit"
+                    loading={busy}
+                    block
+                    size="large"
+                    style={{ borderRadius: 10 }}
+                  >
+                    Create workspace
+                  </Button>
+                </Form>
 
-                        <Button
-                          type="primary"
-                          icon={<PlusOutlined />}
-                          htmlType="submit"
-                          loading={busy}
-                          block
-                        >
-                          Create workspace
-                        </Button>
-
-                        <div style={{ marginTop: 10 }}>
-                          <Text type="secondary" style={{ fontSize: 12 }}>
-                            You’ll be able to invite users later from Settings.
-                          </Text>
-                        </div>
-                      </Form>
-                    </Card>
-                  </Col>
-
-                  <Col xs={24} md={12}>
-                    <Card
-                      title={
-                        <Space>
-                          <KeyOutlined />
-                          Join
-                        </Space>
-                      }
-                      style={{ borderRadius: 16, height: "100%" }}
-                      styles={{ paddingTop: 10 }}
-                    >
-                      <Text
-                        type="secondary"
-                        style={{ display: "block", marginBottom: 10 }}
-                      >
-                        Paste an invite token to join a team.
-                      </Text>
-
-                      <Form
-                        form={formInvite}
-                        layout="vertical"
-                        onFinish={acceptInvite}
-                        requiredMark={false}
-                        onValuesChange={(changed) => {
-                          if (changed.token !== undefined) {
-                            if (previewTimer.current)
-                              clearTimeout(previewTimer.current);
-                            previewTimer.current = setTimeout(() => {
-                              previewInvite(changed.token); // previewInvite כבר עושה normalize פנימי
-                            }, 250);
-                          }
-                        }}
-                      >
-                        <Form.Item
-                          name="token"
-                          label="Invite token"
-                          rules={[
-                            { required: true, message: "Paste invite token" },
-                          ]}
-                        >
-                          <Input
-                            placeholder="Paste token here…"
-                            disabled={busy}
-                            onPaste={(e) => {
-                              const text = e.clipboardData.getData("text");
-                              const normalized = normalizeInviteToken(text);
-                              if (normalized && normalized !== text.trim()) {
-                                e.preventDefault();
-                                formInvite.setFieldsValue({
-                                  token: normalized,
-                                });
-                                previewInvite(normalized);
-                              }
-                            }}
-                            onBlur={() => {
-                              const current = formInvite.getFieldValue("token");
-                              const normalized = normalizeInviteToken(current);
-                              if (normalized && normalized !== current) {
-                                formInvite.setFieldsValue({
-                                  token: normalized,
-                                });
-                              }
-                            }}
-                          />
-                        </Form.Item>
-
-                        <div style={{ minHeight: 44, marginBottom: 8 }}>
-                          {inviteChecking ? <Tag>Checking invite…</Tag> : null}
-
-                          {invitePreview?.org_id ? (
-                            invitePreview._expired ? (
-                              <Alert
-                                type="warning"
-                                showIcon
-                                title="Invite expired"
-                                description="Ask an admin to send a new invite."
-                              />
-                            ) : (
-                              <Alert
-                                type="success"
-                                showIcon
-                                title={`Invite to: ${
-                                  invitePreview.org_name || invitePreview.org_id
-                                }`}
-                                description={
-                                  <Space orientation="vertical" size={2}>
-                                    <Text
-                                      type="secondary"
-                                      style={{ fontSize: 12 }}
-                                    >
-                                      Role: <b>{invitePreview.role}</b>
-                                    </Text>
-                                    {invitePreview.expires_at ? (
-                                      <Text
-                                        type="secondary"
-                                        style={{ fontSize: 12 }}
-                                      >
-                                        Expires:{" "}
-                                        {new Date(
-                                          invitePreview.expires_at
-                                        ).toLocaleString()}
-                                      </Text>
-                                    ) : null}
-                                  </Space>
-                                }
-                              />
-                            )
-                          ) : null}
-                        </div>
-
-                        <Button
-                          type="primary"
-                          icon={<ArrowRightOutlined />}
-                          htmlType="submit"
-                          loading={busy}
-                          block
-                          disabled={
-                            !formInvite.getFieldValue("token") ||
-                            invitePreview?._expired
-                          }
-                        >
-                          Accept invite
-                        </Button>
-
-                        <div style={{ marginTop: 10 }}>
-                          <Text type="secondary" style={{ fontSize: 12 }}>
-                            You’ll only see organizations you were invited to.
-                          </Text>
-                        </div>
-                      </Form>
-                    </Card>
-                  </Col>
-                </Row>
-
-                <Divider style={{ margin: "2px 0" }} />
-
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  Having trouble? Make sure you’re logged in, then paste the
-                  invite token again.
+                <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
+                  You'll be the admin. Invite team members later from Settings.
                 </Text>
               </Space>
-            </Col>
-          </Row>
-        </Card>
+            </Card>
+          </Col>
+
+          <Col xs={24} md={12} lg={11}>
+            <Card
+              style={{
+                borderRadius: 16,
+                height: "100%",
+                border: `1px solid ${token.colorBorderSecondary}`,
+              }}
+              styles={{ body: { padding: 24 } }}
+            >
+              <Space orientation="vertical" size={16} style={{ width: "100%" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      background: token.colorSuccessBg,
+                      display: "grid",
+                      placeItems: "center",
+                    }}
+                  >
+                    <KeyOutlined
+                      style={{ fontSize: 22, color: token.colorSuccess }}
+                    />
+                  </div>
+                  <div>
+                    <Title level={4} style={{ margin: 0 }}>
+                      Join with Invite
+                    </Title>
+                    <Text type="secondary" style={{ fontSize: 13 }}>
+                      Got an invite? Paste it here
+                    </Text>
+                  </div>
+                </div>
+
+                <Form
+                  form={formInvite}
+                  layout="vertical"
+                  onFinish={acceptInvite}
+                  requiredMark={false}
+                  onValuesChange={(changed) => {
+                    if (changed.token !== undefined) {
+                      if (previewTimer.current) clearTimeout(previewTimer.current);
+                      previewTimer.current = setTimeout(() => {
+                        previewInvite(changed.token);
+                      }, 250);
+                    }
+                  }}
+                >
+                  <Form.Item
+                    name="token"
+                    label="Invite token or link"
+                    rules={[{ required: true, message: "Paste invite token" }]}
+                  >
+                    <Input
+                      prefix={<KeyOutlined />}
+                      placeholder="Paste token or invite link…"
+                      disabled={busy}
+                      size="large"
+                      onPaste={(e) => {
+                        const text = e.clipboardData.getData("text");
+                        const normalized = normalizeInviteToken(text);
+                        if (normalized && normalized !== text.trim()) {
+                          e.preventDefault();
+                          formInvite.setFieldsValue({ token: normalized });
+                          previewInvite(normalized);
+                        }
+                      }}
+                      onBlur={() => {
+                        const current = formInvite.getFieldValue("token");
+                        const normalized = normalizeInviteToken(current);
+                        if (normalized && normalized !== current) {
+                          formInvite.setFieldsValue({ token: normalized });
+                        }
+                      }}
+                    />
+                  </Form.Item>
+
+                  <div style={{ minHeight: 52, marginBottom: 8 }}>
+                    {inviteChecking && (
+                      <Tag color="processing">Checking invite…</Tag>
+                    )}
+
+                    {invitePreview?.org_id && (
+                      invitePreview._expired ? (
+                        <Alert
+                          type="warning"
+                          showIcon
+                          title="Invite expired"
+                          description="Ask an admin to send a new invite."
+                          style={{ borderRadius: 8 }}
+                        />
+                      ) : (
+                        <Alert
+                          type="success"
+                          showIcon
+                          title={`Join: ${invitePreview.org_name || "Organization"}`}
+                          description={
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              Role: <b>{invitePreview.role}</b>
+                              {invitePreview.expires_at && (
+                                <> · Expires: {new Date(invitePreview.expires_at).toLocaleDateString()}</>
+                              )}
+                            </Text>
+                          }
+                          style={{ borderRadius: 8 }}
+                        />
+                      )
+                    )}
+                  </div>
+
+                  <Button
+                    type="primary"
+                    icon={<ArrowRightOutlined />}
+                    htmlType="submit"
+                    loading={busy}
+                    block
+                    size="large"
+                    style={{ borderRadius: 10 }}
+                    disabled={!formInvite.getFieldValue("token") || invitePreview?._expired}
+                  >
+                    Join organization
+                  </Button>
+                </Form>
+
+                <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
+                  Paste the full URL or just the token - we'll figure it out.
+                </Text>
+              </Space>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Footer hint */}
+        <div style={{ textAlign: "center", marginTop: 32 }}>
+          <Text type="secondary" style={{ fontSize: 13 }}>
+            Having trouble? Contact your organization admin for a new invite link.
+          </Text>
+        </div>
       </div>
     </div>
   );

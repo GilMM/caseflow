@@ -23,10 +23,11 @@ export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [busy, setBusy] = useState(false);
-  const { locale } = useLocaleContext();
+  const { locale: rawLocale } = useLocaleContext();
+  const locale = (rawLocale === "en" || rawLocale === "he") ? rawLocale : "en";
   const t = useTranslations("auth.register");
 
-  const linkPrefix = locale === "en" ? "" : `/${locale}`;
+  const linkPrefix = `/${locale}`;
   const nextParam = safeNextPath(searchParams.get("next"));
 
   useEffect(() => {
@@ -62,10 +63,11 @@ export default function RegisterPage() {
       // If email confirmation is ON, session might be null
       if (data?.session) {
         message.success(t("success"));
-        router.replace(linkPrefix + nextParam);
+        // New users don't have an organization yet, go directly to onboarding
+        router.replace(`${linkPrefix}/onboarding`);
       } else {
         message.success(t("successConfirm"));
-        router.replace(`${linkPrefix}/login?next=${encodeURIComponent(nextParam)}`);
+        router.replace(`${linkPrefix}/login?next=${encodeURIComponent("/onboarding")}`);
       }
 
       router.refresh?.();
