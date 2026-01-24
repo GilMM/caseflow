@@ -35,28 +35,7 @@ export default async function RootPage({ params }) {
 
   // Show landing page for unauthenticated users
   if (!user) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        {/* SEO nav for Google verification - server-rendered HTML with visible links */}
-        <nav style={{
-          padding: '12px 24px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderBottom: '1px solid #e5e5e5',
-          background: '#fff',
-        }}>
-          <span style={{ fontWeight: 600, fontSize: '18px' }}>CaseFlow</span>
-          <div>
-            <a href={`/${locale}/privacy`} style={{ margin: '0 12px', color: '#1677ff' }}>Privacy Policy</a>
-            <a href={`/${locale}/terms`} style={{ margin: '0 12px', color: '#1677ff' }}>Terms of Service</a>
-          </div>
-        </nav>
-        <div style={{ flex: 1 }}>
-          <LandingPage />
-        </div>
-      </div>
-    );
+    return <LandingPage />;
   }
 
   const { data: membership } = await supabase
