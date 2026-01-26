@@ -7,6 +7,8 @@ export const GOOGLE_SCOPES = [
 
   // ✅ minimum: Drive file-level access
   "https://www.googleapis.com/auth/drive.file",
+  "https://www.googleapis.com/auth/spreadsheets",
+
 
   // Apps Script API
   "https://www.googleapis.com/auth/script.projects",
