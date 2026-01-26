@@ -250,15 +250,17 @@ function setup() {
     ""
   ]]);
 
-  // 7) installable trigger (idempotent)
+  // 7) installable trigger - delete ALL old triggers first, then create fresh
   const triggers = ScriptApp.getProjectTriggers();
-  const exists = triggers.some(t => t.getHandlerFunction() === "onEditInstalled");
-  if (!exists) {
-    ScriptApp.newTrigger("onEditInstalled").forSpreadsheet(ss).onEdit().create();
-    SpreadsheetApp.getActive().toast(t("enabledToast"), t("menu"), 5);
-  } else {
-    SpreadsheetApp.getActive().toast(t("alreadyEnabled"), t("menu"), 5);
-  }
+  triggers.forEach(t => {
+    if (t.getHandlerFunction() === "onEditInstalled") {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+
+  // Create new trigger
+  ScriptApp.newTrigger("onEditInstalled").forSpreadsheet(ss).onEdit().create();
+  SpreadsheetApp.getActive().toast(t("enabledToast"), t("menu"), 5);
 
   SpreadsheetApp.getActive().toast(t("setupDone"), t("menu"), 5);
 }
