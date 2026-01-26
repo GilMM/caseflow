@@ -1,14 +1,17 @@
+// src/lib/integrations/google/authz.js
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
-function serverSupabase() {
+async function serverSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anon) throw new Error("Missing supabase env");
 
+  const cookieStore = await cookies(); // ✅
+
   return createServerClient(url, anon, {
     cookies: {
-      get: (name) => cookies().get(name)?.value,
+      get: (name) => cookieStore.get(name)?.value,
       set: () => {},
       remove: () => {},
     },
@@ -16,7 +19,7 @@ function serverSupabase() {
 }
 
 export async function requireSessionUser() {
-  const supabase = serverSupabase();
+  const supabase = await serverSupabase(); // ✅ היה בלי await
   const { data, error } = await supabase.auth.getUser();
   if (error) throw error;
   if (!data?.user) throw new Error("Not authenticated");
@@ -40,5 +43,4 @@ export async function requireOrgAdminRoute(orgId) {
   return { supabase, user };
 }
 
-/** Backward-compat alias (optional) */
 export const requireOrgAdmin = ({ orgId }) => requireOrgAdminRoute(orgId);

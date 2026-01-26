@@ -123,7 +123,7 @@ export default function QueuesList({
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     {t("queues.list.nextHint")}
                   </Text>
-                  <Button type="link" style={{ padding: 0 }} onClick={onOpenFuture}>
+                  <Button type="link" style={{ padding: 0 }} onClick={() => onOpenFuture(row.id)}>
                     {t("queues.list.open")}
                   </Button>
                 </Space>

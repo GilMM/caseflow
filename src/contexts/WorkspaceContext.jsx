@@ -73,36 +73,77 @@ export function WorkspaceProvider({ children }) {
         return null;
       }
 
-      // 2) Check if user has an active_org_id in user_workspaces
+      // 2) Check active_org_id
       let activeOrgId = null;
-      const { data: wsData } = await supabase
+      const { data: uw, error: uwErr } = await supabase
         .from("user_workspaces")
         .select("active_org_id")
         .eq("user_id", currentUserId)
         .maybeSingle();
 
-      if (wsData?.active_org_id) {
-        activeOrgId = wsData.active_org_id;
+      if (uwErr) throw uwErr;
+      if (uw?.active_org_id) activeOrgId = uw.active_org_id;
+
+      // helper: fetch a valid membership (active + org not deleted)
+      async function fetchMembershipForOrg(orgId) {
+        const { data, error } = await supabase
+          .from("org_memberships")
+          .select(
+            "org_id, role, is_active, created_at, organizations:org_id ( id, name, logo_url, owner_user_id, deleted_at )"
+          )
+          .eq("is_active", true)
+          .eq("org_id", orgId)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (error) throw error;
+
+        const m = data?.[0] || null;
+        if (!m) return null;
+
+        // ✅ org deleted? ignore
+        if (m.organizations?.deleted_at) return null;
+
+        return m;
       }
 
-      // 3) Get membership - either for active org or first available
-      let query = supabase
-        .from("org_memberships")
-        .select(
-          "org_id, role, is_active, created_at, organizations:org_id ( id, name, logo_url, owner_user_id )",
-        )
-        .eq("is_active", true);
-
+      // 3) Try active org first
+      let m = null;
       if (activeOrgId) {
-        query = query.eq("org_id", activeOrgId);
-      } else {
-        query = query.order("created_at", { ascending: false }).limit(1);
+        m = await fetchMembershipForOrg(activeOrgId);
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
+      // 4) Fallback: pick latest active membership with org not deleted
+      if (!m) {
+        const { data, error } = await supabase
+          .from("org_memberships")
+          .select(
+            "org_id, role, is_active, created_at, organizations:org_id ( id, name, logo_url, owner_user_id, deleted_at )"
+          )
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .limit(10);
 
-      const m = data?.[0];
+        if (error) throw error;
+
+        m =
+          (data || []).find((row) => !row.organizations?.deleted_at) || null;
+
+        // persist fallback as active
+        if (m?.org_id) {
+          await supabase
+            .from("user_workspaces")
+            .upsert(
+              {
+                user_id: currentUserId,
+                active_org_id: m.org_id,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "user_id" }
+            );
+        }
+      }
+
       if (!m) {
         setWorkspace(null);
         return null;
@@ -114,6 +155,7 @@ export function WorkspaceProvider({ children }) {
         orgLogoUrl: m.organizations?.logo_url || null,
         role: m.role,
         ownerUserId: m.organizations?.owner_user_id || null,
+        orgDeletedAt: m.organizations?.deleted_at || null, // useful for UI if needed
       };
 
       setCachedWorkspace(result);
@@ -129,15 +171,20 @@ export function WorkspaceProvider({ children }) {
   const fetchAllWorkspaces = useCallback(async () => {
     try {
       const list = await getMyWorkspaces();
-      // Transform to cleaner format
-      const transformed = (list || []).map((m) => ({
-        orgId: m.org_id,
-        orgName: m.organizations?.name || "Workspace",
-        orgLogoUrl: m.organizations?.logo_url || null,
-        role: m.role,
-        isActive: m.is_active,
-        ownerUserId: m.organizations?.owner_user_id || null,
-      }));
+
+      const transformed = (list || [])
+        .map((m) => ({
+          orgId: m.org_id,
+          orgName: m.organizations?.name || "Workspace",
+          orgLogoUrl: m.organizations?.logo_url || null,
+          role: m.role,
+          isActive: m.is_active,
+          ownerUserId: m.organizations?.owner_user_id || null,
+          // ✅ if your getMyWorkspaces includes deleted_at it will land here; if not, stays null
+          deletedAt: m.organizations?.deleted_at || null,
+        }))
+        .filter((ws) => !ws.deletedAt); // ✅ hide deleted orgs from switcher list
+
       setWorkspaces(transformed);
       return transformed;
     } catch (e) {
@@ -153,7 +200,6 @@ export function WorkspaceProvider({ children }) {
       return [];
     }
 
-    // Check cache
     const now = Date.now();
     if (
       membersCache.data &&
@@ -183,34 +229,40 @@ export function WorkspaceProvider({ children }) {
     }
   }, []);
 
-  const switchWorkspace = useCallback(async (orgId) => {
-    try {
-      const res = await fetch("/api/orgs/active", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orgId }),
-      });
+  const switchWorkspace = useCallback(
+    async (orgId) => {
+      try {
+        const res = await fetch("/api/orgs/active", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orgId }),
+        });
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error || "Failed to switch org");
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data?.error || "Failed to switch org");
+        }
+
+        // Clear caches and refetch
+        invalidateWorkspaceCache();
+        membersCache = { data: null, orgId: null, timestamp: 0 };
+
+        const ws = await fetchWorkspace();
+        if (ws?.orgId) {
+          await fetchMembers(ws.orgId);
+        }
+
+        // refresh list too (so deleted orgs disappear immediately)
+        fetchAllWorkspaces();
+
+        return ws;
+      } catch (e) {
+        console.error("Failed to switch workspace:", e);
+        throw e;
       }
-
-      // Clear caches and refetch
-      invalidateWorkspaceCache();
-      membersCache = { data: null, orgId: null, timestamp: 0 };
-
-      const ws = await fetchWorkspace();
-      if (ws?.orgId) {
-        await fetchMembers(ws.orgId);
-      }
-
-      return ws;
-    } catch (e) {
-      console.error("Failed to switch workspace:", e);
-      throw e;
-    }
-  }, [fetchWorkspace, fetchMembers]);
+    },
+    [fetchWorkspace, fetchMembers, fetchAllWorkspaces]
+  );
 
   const refreshWorkspace = useCallback(async () => {
     invalidateWorkspaceCache();
@@ -218,12 +270,12 @@ export function WorkspaceProvider({ children }) {
     if (ws?.orgId) {
       await fetchMembers(ws.orgId);
     }
+    fetchAllWorkspaces();
     return ws;
-  }, [fetchWorkspace, fetchMembers]);
+  }, [fetchWorkspace, fetchMembers, fetchAllWorkspaces]);
 
   const refreshMembers = useCallback(async () => {
     if (workspace?.orgId) {
-      // Invalidate cache and refetch
       membersCache = { data: null, orgId: null, timestamp: 0 };
       await fetchMembers(workspace.orgId);
     }
@@ -233,17 +285,15 @@ export function WorkspaceProvider({ children }) {
     let mounted = true;
 
     async function init() {
-      // Check for refresh parameter in URL (e.g., after creating org)
       if (typeof window !== "undefined") {
         const params = new URLSearchParams(window.location.search);
         if (params.get("refresh") === "1") {
-          // Remove the parameter from URL
           params.delete("refresh");
           const newUrl = params.toString()
             ? `${window.location.pathname}?${params}`
             : window.location.pathname;
           window.history.replaceState({}, "", newUrl);
-          // Force refresh workspace by clearing cache
+
           invalidateWorkspaceCache();
           membersCache = { data: null, orgId: null, timestamp: 0 };
         }
@@ -252,24 +302,21 @@ export function WorkspaceProvider({ children }) {
       const ws = await fetchWorkspace();
       if (!mounted) return;
 
-      setLoading(false); // ✅ מוריד מהר כדי שלא יהיה "פלאש" מוזר
+      setLoading(false);
 
       if (ws?.orgId) {
-        fetchMembers(ws.orgId); // ✅ בלי await (לא חוסם הרשאות)
+        fetchMembers(ws.orgId);
       }
 
-      // Fetch all workspaces for org switcher
       fetchAllWorkspaces();
     }
 
     init();
 
-    // Listen for auth state changes to refresh workspace
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
 
       if (session) {
-        // User logged in, refresh workspace
         invalidateWorkspaceCache();
         membersCache = { data: null, orgId: null, timestamp: 0 };
         fetchWorkspace().then((ws) => {
@@ -279,7 +326,6 @@ export function WorkspaceProvider({ children }) {
         });
         fetchAllWorkspaces();
       } else {
-        // User logged out
         setWorkspace(null);
         setWorkspaces([]);
         setMembers([]);
@@ -290,13 +336,10 @@ export function WorkspaceProvider({ children }) {
       mounted = false;
       sub?.subscription?.unsubscribe?.();
     };
-  }, [fetchWorkspace, fetchMembers]);
+  }, [fetchWorkspace, fetchMembers, fetchAllWorkspaces]);
 
-  // Derived values
   const isOwner = useMemo(() => {
-    return (
-      !!userId && !!workspace?.ownerUserId && userId === workspace.ownerUserId
-    );
+    return !!userId && !!workspace?.ownerUserId && userId === workspace.ownerUserId;
   }, [userId, workspace?.ownerUserId]);
 
   const isAdmin = useMemo(() => {

@@ -297,6 +297,27 @@ export default function CaseDetailsPage() {
             </>
           )}
 
+          {/* Assignee */}
+          {row.assignee && (
+            <>
+              <Divider style={{ margin: "12px 0" }} />
+              <div style={{ display: "grid", gap: 10 }}>
+                <Text strong>{t("cases.new.assignee")}</Text>
+                <Space size={12}>
+                  <Avatar size={40} src={row.assignee.avatar_url} icon={<UserOutlined />}>
+                    {row.assignee.full_name?.[0]?.toUpperCase()}
+                  </Avatar>
+                  <div>
+                    <Text strong style={{ display: "block" }}>
+                      {row.assignee.full_name || t("common.unnamed")}
+                    </Text>
+                    <Tag color="geekblue">{tCase("assigned")}</Tag>
+                  </div>
+                </Space>
+              </div>
+            </>
+          )}
+
           {/* Attachments */}
           {(attachments.length > 0 || true) && (
             <>

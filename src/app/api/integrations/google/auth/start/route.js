@@ -32,9 +32,5 @@ export async function GET(req) {
 
   const authUrl = buildGoogleAuthUrl({ state, redirectUri });
 
-  console.log("GOOGLE AUTH baseUrl =", baseUrl);
-  console.log("GOOGLE AUTH redirectUri =", redirectUri);
-  console.log("GOOGLE AUTH url =", authUrl);
-
   return NextResponse.redirect(authUrl);
 }

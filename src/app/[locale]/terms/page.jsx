@@ -65,7 +65,7 @@ export default function TermsPage() {
       }}
     >
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <Space direction="vertical" size={20} style={{ width: "100%" }}>
+        <Space orientation="vertical" size={20} style={{ width: "100%" }}>
           {/* Back button */}
           <Link href={`${linkPrefix}/`}>
             <Button type="text" icon={<ArrowLeftOutlined />}>
@@ -84,7 +84,7 @@ export default function TermsPage() {
           >
             <Row justify="space-between" align="middle" gutter={[16, 16]}>
               <Col xs={24} md={16}>
-                <Space direction="vertical" size={8}>
+                <Space orientation="vertical" size={8}>
                   <Space wrap size={8}>
                     <Tag
                       icon={<FileTextOutlined />}
@@ -119,7 +119,7 @@ export default function TermsPage() {
           </Card>
 
           {/* Content */}
-          <Space direction="vertical" size={14} style={{ width: "100%" }}>
+          <Space orientation="vertical" size={14} style={{ width: "100%" }}>
             <Section
               title={isHebrew ? "1. הסכמה לתנאים" : "1. Acceptance of Terms"}
               token={token}
@@ -265,7 +265,7 @@ export default function TermsPage() {
               </Text>
             </Col>
             <Col>
-              <Space split={<span style={{ color: token.colorTextQuaternary }}>|</span>} size={12}>
+              <Space separator={<span style={{ color: token.colorTextQuaternary }}>|</span>} size={12}>
                 <Link
                   href={`${linkPrefix}/privacy`}
                   style={{ color: token.colorTextSecondary, fontSize: 13 }}

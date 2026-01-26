@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useLocaleContext } from "@/app/[locale]/providers";
 
 import { supabase } from "@/lib/supabase/client";
-import { createCase, getMyWorkspaces, getActiveWorkspace, uploadCaseAttachment } from "@/lib/db";
+import { createCase, getMyWorkspaces, getActiveWorkspace, uploadCaseAttachment, getQueueMembers } from "@/lib/db";
 
 import { App, Col, Form, Row, Space, Spin } from "antd";
 
@@ -39,6 +39,11 @@ if (process.env.NODE_ENV === "development") {
   const [queues, setQueues] = useState([]);
   const [queuesLoading, setQueuesLoading] = useState(false);
   const [queueId, setQueueId] = useState(null);
+
+  // queue members (for assignee selection)
+  const [queueMembers, setQueueMembers] = useState([]);
+  const [queueMembersLoading, setQueueMembersLoading] = useState(false);
+  const [excludedMembers, setExcludedMembers] = useState([]);
 
   // contacts
   const [contacts, setContacts] = useState([]);
@@ -188,6 +193,49 @@ const { locale } = useLocaleContext();
     };
   }, [orgId, message]);
 
+  // 4) Load queue members when queueId changes
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadQueueMembers() {
+      if (!queueId) {
+        if (mounted) setQueueMembers([]);
+        return;
+      }
+
+      try {
+        setQueueMembersLoading(true);
+        const members = await getQueueMembers(queueId);
+        if (mounted) setQueueMembers(members || []);
+      } catch (e) {
+        if (mounted) setQueueMembers([]);
+        // Silently fail - table might not exist yet
+        console.warn("Failed to load queue members:", e?.message);
+      } finally {
+        if (mounted) setQueueMembersLoading(false);
+      }
+    }
+
+    loadQueueMembers();
+
+    // Clear assignee and excluded members when queue changes
+    form.setFieldsValue({ assigned_to: null });
+    setExcludedMembers([]);
+
+    return () => {
+      mounted = false;
+    };
+  }, [queueId, form]);
+
+  // Callbacks for excluding/including members
+  const onExcludeMember = (userId) => {
+    setExcludedMembers((prev) => [...prev, userId]);
+  };
+
+  const onIncludeMember = (userId) => {
+    setExcludedMembers((prev) => prev.filter((id) => id !== userId));
+  };
+
   const requesterOptions = useMemo(() => {
     return (contacts || []).map((c) => {
       const isActive = (c.is_active ?? true) !== false;
@@ -234,6 +282,7 @@ const { locale } = useLocaleContext();
         description: values.description?.trim() || "",
         priority: values.priority || "normal",
         requesterContactId: values.requester_contact_id || null,
+        assignedTo: values.assigned_to || null,
       });
 
       // Upload staged attachments after case creation
@@ -301,6 +350,11 @@ const { locale } = useLocaleContext();
             stagedFiles={stagedFiles}
             onAddStagedFile={(file) => setStagedFiles((prev) => [...prev, file])}
             onRemoveStagedFile={(index) => setStagedFiles((prev) => prev.filter((_, i) => i !== index))}
+            queueMembers={queueMembers}
+            queueMembersLoading={queueMembersLoading}
+            excludedMembers={excludedMembers}
+            onExcludeMember={onExcludeMember}
+            onIncludeMember={onIncludeMember}
           />
         </Col>
 

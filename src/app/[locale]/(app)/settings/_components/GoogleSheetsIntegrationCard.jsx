@@ -377,7 +377,7 @@ export default function GoogleSheetsIntegrationCard({
           type="info"
           showIcon
           icon={<InfoCircleOutlined />}
-          message={tx("state.connect.title", "Google is not connected")}
+          title ={tx("state.connect.title", "Google is not connected")}
           description={tx(
             "state.connect.desc",
             "Connect a Google account to create a Sheet and install Apps Script automation.",
@@ -413,7 +413,7 @@ export default function GoogleSheetsIntegrationCard({
           type="warning"
           showIcon
           icon={<WarningOutlined />}
-          message={tx("state.create.title", "Connected — create a Sheet")}
+          title ={tx("state.create.title", "Connected — create a Sheet")}
           description={tx(
             "state.create.desc",
             "Pick a default queue, then create the Sheet and install everything automatically.",
@@ -472,7 +472,7 @@ export default function GoogleSheetsIntegrationCard({
         <Alert
           type="info"
           showIcon
-          message={tx("state.install.title", "Sheet created — install Apps Script")}
+          title ={tx("state.install.title", "Sheet created — install Apps Script")}
           description={tx(
             "state.install.desc",
             "Install the bound Apps Script project so the Sheet can run automation on edit.",
@@ -520,7 +520,7 @@ export default function GoogleSheetsIntegrationCard({
         <Alert
           type="warning"
           showIcon
-          message={tx("state.install.noteTitle", "One-time authorization")}
+          title ={tx("state.install.noteTitle", "One-time authorization")}
           description={tx(
             "state.install.noteDesc",
             "After installation, open the Sheet once and approve permissions (Google security requirement).",
@@ -537,7 +537,7 @@ export default function GoogleSheetsIntegrationCard({
           type="success"
           showIcon
           icon={<CheckCircleOutlined />}
-          message={tx("state.ready.title", "Integration ready")}
+          title ={tx("state.ready.title", "Integration ready")}
           description={tx(
             "state.ready.desc",
             "The Sheet and Script are installed. You may need to authorize once.",
@@ -605,7 +605,7 @@ export default function GoogleSheetsIntegrationCard({
         <Alert
           type="info"
           showIcon
-          message={tx("state.ready.authTitle", "Authorization may be required")}
+          title ={tx("state.ready.authTitle", "Authorization may be required")}
           description={tx(
             "state.ready.authDesc",
             "Open the Sheet → CaseFlow menu → Enable automation (once). After that it runs automatically.",
@@ -665,7 +665,7 @@ export default function GoogleSheetsIntegrationCard({
             <Alert
               type="error"
               showIcon
-              message={tx("errors.uiTitle", "Error")}
+              title ={tx("errors.uiTitle", "Error")}
               description={<span style={{ whiteSpace: "pre-wrap" }}>{lastError}</span>}
             />
           ) : null}
@@ -681,7 +681,7 @@ export default function GoogleSheetsIntegrationCard({
           >
             <Steps
               current={step}
-              direction={isMobile ? "vertical" : "horizontal"}
+              orientation={isMobile ? "vertical" : "horizontal"}
               size="small"
               items={stepsItems}
             />

@@ -117,7 +117,7 @@ function LandingInner({ locale, isHebrew, linkPrefix }) {
           <Row gutter={0} style={{ minHeight: 560 }}>
             {/* Left Column - Features */}
             <Col xs={24} lg={12} style={{ padding: 28 }}>
-              <Space direction="vertical" size={18} style={{ width: "100%" }}>
+              <Space orientation ="vertical" size={18} style={{ width: "100%" }}>
                 <Space wrap size={8}>
                   <Pill icon={<SafetyCertificateOutlined />} label={isHebrew ? "מאובטח" : "Secure"} />
                   <Pill icon={<ThunderboltOutlined />} label={isHebrew ? "מהיר" : "Fast"} />
@@ -146,7 +146,7 @@ function LandingInner({ locale, isHebrew, linkPrefix }) {
 
                 <Divider style={{ margin: "4px 0" }} />
 
-                <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                <Space orientation ="vertical" size={12} style={{ width: "100%" }}>
                   <Feature
                     token={token}
                     icon={<InboxOutlined style={{ color: token.colorPrimary }} />}
@@ -214,7 +214,7 @@ function LandingInner({ locale, isHebrew, linkPrefix }) {
                   }}
                   styles={{ body: { padding: 28 } }}
                 >
-                  <Space direction="vertical" size={20} style={{ width: "100%" }}>
+                  <Space orientation ="vertical" size={20} style={{ width: "100%" }}>
                     <div style={{ textAlign: "center" }}>
                       <Title level={3} style={{ margin: 0, marginBottom: 6 }}>
                         {isHebrew ? "כניסה למערכת" : "Access Your Account"}
@@ -224,7 +224,7 @@ function LandingInner({ locale, isHebrew, linkPrefix }) {
                       </Text>
                     </div>
 
-                    <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                    <Space orientation ="vertical" size={12} style={{ width: "100%" }}>
                       <Link href={`${linkPrefix}/login`} style={{ display: "block" }}>
                         <Button type="primary" icon={<LoginOutlined />} size="large" block style={{ height: 48, borderRadius: 10, fontSize: 15 }}>
                           {isHebrew ? "התחברות" : "Sign In"}
@@ -240,7 +240,7 @@ function LandingInner({ locale, isHebrew, linkPrefix }) {
 
                     <Divider style={{ margin: "4px 0" }} />
 
-                    <Space direction="vertical" size={6} style={{ width: "100%" }}>
+                    <Space orientation ="vertical" size={6} style={{ width: "100%" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <CheckCircleOutlined style={{ color: token.colorSuccess, fontSize: 14 }} />
                         <Text style={{ fontSize: 13 }}>{isHebrew ? "הקמה מהירה בפחות מדקה" : "Quick setup in under a minute"}</Text>

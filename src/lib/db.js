@@ -86,15 +86,22 @@ export async function initializeWorkspace({
  * Returns user's memberships with org info.
  */
 export async function getMyWorkspaces() {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+
   const { data, error } = await supabase
     .from("org_memberships")
     .select(
-      "org_id, role, is_active, organizations:org_id ( id, name, owner_user_id )"
+      "org_id, role, is_active, created_at, organizations:org_id ( id, name, logo_url, owner_user_id, deleted_at )",
     )
+    .eq("user_id", user.id)
+    .eq("is_active", true)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return data || [];
+
+  // optional: filter soft-deleted orgs
+  return (data || []).filter((m) => !m?.organizations?.deleted_at);
 }
 
 export async function createCase({
@@ -104,6 +111,7 @@ export async function createCase({
   description,
   priority,
   requesterContactId,
+  assignedTo,
 }) {
   if (!queueId) throw new Error("Queue is required");
 
@@ -120,6 +128,7 @@ export async function createCase({
       priority,
       created_by: user.id,
       requester_contact_id: requesterContactId || null,
+      assigned_to: assignedTo || null,
     })
     .select("id")
     .single();
@@ -133,7 +142,7 @@ export async function getCaseById(caseId) {
   const { data, error } = await supabase
     .from("cases")
     .select(
-      "id, org_id, title, description, status, priority, assigned_to, requester_contact_id, created_at, updated_at"
+      "id, org_id, title, description, status, priority, assigned_to, requester_contact_id, created_at, updated_at",
     )
     .eq("id", caseId)
     .single();
@@ -149,6 +158,17 @@ export async function getCaseById(caseId) {
       .maybeSingle();
 
     data.requester = requester || null;
+  }
+
+  // Fetch assignee profile if exists
+  if (data?.assigned_to) {
+    const { data: assignee } = await supabase
+      .from("profiles")
+      .select("id, full_name, avatar_url")
+      .eq("id", data.assigned_to)
+      .maybeSingle();
+
+    data.assignee = assignee || null;
   }
 
   return data;
@@ -204,28 +224,78 @@ export async function updateCaseStatus({ caseId, status }) {
  * Uses in-memory cache to avoid repeated calls on navigation.
  */
 export async function getActiveWorkspace() {
-  // Check cache first (client-side only)
+  // Cache first (client-side only)
   if (typeof window !== "undefined") {
-    const { getCachedWorkspace, setCachedWorkspace } = await import(
-      "@/lib/workspaceCache"
-    );
+    const { getCachedWorkspace } = await import("@/lib/workspaceCache");
     const cached = getCachedWorkspace();
     if (cached) return cached;
   }
 
-  const { data, error } = await supabase
-    .from("org_memberships")
-    .select(
-      "org_id, role, is_active, created_at, organizations:org_id ( id, name, logo_url, owner_user_id )"
-    )
-    .eq("is_active", true)
-    .order("created_at", { ascending: false })
-    .limit(1);
+  // 1) Get current user
+  const user = await getCurrentUser();
+  const userId = user?.id;
+  if (!userId) return null;
 
-  if (error) throw error;
+  // 2) Try to read user's active org preference
+  const { data: uw, error: uwErr } = await supabase
+    .from("user_workspaces")
+    .select("active_org_id")
+    .eq("user_id", userId)
+    .maybeSingle();
 
-  const m = data?.[0];
+  if (uwErr) throw uwErr;
+
+  async function fetchMembership(orgId) {
+    const { data, error } = await supabase
+      .from("org_memberships")
+      .select(
+        "org_id, role, is_active, created_at, organizations:org_id ( id, name, logo_url, owner_user_id, deleted_at )"
+      )
+      .eq("user_id", userId)
+      .eq("org_id", orgId)
+      .eq("is_active", true)
+      .limit(1);
+
+    if (error) throw error;
+
+    const m = data?.[0] || null;
+    if (m?.organizations?.deleted_at) return null; // soft delete
+    return m;
+  }
+
+  let m = null;
+
+  // 3) If user has active_org_id, use it
+  if (uw?.active_org_id) {
+    m = await fetchMembership(uw.active_org_id);
+  }
+
+  // 4) Fallback: newest membership of THIS user
+  if (!m) {
+    const { data, error } = await supabase
+      .from("org_memberships")
+      .select(
+        "org_id, role, is_active, created_at, organizations:org_id ( id, name, logo_url, owner_user_id, deleted_at )"
+      )
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+
+    m = data?.[0] || null;
+
+    // Save as active for next time
+    if (m?.org_id) {
+      await supabase
+        .from("user_workspaces")
+        .upsert({ user_id: userId, active_org_id: m.org_id }, { onConflict: "user_id" });
+    }
+  }
+
   if (!m) return null;
+  if (m.organizations?.deleted_at) return null;
 
   const result = {
     orgId: m.org_id,
@@ -235,7 +305,7 @@ export async function getActiveWorkspace() {
     ownerUserId: m.organizations?.owner_user_id || null,
   };
 
-  // Cache the result (client-side only)
+  // Cache (client-side only)
   if (typeof window !== "undefined") {
     const { setCachedWorkspace } = await import("@/lib/workspaceCache");
     setCachedWorkspace(result);
@@ -243,7 +313,6 @@ export async function getActiveWorkspace() {
 
   return result;
 }
-
 
 export async function getDashboardStats(orgId) {
   const { data, error } = await supabase
@@ -272,7 +341,7 @@ export async function getDashboardStats(orgId) {
 
   const newToday = rows.filter((c) => new Date(c.created_at) >= startOfToday);
   const resolvedThisWeek = rows.filter(
-    (c) => c.status === "resolved" && new Date(c.created_at) >= startOfWeek
+    (c) => c.status === "resolved" && new Date(c.created_at) >= startOfWeek,
   );
 
   const byStatus = rows.reduce((acc, c) => {
@@ -294,7 +363,7 @@ export async function getMyOpenCases(orgId, userId) {
   const { data, error } = await supabase
     .from("cases")
     .select(
-      "id,title,status,priority,created_at, queue_id, queues(name,is_default)"
+      "id,title,status,priority,created_at, queue_id, queues(name,is_default)",
     )
     .eq("org_id", orgId)
     .eq("assigned_to", userId)
@@ -310,7 +379,7 @@ export async function getRecentActivity(orgId, { limit = 5 } = {}) {
   const { data, error } = await supabase
     .from("case_activities")
     .select(
-      "id, case_id, type, body, meta, created_at, created_by, cases:case_id ( id, queue_id, queues(name,is_default) )"
+      "id, case_id, type, body, meta, created_at, created_by, cases:case_id ( id, queue_id, queues(name,is_default) )",
     )
     .eq("org_id", orgId)
     .order("created_at", { ascending: false })
@@ -322,14 +391,40 @@ export async function getRecentActivity(orgId, { limit = 5 } = {}) {
 
 // Get org members list for assignment UI
 export async function getOrgMembers(orgId) {
-  const { data, error } = await supabase
-    .from("org_members_with_profiles")
-    .select("user_id, role, full_name, avatar_url")
+  if (!orgId) return [];
+
+  // First get org memberships
+  const { data: memberships, error: membersErr } = await supabase
+    .from("org_memberships")
+    .select("user_id, role, is_active")
     .eq("org_id", orgId)
     .eq("is_active", true);
 
-  if (error) throw error;
-  return data || [];
+  if (membersErr) throw membersErr;
+  if (!memberships || memberships.length === 0) return [];
+
+  // Then get profiles for those users
+  const userIds = memberships.map((m) => m.user_id);
+  const { data: profiles, error: profilesErr } = await supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url")
+    .in("id", userIds);
+
+  if (profilesErr) throw profilesErr;
+
+  // Create a map for quick lookup
+  const profileMap = {};
+  for (const p of profiles || []) {
+    profileMap[p.id] = p;
+  }
+
+  // Combine the data
+  return memberships.map((m) => ({
+    user_id: m.user_id,
+    role: m.role,
+    full_name: profileMap[m.user_id]?.full_name || null,
+    avatar_url: profileMap[m.user_id]?.avatar_url || null,
+  }));
 }
 
 /** Assign case (activity is logged by DB trigger) */
@@ -497,7 +592,12 @@ export async function removeOrgMember({ orgId, userId }) {
 /**
  * Update org settings (name + logo_url + dashboard_update)
  */
-export async function updateOrgSettings({ orgId, name, logoUrl = null, dashboardUpdate = null }) {
+export async function updateOrgSettings({
+  orgId,
+  name,
+  logoUrl = null,
+  dashboardUpdate = null,
+}) {
   if (!orgId) throw new Error("Missing orgId");
 
   const user = await getCurrentUser();
@@ -518,7 +618,9 @@ export async function updateOrgSettings({ orgId, name, logoUrl = null, dashboard
   }
 
   // avoid overwriting with undefined
-  Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+  Object.keys(payload).forEach(
+    (k) => payload[k] === undefined && delete payload[k],
+  );
 
   const { error } = await supabase
     .from("organizations")
@@ -527,7 +629,6 @@ export async function updateOrgSettings({ orgId, name, logoUrl = null, dashboard
 
   if (error) throw error;
 }
-
 
 export async function diagnosticsOrgAccess(orgId) {
   const { data, error } = await supabase.rpc("diagnostics_org_access", {
@@ -552,9 +653,7 @@ export async function updateCasePriority({ caseId, priority }) {
   if (upErr) throw upErr;
 }
 
-
 /* ---------------- profiles ---------------- */
-
 
 export async function getMyProfile() {
   const user = await getCurrentUser();
@@ -574,7 +673,10 @@ export async function getMyProfile() {
 /**
  * Profile upsert (profiles.id = auth.users.id)
  */
-export async function upsertMyProfile({ fullName = null, avatarUrl = null } = {}) {
+export async function upsertMyProfile({
+  fullName = null,
+  avatarUrl = null,
+} = {}) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
@@ -586,7 +688,9 @@ export async function upsertMyProfile({ fullName = null, avatarUrl = null } = {}
   };
 
   // avoid overwriting with undefined
-  Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+  Object.keys(payload).forEach(
+    (k) => payload[k] === undefined && delete payload[k],
+  );
 
   const { error } = await supabase
     .from("profiles")
@@ -594,9 +698,6 @@ export async function upsertMyProfile({ fullName = null, avatarUrl = null } = {}
 
   if (error) throw error;
 }
-
-
-
 
 /**
  * Returns active announcements for org (ordered).
@@ -609,7 +710,9 @@ export async function getOrgAnnouncements(orgId) {
 
   const { data, error } = await supabase
     .from("org_announcements")
-    .select("id, title, body, is_active, sort_order, starts_at, ends_at, created_at, updated_at")
+    .select(
+      "id, title, body, is_active, sort_order, starts_at, ends_at, created_at, updated_at",
+    )
     .eq("org_id", orgId)
     .eq("is_active", true)
     .or(`starts_at.is.null,starts_at.lte.${now}`)
@@ -627,7 +730,9 @@ export async function listOrgAnnouncements(orgId) {
 
   const { data, error } = await supabase
     .from("org_announcements")
-    .select("id, title, body, is_active, sort_order, starts_at, ends_at, created_at, updated_at")
+    .select(
+      "id, title, body, is_active, sort_order, starts_at, ends_at, created_at, updated_at",
+    )
     .eq("org_id", orgId)
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: false });
@@ -673,27 +778,35 @@ export async function updateAnnouncement(id, patch) {
   if (!id) throw new Error("Missing id");
 
   const clean = {};
-  if (typeof patch.title !== "undefined") clean.title = patch.title?.trim() || null;
+  if (typeof patch.title !== "undefined")
+    clean.title = patch.title?.trim() || null;
   if (typeof patch.body !== "undefined") clean.body = patch.body?.trim() || "";
-  if (typeof patch.is_active !== "undefined") clean.is_active = !!patch.is_active;
-  if (typeof patch.sort_order !== "undefined") clean.sort_order = Number(patch.sort_order) || 0;
+  if (typeof patch.is_active !== "undefined")
+    clean.is_active = !!patch.is_active;
+  if (typeof patch.sort_order !== "undefined")
+    clean.sort_order = Number(patch.sort_order) || 0;
   if (typeof patch.starts_at !== "undefined") clean.starts_at = patch.starts_at;
   if (typeof patch.ends_at !== "undefined") clean.ends_at = patch.ends_at;
 
   if ("body" in clean && !clean.body) throw new Error("Body cannot be empty");
 
-  const { error } = await supabase.from("org_announcements").update(clean).eq("id", id);
+  const { error } = await supabase
+    .from("org_announcements")
+    .update(clean)
+    .eq("id", id);
   if (error) throw error;
   return true;
 }
 
 export async function deleteAnnouncement(id) {
   if (!id) throw new Error("Missing id");
-  const { error } = await supabase.from("org_announcements").delete().eq("id", id);
+  const { error } = await supabase
+    .from("org_announcements")
+    .delete()
+    .eq("id", id);
   if (error) throw error;
   return true;
 }
-
 
 /* ---------------- Calendar Events ---------------- */
 
@@ -835,7 +948,7 @@ export async function listCalendarEvents(orgId, { start, end } = {}) {
   let q = supabase
     .from("calendar_events")
     .select(
-      "id, org_id, case_id, title, description, location, start_at, end_at, all_day, color, created_at, updated_at"
+      "id, org_id, case_id, title, description, location, start_at, end_at, all_day, color, created_at, updated_at",
     )
     .eq("org_id", orgId)
     .order("start_at", { ascending: true });
@@ -852,7 +965,7 @@ export async function getCalendarEventById(id) {
   const { data, error } = await supabase
     .from("calendar_events")
     .select(
-      "id, org_id, case_id, title, description, location, start_at, end_at, all_day, color, created_at, updated_at"
+      "id, org_id, case_id, title, description, location, start_at, end_at, all_day, color, created_at, updated_at",
     )
     .eq("id", id)
     .single();
@@ -879,7 +992,7 @@ export async function createCalendarEvent(payload) {
       created_by: userId,
     })
     .select(
-      "id, org_id, case_id, title, description, location, start_at, end_at, all_day, color, created_at, updated_at"
+      "id, org_id, case_id, title, description, location, start_at, end_at, all_day, color, created_at, updated_at",
     )
     .single();
 
@@ -897,7 +1010,11 @@ export async function createCalendarEvent(payload) {
   return data;
 }
 
-export async function updateCalendarEvent(id, patch, { activityType = "calendar_updated" } = {}) {
+export async function updateCalendarEvent(
+  id,
+  patch,
+  { activityType = "calendar_updated" } = {},
+) {
   const user = await getCurrentUser();
   const userId = user?.id || null;
 
@@ -909,7 +1026,7 @@ export async function updateCalendarEvent(id, patch, { activityType = "calendar_
     .update(patch)
     .eq("id", id)
     .select(
-      "id, org_id, case_id, title, description, location, start_at, end_at, all_day, color, created_at, updated_at"
+      "id, org_id, case_id, title, description, location, start_at, end_at, all_day, color, created_at, updated_at",
     )
     .single();
 
@@ -933,7 +1050,10 @@ export async function deleteCalendarEvent(id) {
   // fetch before delete so we can log it
   const before = await getCalendarEventById(id);
 
-  const { error } = await supabase.from("calendar_events").delete().eq("id", id);
+  const { error } = await supabase
+    .from("calendar_events")
+    .delete()
+    .eq("id", id);
   if (error) throw error;
 
   await logCalendarActivity({
@@ -946,7 +1066,6 @@ export async function deleteCalendarEvent(id) {
 
   return true;
 }
-
 
 /**
  * Returns upcoming calendar events for an org, ordered by start_at.
@@ -961,7 +1080,7 @@ export async function getUpcomingCalendarEvents(orgId, { limit = 6 } = {}) {
   const { data, error } = await supabase
     .from("calendar_events")
     .select(
-      "id, org_id, case_id, title, start_at, end_at, all_day, color, location, description, updated_at, created_at"
+      "id, org_id, case_id, title, start_at, end_at, all_day, color, location, description, updated_at, created_at",
     )
     .eq("org_id", orgId)
     .gte("start_at", now)
@@ -1094,4 +1213,138 @@ export async function getCaseAttachmentCounts(caseIds) {
     counts[row.case_id] = (counts[row.case_id] || 0) + 1;
   }
   return counts;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Queue Members
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Get members of a specific queue with their profiles.
+ */
+export async function getQueueMembers(queueId) {
+  if (!queueId) return [];
+
+  // First get queue members
+  const { data: members, error: membersErr } = await supabase
+    .from("queue_members")
+    .select("id, user_id, created_at")
+    .eq("queue_id", queueId);
+
+  if (membersErr) throw membersErr;
+  if (!members || members.length === 0) return [];
+
+  // Then get profiles for those users
+  const userIds = members.map((m) => m.user_id);
+  const { data: profiles, error: profilesErr } = await supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url")
+    .in("id", userIds);
+
+  if (profilesErr) throw profilesErr;
+
+  // Create a map for quick lookup
+  const profileMap = {};
+  for (const p of profiles || []) {
+    profileMap[p.id] = p;
+  }
+
+  // Combine the data
+  return members.map((m) => ({
+    ...m,
+    profiles: profileMap[m.user_id] || null,
+  }));
+}
+
+/**
+ * Set queue members (replace all members with new list).
+ */
+export async function setQueueMembers({ queueId, userIds }) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+
+  // Delete all existing members
+  const { error: deleteErr } = await supabase
+    .from("queue_members")
+    .delete()
+    .eq("queue_id", queueId);
+
+  if (deleteErr) throw deleteErr;
+
+  // Insert new members
+  if (userIds && userIds.length > 0) {
+    const rows = userIds.map((userId) => ({
+      queue_id: queueId,
+      user_id: userId,
+      created_by: user.id,
+    }));
+
+    const { error: insertErr } = await supabase
+      .from("queue_members")
+      .insert(rows);
+
+    if (insertErr) throw insertErr;
+  }
+}
+
+/**
+ * Add a single member to a queue.
+ */
+export async function addQueueMember({ queueId, userId }) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { error } = await supabase.from("queue_members").insert({
+    queue_id: queueId,
+    user_id: userId,
+    created_by: user.id,
+  });
+
+  if (error) throw error;
+}
+
+/**
+ * Remove a single member from a queue.
+ */
+export async function removeQueueMember({ queueId, userId }) {
+  const { error } = await supabase
+    .from("queue_members")
+    .delete()
+    .eq("queue_id", queueId)
+    .eq("user_id", userId);
+
+  if (error) throw error;
+}
+
+/**
+ * Get queue by ID.
+ */
+export async function getQueueById(queueId) {
+  if (!queueId) return null;
+
+  const { data, error } = await supabase
+    .from("queues")
+    .select("id, org_id, name, is_default, is_active, created_at, updated_at")
+    .eq("id", queueId)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Get cases by queue ID.
+ */
+export async function getCasesByQueue(queueId, { limit = 50 } = {}) {
+  if (!queueId) return [];
+
+  const { data, error } = await supabase
+    .from("cases")
+    .select("id, title, status, priority, created_at, assigned_to")
+    .eq("queue_id", queueId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data || [];
 }

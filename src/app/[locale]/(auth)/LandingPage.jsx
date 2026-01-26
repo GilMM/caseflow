@@ -126,7 +126,7 @@ export default function LandingPage() {
           <Row gutter={0} style={{ minHeight: 560 }}>
             {/* Left Column - Features */}
             <Col xs={24} lg={12} style={{ padding: 28 }}>
-              <Space direction="vertical" size={18} style={{ width: "100%" }}>
+              <Space orientation="vertical" size={18} style={{ width: "100%" }}>
                 <Space wrap size={8}>
                   <Pill
                     icon={<SafetyCertificateOutlined />}
@@ -164,7 +164,7 @@ export default function LandingPage() {
 
                 <Divider style={{ margin: "4px 0" }} />
 
-                <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                <Space orientation="vertical" size={12} style={{ width: "100%" }}>
                   <Feature
                     token={token}
                     icon={<InboxOutlined style={{ color: token.colorPrimary }} />}
@@ -238,7 +238,7 @@ export default function LandingPage() {
                   }}
                   styles={{ body: { padding: 28 } }}
                 >
-                  <Space direction="vertical" size={20} style={{ width: "100%" }}>
+                  <Space orientation="vertical" size={20} style={{ width: "100%" }}>
                     <div style={{ textAlign: "center" }}>
                       <Title level={3} style={{ margin: 0, marginBottom: 6 }}>
                         {isHebrew ? "כניסה למערכת" : "Access Your Account"}
@@ -250,7 +250,7 @@ export default function LandingPage() {
                       </Text>
                     </div>
 
-                    <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                    <Space orientation="vertical" size={12} style={{ width: "100%" }}>
                       <Link href={`${linkPrefix}/login`} style={{ display: "block" }}>
                         <Button
                           type="primary"
@@ -277,7 +277,7 @@ export default function LandingPage() {
 
                     <Divider style={{ margin: "4px 0" }} />
 
-                    <Space direction="vertical" size={6} style={{ width: "100%" }}>
+                    <Space orientation="vertical" size={6} style={{ width: "100%" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <CheckCircleOutlined style={{ color: token.colorSuccess, fontSize: 14 }} />
                         <Text style={{ fontSize: 13 }}>
@@ -339,7 +339,7 @@ export default function LandingPage() {
             textAlign: "center",
           }}
         >
-          <Space direction="vertical" size={8}>
+          <Space orientation="vertical" size={8}>
             <Space split={<span style={{ color: token.colorTextQuaternary }}>|</span>} size={20}>
               <Link
                 href={`${linkPrefix}/privacy`}

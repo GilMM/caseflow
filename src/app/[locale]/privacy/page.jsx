@@ -65,7 +65,7 @@ export default function PrivacyPage() {
       }}
     >
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <Space direction="vertical" size={20} style={{ width: "100%" }}>
+        <Space orientation="vertical" size={20} style={{ width: "100%" }}>
           {/* Back button */}
           <Link href={`${linkPrefix}/`}>
             <Button type="text" icon={<ArrowLeftOutlined />}>
@@ -84,7 +84,7 @@ export default function PrivacyPage() {
           >
             <Row justify="space-between" align="middle" gutter={[16, 16]}>
               <Col xs={24} md={16}>
-                <Space direction="vertical" size={8}>
+                <Space orientation="vertical" size={8}>
                   <Space wrap size={8}>
                     <Tag
                       icon={<SafetyOutlined />}
@@ -119,7 +119,7 @@ export default function PrivacyPage() {
           </Card>
 
           {/* Content */}
-          <Space direction="vertical" size={14} style={{ width: "100%" }}>
+          <Space orientation="vertical" size={14} style={{ width: "100%" }}>
             <Section
               title={isHebrew ? "1. סקירה כללית" : "1. Overview"}
               token={token}

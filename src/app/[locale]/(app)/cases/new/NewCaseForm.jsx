@@ -31,6 +31,111 @@ import { priorityColor, PRIORITY_OPTIONS } from "@/lib/ui/priority";
 const { Text } = Typography;
 const { TextArea } = Input;
 
+// Visual queue members selector with tags
+function QueueMembersTags({
+  members,
+  excludedMembers = [],
+  selectedId,
+  onSelect,
+  onExclude,
+  onInclude,
+  disabled,
+  t,
+}) {
+  const visibleMembers = members.filter((m) => !excludedMembers.includes(m.user_id));
+  const hiddenMembers = members.filter((m) => excludedMembers.includes(m.user_id));
+
+  return (
+    <Space orientation="vertical" size={8} style={{ width: "100%" }}>
+      {/* Visible members */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {visibleMembers.map((m) => {
+          const profile = m.profiles || {};
+          const isSelected = selectedId === m.user_id;
+
+          return (
+            <Tag
+              key={m.user_id}
+              closable
+              onClose={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // If this was selected, clear selection
+                if (isSelected) {
+                  onSelect(null);
+                }
+                onExclude?.(m.user_id);
+              }}
+              onClick={() => !disabled && onSelect(isSelected ? null : m.user_id)}
+              style={{
+                cursor: disabled ? "not-allowed" : "pointer",
+                padding: "4px 8px",
+                borderRadius: 16,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                background: isSelected ? "#1677ff" : "rgba(255,255,255,0.08)",
+                borderColor: isSelected ? "#1677ff" : "rgba(255,255,255,0.15)",
+                color: isSelected ? "#fff" : "inherit",
+                transition: "all 0.2s",
+              }}
+            >
+              <Avatar
+                size={20}
+                src={profile.avatar_url}
+                icon={<UserOutlined />}
+                style={{
+                  backgroundColor: isSelected ? "rgba(255,255,255,0.2)" : undefined,
+                }}
+              >
+                {initials(profile.full_name)}
+              </Avatar>
+              <span style={{ fontSize: 13 }}>{profile.full_name || t("common.unnamed")}</span>
+            </Tag>
+          );
+        })}
+      </div>
+
+      {/* Hidden (excluded) members - show small link to restore */}
+      {hiddenMembers.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {t("cases.new.excludedMembers", { count: hiddenMembers.length })}:
+          </Text>
+          {hiddenMembers.map((m) => {
+            const profile = m.profiles || {};
+            return (
+              <Tag
+                key={m.user_id}
+                onClick={() => !disabled && onInclude?.(m.user_id)}
+                style={{
+                  cursor: disabled ? "not-allowed" : "pointer",
+                  padding: "2px 6px",
+                  borderRadius: 12,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  opacity: 0.6,
+                  fontSize: 11,
+                }}
+              >
+                <PlusOutlined style={{ fontSize: 10 }} />
+                <span>{profile.full_name || t("common.unnamed")}</span>
+              </Tag>
+            );
+          })}
+        </div>
+      )}
+
+      {visibleMembers.length === 0 && hiddenMembers.length > 0 && (
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          {t("cases.new.allMembersExcluded")}
+        </Text>
+      )}
+    </Space>
+  );
+}
+
 export default function NewCaseForm({
   router,
   form,
@@ -50,6 +155,11 @@ export default function NewCaseForm({
   stagedFiles = [],
   onAddStagedFile,
   onRemoveStagedFile,
+  queueMembers = [],
+  queueMembersLoading = false,
+  excludedMembers = [],
+  onExcludeMember,
+  onIncludeMember,
 }) {
   const t = useTranslations();
   const priority = Form.useWatch("priority", form) || "normal";
@@ -178,6 +288,42 @@ export default function NewCaseForm({
               allowClear
             />
           </Form.Item>
+
+          {/* Queue Members Visual Selector */}
+          {queueId && (
+            <Form.Item
+              label={
+                <Space size={8}>
+                  <span>{t("cases.new.queueMembers")}</span>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    {t("cases.new.clickToAssign")}
+                  </Text>
+                </Space>
+              }
+              name="assigned_to"
+            >
+              {queueMembersLoading ? (
+                <div style={{ padding: "8px 0" }}>
+                  <Text type="secondary">{t("common.loading")}</Text>
+                </div>
+              ) : queueMembers.length === 0 ? (
+                <div style={{ padding: "8px 0" }}>
+                  <Text type="secondary">{t("cases.new.noQueueMembers")}</Text>
+                </div>
+              ) : (
+                <QueueMembersTags
+                  members={queueMembers}
+                  excludedMembers={excludedMembers}
+                  selectedId={form.getFieldValue("assigned_to")}
+                  onSelect={(userId) => form.setFieldsValue({ assigned_to: userId })}
+                  onExclude={onExcludeMember}
+                  onInclude={onIncludeMember}
+                  disabled={busy}
+                  t={t}
+                />
+              )}
+            </Form.Item>
+          )}
 
           <Form.Item
             label={t("cases.new.requester")}

@@ -48,7 +48,8 @@
     "tip": "Tip",
     "fixed": "Fixed",
     "noChanges": "No changes",
-    "nothingToFix": "Nothing to fix"
+    "nothingToFix": "Nothing to fix",
+    "created": "Created"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -332,6 +333,14 @@
       "descriptionPlaceholder": "Add context, steps to reproduce...",
       "priority": "Priority",
       "priorityRequired": "Select a priority",
+      "assignee": "Assignee",
+      "selectAssignee": "Select an assignee (optional)",
+      "noQueueMembers": "No members in this queue",
+      "selectQueueFirst": "Select a queue first",
+      "queueMembers": "Queue members",
+      "clickToAssign": "Click to assign",
+      "excludedMembers": "{count} excluded",
+      "allMembersExcluded": "All members excluded. Click a name above to restore.",
       "createCase": "Create case",
       "aiFix": "Fix spelling",
       "aiFixTooltip": "Fix spelling & minor grammar (Hebrew/English). Does not rewrite.",
@@ -359,6 +368,7 @@
       "new": "New",
       "inProgress": "In progress",
       "waitingCustomer": "Waiting for customer",
+      "waiting_customer": "Waiting for customer",
       "resolved": "Resolved",
       "closed": "Closed"
     },
@@ -541,7 +551,11 @@
       "namePlaceholder": "e.g., Support, Billing, Onboarding…",
       "active": "Active",
       "default": "Default",
-      "defaultHint": "Setting this queue as default will unset default from other queues in the workspace."
+      "defaultHint": "Setting this queue as default will unset default from other queues in the workspace.",
+      "members": "Queue members",
+      "membersHint": "Only selected members can be assigned to cases in this queue.",
+      "availableMembers": "Available",
+      "selectedMembers": "Members"
     },
     "upsert": {
       "titleCreate": "New queue",
@@ -597,6 +611,10 @@
       "default": "Default",
       "viewCases": "View cases",
       "toggleActive": "Activate / Deactivate queue"
+    },
+    "form": {
+      "default": "Default",
+      "active": "Active"
     }
   },
   "calendar": {
@@ -826,6 +844,20 @@
       "updated": "Announcement updated",
       "editing": "Editing",
       "noItemsHint": "No announcements yet. Add one, then you can manage or edit them."
+    },
+    "dangerZone": {
+      "title": "Danger zone",
+      "deleteOrgTitle": "Delete organization",
+      "deleteOrgHint": "Only the owner can delete an organization. This action is irreversible and may remove all related data.",
+      "warningTitle": "This action cannot be undone",
+      "warningBody": "Deleting the organization will remove access for all members and may permanently delete associated records.",
+      "deleteOrgButton": "Delete organization",
+      "modalTitle": "Confirm deletion",
+      "typeToConfirm": "Type the organization name to confirm: {orgName}",
+      "modalHint": "For safety, the delete button will be enabled only after an exact match.",
+      "confirmDelete": "Delete permanently",
+      "deleteSuccess": "Organization deleted",
+      "deleteFailed": "Failed to delete organization"
     }
   },
   "announcements": {
@@ -936,6 +968,7 @@
     "meta": {
       "created": "Created:"
     },
+    "assigned": "Assigned",
     "sections": {
       "description": "Description",
       "quickStatus": "Quick status",
@@ -955,6 +988,26 @@
       "noteAddFailed": "Failed to add note",
       "statusUpdated": "Status updated to {status}",
       "statusUpdateFailed": "Failed to update status"
+    }
+  },
+  "queueDetails": {
+    "notFound": "Queue not found",
+    "backToQueues": "Back to Queues",
+    "edit": "Edit",
+    "members": "Members",
+    "manage": "Manage",
+    "noMembers": "No members assigned to this queue",
+    "cases": "Cases",
+    "noCases": "No cases in this queue",
+    "table": {
+      "title": "Title",
+      "status": "Status",
+      "priority": "Priority",
+      "created": "Created"
+    },
+    "errors": {
+      "load": "Failed to load queue",
+      "save": "Failed to save"
     }
   }
 }

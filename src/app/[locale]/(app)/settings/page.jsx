@@ -6,7 +6,11 @@ import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import { supabase } from "@/lib/supabase/client";
-import { diagnosticsOrgAccess, upsertMyProfile, updateOrgSettings } from "@/lib/db";
+import {
+  diagnosticsOrgAccess,
+  upsertMyProfile,
+  updateOrgSettings,
+} from "@/lib/db";
 import { useUser, useWorkspace } from "@/contexts";
 
 import {
@@ -24,7 +28,12 @@ import {
   Typography,
 } from "antd";
 
-import { SettingOutlined, ReloadOutlined, WifiOutlined, LogoutOutlined } from "@ant-design/icons";
+import {
+  SettingOutlined,
+  ReloadOutlined,
+  WifiOutlined,
+  LogoutOutlined,
+} from "@ant-design/icons";
 
 import ProfileCard from "./_components/ProfileCard";
 import OrgSettingsCard from "./_components/OrgSettingsCard";
@@ -33,6 +42,7 @@ import SecurityCard from "./_components/SecurityCard";
 import { getExt } from "./_components/helpers";
 import AnnouncementsManager from "./_components/AnnouncementsManager";
 import GoogleSheetsIntegrationCard from "./_components/GoogleSheetsIntegrationCard";
+import DeleteOrganizationCard from "./_components/DeleteOrganizationCard";
 
 const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
@@ -249,7 +259,9 @@ export default function SettingsPage() {
 
       if (upErr) throw upErr;
 
-      const { data: pub } = supabase.storage.from("org-logos").getPublicUrl(path);
+      const { data: pub } = supabase.storage
+        .from("org-logos")
+        .getPublicUrl(path);
       const url = pub?.publicUrl || null;
 
       const name = (workspace?.orgName || "").trim();
@@ -334,7 +346,9 @@ export default function SettingsPage() {
                     {t("settings.header.configuration")}
                   </Tag>
 
-                  {isOwner ? <Tag color="gold">{t("settings.header.owner")}</Tag> : null}
+                  {isOwner ? (
+                    <Tag color="gold">{t("settings.header.owner")}</Tag>
+                  ) : null}
 
                   {workspace?.role ? (
                     <Tag color="geekblue">
@@ -384,7 +398,7 @@ export default function SettingsPage() {
             <Alert
               type="error"
               showIcon
-              title ={t("settings.messages.couldntLoad")}
+              title={t("settings.messages.couldntLoad")}
               description={error}
             />
           </Card>
@@ -410,7 +424,6 @@ export default function SettingsPage() {
               />
             ) : null}
 
-            
             <SecurityCard
               isAdmin={isAdmin}
               orgId={resolvedOrgId}
@@ -449,12 +462,18 @@ export default function SettingsPage() {
 
             {isAdmin && resolvedOrgId ? (
               <AnnouncementsManager
+              orgId={resolvedOrgId}
+              isAdmin={isAdmin}
+              isMobile={isMobile}
+              />
+            ) : null}
+            {isOwner && resolvedOrgId ? (
+              <DeleteOrganizationCard
                 orgId={resolvedOrgId}
-                isAdmin={isAdmin}
+                orgName={workspace?.orgName || ""}
                 isMobile={isMobile}
               />
             ) : null}
-
           </Col>
         </Row>
 

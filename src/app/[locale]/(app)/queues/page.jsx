@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
-import { getActiveWorkspace } from "@/lib/db";
+import { getActiveWorkspace, getQueueMembers, setQueueMembers } from "@/lib/db";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 import { Alert, Card, Grid, Space, Spin, Row, Col, message } from "antd";
 
@@ -19,6 +20,7 @@ export default function QueuesPage() {
   const router = useRouter();
   const screens = useBreakpoint();
   const isMobile = !screens.md;
+  const { members: orgMembers } = useWorkspace();
 
   const [workspace, setWorkspace] = useState(null);
 
@@ -39,6 +41,10 @@ export default function QueuesPage() {
   const [mode, setMode] = useState("create"); // create | edit
   const [editing, setEditing] = useState(null); // queue row
   const [saving, setSaving] = useState(false);
+
+  // queue members for modal
+  const [queueMembers, setQueueMembersState] = useState([]);
+  const [membersLoading, setMembersLoading] = useState(false);
 
   const lastToastRef = useRef(0);
   const { locale } = useParams();
@@ -125,13 +131,26 @@ export default function QueuesPage() {
   function openCreate() {
     setMode("create");
     setEditing(null);
+    setQueueMembersState([]);
     setModalOpen(true);
   }
 
-  function openEdit(queue) {
+  async function openEdit(queue) {
     setMode("edit");
     setEditing(queue);
     setModalOpen(true);
+
+    // Load queue members
+    try {
+      setMembersLoading(true);
+      const members = await getQueueMembers(queue.id);
+      setQueueMembersState(members);
+    } catch (e) {
+      message.error(e?.message || "Failed to load queue members");
+      setQueueMembersState([]);
+    } finally {
+      setMembersLoading(false);
+    }
   }
 
   async function setDefaultQueue(queueId) {
@@ -190,6 +209,7 @@ export default function QueuesPage() {
     const name = String(values.name || "").trim();
     const is_active = !!values.is_active;
     const is_default = !!values.is_default;
+    const memberIds = values.memberIds || [];
 
     if (!name) {
       message.error("Queue name is required");
@@ -210,14 +230,23 @@ export default function QueuesPage() {
       }
 
       if (mode === "create") {
-        const { error } = await supabase.from("queues").insert({
-          org_id: workspace.orgId,
-          name,
-          is_active,
-          is_default,
-        });
+        const { data: newQueue, error } = await supabase
+          .from("queues")
+          .insert({
+            org_id: workspace.orgId,
+            name,
+            is_active,
+            is_default,
+          })
+          .select("id")
+          .single();
 
         if (error) throw error;
+
+        // Save queue members
+        if (memberIds.length > 0) {
+          await setQueueMembers({ queueId: newQueue.id, userIds: memberIds });
+        }
 
         message.success("Queue created");
         setModalOpen(false);
@@ -232,6 +261,9 @@ export default function QueuesPage() {
         .eq("id", editing.id);
 
       if (error) throw error;
+
+      // Save queue members
+      await setQueueMembers({ queueId: editing.id, userIds: memberIds });
 
       message.success("Queue updated");
       setModalOpen(false);
@@ -318,7 +350,7 @@ export default function QueuesPage() {
         onSetDefault={setDefaultQueue}
         onToggleActive={toggleActive}
         onViewCases={(queueId) => router.push(`/${locale}/cases?queue=${queueId}`)}
-        onOpenFuture={() => message.info("Next: queue details page")}
+        onOpenFuture={(queueId) => router.push(`/${locale}/queues/${queueId}`)}
       />
 
       <QueueUpsertModal
@@ -329,6 +361,9 @@ export default function QueuesPage() {
         initialValues={modalInitialValues}
         onCancel={() => setModalOpen(false)}
         onSubmit={onSave}
+        orgMembers={orgMembers}
+        queueMembers={queueMembers}
+        membersLoading={membersLoading}
       />
     </Space>
   );

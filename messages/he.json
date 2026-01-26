@@ -48,7 +48,8 @@
     "tip": "טיפ",
     "fixed": "תוקן",
     "noChanges": "אין שינוי",
-    "nothingToFix": "אין מה לתקן"
+    "nothingToFix": "אין מה לתקן",
+    "created": "נוצר"
   },
   "navigation": {
     "dashboard": "לוח בקרה",
@@ -332,6 +333,14 @@
       "descriptionPlaceholder": "הוסף הקשר, שלבים לשחזור...",
       "priority": "עדיפות",
       "priorityRequired": "בחר עדיפות",
+      "assignee": "מוקצה",
+      "selectAssignee": "בחר מוקצה (אופציונלי)",
+      "noQueueMembers": "אין חברים בתור זה",
+      "selectQueueFirst": "בחר תור קודם",
+      "queueMembers": "חברי המחלקה",
+      "clickToAssign": "לחץ להקצאה",
+      "excludedMembers": "{count} הוסרו",
+      "allMembersExcluded": "כל החברים הוסרו. לחץ על שם למעלה כדי לשחזר.",
       "createCase": "צור פניה",
       "aiFix": "תיקון שגיאות",
       "aiFixTooltip": "תיקון שגיאות כתיב ודקדוק קל (עברית/אנגלית), בלי לשכתב.",
@@ -359,6 +368,7 @@
       "new": "חדש",
       "inProgress": "בטיפול",
       "waitingCustomer": "ממתין ללקוח",
+      "waiting_customer": "ממתין ללקוח",
       "resolved": "נפתר",
       "closed": "סגור"
     },
@@ -545,7 +555,15 @@
       "namePlaceholder": "לדוגמה: תמיכה, חיובים, Onboarding…",
       "active": "פעיל",
       "default": "ברירת מחדל",
-      "defaultHint": "הגדרת תור כברירת מחדל תבטל את ברירת המחדל משאר התורים בסביבת העבודה."
+      "defaultHint": "הגדרת תור כברירת מחדל תבטל את ברירת המחדל משאר התורים בסביבת העבודה.",
+      "members": "חברי התור",
+      "membersHint": "רק החברים הנבחרים יוכלו להיות מוקצים לפניות בתור זה.",
+      "availableMembers": "זמינים",
+      "selectedMembers": "חברים"
+    },
+    "form": {
+      "default": "ברירת מחדל",
+      "active": "פעיל"
     },
     "upsert": {
       "titleCreate": "תור חדש",
@@ -835,6 +853,20 @@
       "updated": "ההודעה עודכנה",
       "editing": "עריכת הודעה",
       "noItemsHint": "אין עדיין הודעות. הוסף הודעה ולאחר מכן תוכל לנהל או לערוך אותן."
+    },
+    "dangerZone": {
+      "title": "אזור מסוכן",
+      "deleteOrgTitle": "מחיקת ארגון",
+      "deleteOrgHint": "רק בעלים יכול למחוק ארגון. הפעולה בלתי הפיכה ועלולה למחוק את כל הנתונים המשויכים.",
+      "warningTitle": "אי אפשר לבטל את הפעולה",
+      "warningBody": "מחיקת הארגון תסיר גישה מכל המשתמשים ועלולה למחוק לצמיתות רשומות משויכות.",
+      "deleteOrgButton": "מחק ארגון",
+      "modalTitle": "אישור מחיקה",
+      "typeToConfirm": "כדי לאשר, הקלד את שם הארגון בדיוק: {orgName}",
+      "modalHint": "מטעמי אבטחה, כפתור המחיקה יופעל רק לאחר התאמה מלאה.",
+      "confirmDelete": "מחק לצמיתות",
+      "deleteSuccess": "הארגון נמחק",
+      "deleteFailed": "מחיקת הארגון נכשלה"
     }
   },
   "announcements": {
@@ -945,6 +977,7 @@
     "meta": {
       "created": "נוצר:"
     },
+    "assigned": "מוקצה",
     "sections": {
       "description": "תיאור",
       "quickStatus": "סטטוס מהיר",
@@ -964,6 +997,26 @@
       "noteAddFailed": "נכשל בהוספת הערה",
       "statusUpdated": "הסטטוס עודכן ל-{status}",
       "statusUpdateFailed": "נכשל בעדכון הסטטוס"
+    }
+  },
+  "queueDetails": {
+    "notFound": "התור לא נמצא",
+    "backToQueues": "חזרה לתורים",
+    "edit": "עריכה",
+    "members": "חברי התור",
+    "manage": "ניהול",
+    "noMembers": "אין חברים שמשויכים לתור הזה",
+    "cases": "פניות",
+    "noCases": "אין פניות בתור הזה",
+    "table": {
+      "title": "כותרת",
+      "status": "סטטוס",
+      "priority": "דחיפות",
+      "created": "נוצר בתאריך"
+    },
+    "errors": {
+      "load": "טעינת התור נכשלה",
+      "save": "השמירה נכשלה"
     }
   }
 }
