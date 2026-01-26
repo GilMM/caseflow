@@ -17,7 +17,10 @@
       "Bash(dir \"c:\\\\Users\\\\GMesh\\\\caseflow\")",
       "Bash(dir \"c:\\\\Users\\\\GMesh\\\\caseflow\\\\src\" /s /b *.tsx)",
       "Bash(findstr:*)",
-      "Bash(git stash show:*)"
+      "Bash(git stash show:*)",
+      "Bash(git push:*)",
+      "Bash(git show:*)",
+      "Bash(git -C \"c:\\\\Users\\\\GMesh\\\\caseflow\" log --oneline -20)"
     ]
   }
 }

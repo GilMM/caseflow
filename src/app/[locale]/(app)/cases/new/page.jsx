@@ -9,8 +9,6 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/lib/supabase/client";
 import {
   createCase,
-  getMyWorkspaces,
-  getActiveWorkspace,
   uploadCaseAttachment,
   getQueueMembers,
 } from "@/lib/db";
@@ -38,9 +36,8 @@ export default function NewCasePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  // const [orgId, setOrgId] = useState(null);
-  // const [orgName, setOrgName] = useState("");
-  // const [workspace, setWorkspace] = useState(null);
+  const [orgId, setOrgId] = useState(null);
+  const [orgName, setOrgName] = useState("");
   const { workspace, loading: wsLoading } = useWorkspace();
 
   // queues
@@ -66,47 +63,11 @@ export default function NewCasePage() {
   const pathname = usePathname();
   const { locale } = useLocaleContext();
 
-  // 1) Load workspace
+  // 1) Initialize form when workspace is ready
   useEffect(() => {
-    let mounted = true;
-
-    async function loadWorkspace() {
-      try {
-        setBooting(true);
-        setError("");
-
-        const ws = await getActiveWorkspace();
-        if (!mounted) return;
-
-        if (!ws?.orgId) {
-          setWorkspace(null);
-          setOrgId(null);
-          setOrgName("");
-          return;
-        }
-
-        setWorkspace(ws);
-        setOrgId(ws.orgId);
-        setOrgName(ws.orgName || "");
-
-        form.setFieldsValue({
-          title: "",
-          description: "",
-          priority: "normal",
-          requester_contact_id: requesterFromUrl || null,
-        });
-      } catch (e) {
-        if (mounted) setError(e?.message || "Failed to initialize");
-      } finally {
-        if (mounted) setBooting(false);
-      }
-    }
-
-    loadWorkspace();
-    return () => {
-      mounted = false;
-    };
-  }, [form, requesterFromUrl]);
+    if (wsLoading) return;
+    setBooting(false);
+  }, [wsLoading]);
 
   // 2) Load queues + choose default queueId
   useEffect(() => {
