@@ -99,7 +99,7 @@ export async function POST(req) {
     }
 
     // ✅ רק אדמינים בארגון יכולים לשתף לקבוצה
-    await requireOrgAdminRoute(orgId);
+    await requireOrgAdminRoute(req, orgId);
 
     const admin = supabaseAdmin();
 
@@ -131,9 +131,7 @@ export async function POST(req) {
       return NextResponse.json({ error: memErr.message }, { status: 500 });
     }
 
-    const userIds = (members || [])
-      .map((m) => m.user_id)
-      .filter(Boolean);
+    const userIds = (members || []).map((m) => m.user_id).filter(Boolean);
 
     // 3) להביא אימיילים של המשתמשים (Supabase Auth)
     // חשוב: זה דורש SERVICE ROLE (יש לך ב-Vercel)
@@ -187,8 +185,7 @@ export async function POST(req) {
       sharedOk: okCount,
       sharedFailed: failCount,
       results,
-      note:
-        "Members will see the shared Sheet in their own Google Drive if they are logged into that Google account.",
+      note: "Members will see the shared Sheet in their own Google Drive if they are logged into that Google account.",
     });
   } catch (e) {
     console.error("SHARE TO ORG ERROR:", e);

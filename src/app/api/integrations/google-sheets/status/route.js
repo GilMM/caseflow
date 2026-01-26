@@ -7,9 +7,11 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const orgId = searchParams.get("orgId");
 
-    if (!orgId) return NextResponse.json({ error: "Missing orgId" }, { status: 400 });
+    if (!orgId) {
+      return NextResponse.json({ error: "Missing orgId" }, { status: 400 });
+    }
 
-    await requireOrgAdminRoute(orgId);
+    await requireOrgAdminRoute(req, orgId);
 
     const admin = supabaseAdmin();
 
@@ -20,7 +22,7 @@ export async function GET(req) {
           "org_id",
           "is_enabled",
           "default_queue_id",
-          "spreadsheet_id",
+          "sheet_id",
           "sheet_url",
           "worksheet_name",
           "field_mapping",
@@ -29,25 +31,34 @@ export async function GET(req) {
           "script_url",
           "created_at",
           "updated_at",
-        ].join(",")
+        ].join(","),
       )
       .eq("org_id", orgId)
       .maybeSingle();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
 
     return NextResponse.json({
       ok: true,
       is_enabled: integ?.is_enabled ?? true,
       default_queue_id: integ?.default_queue_id ?? null,
-      spreadsheet_id: integ?.spreadsheet_id ?? null,
+
+      // ✅ important: match DB + UI expectations
+      sheet_id: integ?.sheet_id ?? null,
       sheet_url: integ?.sheet_url ?? null,
+
       worksheet_name: integ?.worksheet_name ?? "Sheet1",
       field_mapping: integ?.field_mapping ?? null,
+
       script_id: integ?.script_id ?? null,
       script_url: integ?.script_url ?? null,
     });
   } catch (e) {
-    return NextResponse.json({ error: e?.message || "Status failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: e?.message || "Status failed" },
+      { status: 500 },
+    );
   }
 }

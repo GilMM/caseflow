@@ -45,7 +45,7 @@ function Section({ title, children, token }) {
 export default function PrivacyPage() {
   const params = useParams();
   const rawLocale = params?.locale;
-  const locale = (rawLocale === "en" || rawLocale === "he") ? rawLocale : "en";
+  const locale = rawLocale === "en" || rawLocale === "he" ? rawLocale : "en";
   const isHebrew = locale === "he";
   const screens = useBreakpoint();
   const isMobile = !screens.md;
@@ -66,14 +66,12 @@ export default function PrivacyPage() {
     >
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <Space orientation="vertical" size={20} style={{ width: "100%" }}>
-          {/* Back button */}
           <Link href={`${linkPrefix}/`}>
             <Button type="text" icon={<ArrowLeftOutlined />}>
               {isHebrew ? "חזרה לדף הבית" : "Back to Home"}
             </Button>
           </Link>
 
-          {/* Header */}
           <Card
             style={{
               borderRadius: 16,
@@ -86,14 +84,10 @@ export default function PrivacyPage() {
               <Col xs={24} md={16}>
                 <Space orientation="vertical" size={8}>
                   <Space wrap size={8}>
-                    <Tag
-                      icon={<SafetyOutlined />}
-                      color="blue"
-                      style={{ borderRadius: 999 }}
-                    >
+                    <Tag icon={<SafetyOutlined />} color="blue">
                       {isHebrew ? "אמינות ופרטיות" : "Trust & Privacy"}
                     </Tag>
-                    <Tag style={{ borderRadius: 999 }}>
+                    <Tag>
                       {isHebrew ? "בתוקף מ:" : "Effective:"} {effectiveDate}
                     </Tag>
                   </Space>
@@ -107,154 +101,168 @@ export default function PrivacyPage() {
                   </Text>
                 </Space>
               </Col>
-              <Col xs={24} md={8} style={{ textAlign: isMobile ? "start" : "end" }}>
-                <Button
-                  icon={<MailOutlined />}
-                  href={`mailto:${contactEmail}`}
-                >
+              <Col
+                xs={24}
+                md={8}
+                style={{ textAlign: isMobile ? "start" : "end" }}
+              >
+                <Button icon={<MailOutlined />} href={`mailto:${contactEmail}`}>
                   {isHebrew ? "צור קשר" : "Contact Us"}
                 </Button>
               </Col>
             </Row>
           </Card>
 
-          {/* Content */}
           <Space orientation="vertical" size={14} style={{ width: "100%" }}>
             <Section
               title={isHebrew ? "1. סקירה כללית" : "1. Overview"}
               token={token}
             >
-              <Paragraph style={{ margin: 0 }}>
+              <Paragraph>
+                {isHebrew
+                  ? "CaseFlow היא מערכת לניהול תיקים ותהליכי עבודה לארגונים, עם אפשרות לאינטגרציה עם Google ליצירת גיליון Intake ואוטומציה."
+                  : "CaseFlow provides an organizational workspace for managing cases and workflows, with optional Google integrations for spreadsheet-based intake automation."}
+              </Paragraph>
+            </Section>
+
+            <Section
+              title={
+                isHebrew ? "2. מידע שאנחנו אוספים" : "2. Information We Collect"
+              }
+              token={token}
+            >
+              <Paragraph>
+                <b>{isHebrew ? "מידע חשבון" : "Account Information"}</b>
+              </Paragraph>
+              <ul style={{ marginTop: 6, paddingInlineStart: 22 }}>
+                <li>{isHebrew ? "שם ואימייל" : "Name and email address"}</li>
+                <li>
+                  {isHebrew
+                    ? "תוכן שאתה יוצר במערכת"
+                    : "Content created within the platform"}
+                </li>
+              </ul>
+
+              <Paragraph>
+                <b>
+                  {isHebrew
+                    ? "נתוני Google באמצעות OAuth"
+                    : "Google Data via OAuth"}
+                </b>
+              </Paragraph>
+
+              <Paragraph>
                 {isHebrew ? (
                   <>
-                    <b>{appName}</b> היא מערכת ניהול תיקים ותהליכי עבודה לארגונים.
-                    ניתן להפעיל אינטגרציה עם שירותי Google (Sheets/Drive/Apps Script)
-                    ליצירת גיליון Intake משותף ואוטומציה של יצירת תיקים.
+                    CaseFlow מקבלת גישה רק לקובץ הגיליון הספציפי שהמשתמש יוצר או
+                    בוחר במפורש באמצעות הרשאת
+                    <b> drive.file</b>. הגישה משמשת לקריאה וכתיבה בגיליון לצורך
+                    אוטומציית יצירת תיקים. בנוסף, המערכת יוצרת סקריפט Apps
+                    Script הצמוד לגיליון להפעלת האוטומציה. אין גישה לקבצים אחרים
+                    בדרייב.
                   </>
                 ) : (
                   <>
-                    <b>{appName}</b> provides an organization workspace system for managing
-                    cases and workflows. Optional Google integrations (Sheets/Drive/Apps Script)
-                    can be enabled to create a shared intake spreadsheet and automate case creation.
+                    CaseFlow accesses only the specific Google Drive spreadsheet
+                    file that the user explicitly creates or selects using the{" "}
+                    <b>drive.file</b> permission. This access is used solely to
+                    read and write data within that spreadsheet for workflow
+                    automation. An Apps Script bound to the spreadsheet is
+                    created to enable automation. No other Google Drive files
+                    are accessed.
                   </>
                 )}
               </Paragraph>
             </Section>
 
             <Section
-              title={isHebrew ? "2. מידע שאנחנו אוספים" : "2. Information We Collect"}
-              token={token}
-            >
-              <Paragraph style={{ marginTop: 0 }}>
-                <b>{isHebrew ? "2.1 מידע שאתה מספק" : "2.1 Information you provide"}</b>
-              </Paragraph>
-              <ul style={{ marginTop: 0, paddingInlineStart: 20 }}>
-                <li>
-                  {isHebrew
-                    ? "פרטי חשבון בסיסיים (שם, אימייל) דרך הרשמה או Google Sign-In."
-                    : "Basic account details (name, email) via registration or Google Sign-In."}
-                </li>
-                <li>
-                  {isHebrew
-                    ? "תוכן שאתה יוצר במערכת (תיקים, הודעות, אנשי קשר)."
-                    : "Content you create (cases, announcements, contacts, etc.)."}
-                </li>
-              </ul>
-
-              <Paragraph>
-                <b>{isHebrew ? "2.2 נתוני Google (OAuth)" : "2.2 Google data via OAuth"}</b>
-              </Paragraph>
-              <Paragraph style={{ marginTop: 0 }}>
-                {isHebrew
-                  ? "כאשר אתה מחבר חשבון Google, אתה מאשר הרשאות לפי האינטגרציה שהפעלת:"
-                  : "When you connect a Google Account, you grant permissions based on the integration:"}
-              </Paragraph>
-              <ul style={{ marginTop: 0, paddingInlineStart: 20 }}>
-                <li>{isHebrew ? "Sheets: יצירה וניהול של גיליון Intake." : "Sheets: creating/managing the intake spreadsheet."}</li>
-                <li>{isHebrew ? "Drive: גישה לקובץ הגיליון בלבד." : "Drive: accessing only the spreadsheet file."}</li>
-                <li>{isHebrew ? "Apps Script: הרצת אוטומציות." : "Apps Script: running automation scripts."}</li>
-              </ul>
-            </Section>
-
-            <Section
               title={isHebrew ? "3. שימוש במידע" : "3. How We Use Information"}
               token={token}
             >
-              <ul style={{ margin: 0, paddingInlineStart: 20 }}>
-                <li>{isHebrew ? "אימות משתמשים וניהול גישה." : "Authenticate users and manage access."}</li>
-                <li>{isHebrew ? "הפעלת האינטגרציות שהגדרת." : "Provide the integrations you enable."}</li>
-                <li>{isHebrew ? "תמיכה, אבטחה ושיפור השירות." : "Support, security, and service improvements."}</li>
+<ul style={{ marginTop: 6, paddingInlineStart: 22 }}>
+                <li>
+                  {isHebrew
+                    ? "אימות וניהול משתמשים"
+                    : "Authentication and access management"}
+                </li>
+                <li>
+                  {isHebrew
+                    ? "הפעלת אינטגרציות"
+                    : "Providing enabled integrations"}
+                </li>
+                <li>{isHebrew ? "אבטחה ותמיכה" : "Security and support"}</li>
               </ul>
             </Section>
 
             <Section
-              title={isHebrew ? "4. שיתוף מידע" : "4. Data Sharing"}
+              title={
+                isHebrew
+                  ? "4. Google API Limited Use"
+                  : "4. Google API Limited Use"
+              }
               token={token}
             >
-              <Paragraph style={{ margin: 0 }}>
+              <Paragraph>
                 {isHebrew
-                  ? "אנחנו לא מוכרים מידע אישי. שיתוף מתבצע רק עם ספקי שירות תחת חובת סודיות, או כנדרש בחוק."
-                  : "We do not sell personal data. We share data only with service providers under confidentiality, or when required by law."}
+                  ? "השימוש בנתוני Google עומד במדיניות Google Limited Use. המידע אינו משמש לפרסום ואינו משמש לאימון מודלי AI."
+                  : "Use of Google data complies with Google API Services User Data Policy (Limited Use). Data is not used for advertising or for training AI/ML models."}
               </Paragraph>
             </Section>
 
             <Section
-              title={isHebrew ? "5. Google API - Limited Use" : "5. Google API Limited Use"}
+              title={
+                isHebrew
+                  ? "5. שמירת מידע ומחיקה"
+                  : "5. Data Retention & Deletion"
+              }
               token={token}
             >
-              <Paragraph style={{ margin: 0 }}>
+<ul style={{ marginTop: 6, paddingInlineStart: 22 }}>
+                <li>
+                  {isHebrew
+                    ? "המידע נשמר כל עוד החשבון פעיל"
+                    : "Data is retained while the account is active"}
+                </li>
+                <li>
+                  {isHebrew
+                    ? "ניתוק Google מוחק טוקנים מיידית"
+                    : "Disconnecting Google deletes tokens immediately"}
+                </li>
+                <li>
+                  {isHebrew
+                    ? "מחיקה מלאה תוך 30 יום"
+                    : "Full deletion within 30 days upon request"}
+                </li>
+              </ul>
+              <Paragraph>
                 {isHebrew
-                  ? "השימוש במידע מ-Google APIs עומד בדרישות Google API Services User Data Policy, כולל Limited Use."
-                  : "Use and transfer of information from Google APIs adheres to Google API Services User Data Policy, including Limited Use requirements."}
+                  ? "ניתן גם לבטל הרשאות דרך הגדרות האבטחה של חשבון Google."
+                  : "Users may also revoke access at any time from their Google Account security settings."}
               </Paragraph>
             </Section>
 
             <Section
-              title={isHebrew ? "6. אבטחת מידע" : "6. Data Security"}
+              title={isHebrew ? "6. יצירת קשר" : "6. Contact"}
               token={token}
             >
-              <Paragraph style={{ margin: 0 }}>
-                {isHebrew
-                  ? "אנחנו משתמשים באמצעי אבטחה סטנדרטיים בתעשייה להגנה על המידע שלך, כולל הצפנה ובקרות גישה."
-                  : "We use industry-standard security measures to protect your data, including encryption and access controls."}
-              </Paragraph>
-            </Section>
-
-            <Section
-              title={isHebrew ? "7. יצירת קשר" : "7. Contact"}
-              token={token}
-            >
-              <Paragraph style={{ margin: 0 }}>
-                {isHebrew ? "לשאלות בנושא פרטיות:" : "For privacy questions:"}{" "}
+              <Paragraph>
                 <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
               </Paragraph>
             </Section>
           </Space>
 
-          {/* Footer */}
-          <Divider style={{ margin: "8px 0" }} />
-          <Row justify="space-between" align="middle">
-            <Col>
-              <Text type="secondary" style={{ fontSize: 13 }}>
-                © {new Date().getFullYear()} {appName}. {isHebrew ? "כל הזכויות שמורות" : "All rights reserved"}.
-              </Text>
-            </Col>
-            <Col>
-              <Space split={<span style={{ color: token.colorTextQuaternary }}>|</span>} size={12}>
-                <Link
-                  href={`${linkPrefix}/terms`}
-                  style={{ color: token.colorTextSecondary, fontSize: 13 }}
-                >
-                  {isHebrew ? "תנאי שימוש" : "Terms of Service"}
-                </Link>
-                <Link
-                  href={`${linkPrefix}/`}
-                  style={{ color: token.colorTextSecondary, fontSize: 13 }}
-                >
-                  {isHebrew ? "דף הבית" : "Home"}
-                </Link>
-              </Space>
-            </Col>
+          <Divider />
+
+          <Row justify="space-between">
+            <Text type="secondary">
+              © {new Date().getFullYear()} {appName}
+            </Text>
+            <Space>
+              <Link href={`${linkPrefix}/terms`}>
+                {isHebrew ? "תנאים" : "Terms"}
+              </Link>
+              <Link href={`${linkPrefix}/`}>{isHebrew ? "בית" : "Home"}</Link>
+            </Space>
           </Row>
         </Space>
       </div>

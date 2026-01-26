@@ -25,8 +25,8 @@ export async function requireSessionUser() {
   if (!data?.user) throw new Error("Not authenticated");
   return { supabase, user: data.user };
 }
-
-export async function requireOrgAdminRoute(orgId) {
+  
+export async function requireOrgAdminRoute( orgId) {
   const { supabase, user } = await requireSessionUser();
 
   const { data: m, error } = await supabase

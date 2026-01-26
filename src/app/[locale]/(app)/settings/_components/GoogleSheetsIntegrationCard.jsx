@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { supabase } from "@/lib/supabase/client";
 
 import {
   Alert,
@@ -48,10 +49,14 @@ export default function GoogleSheetsIntegrationCard({
   queues = [],
   isMobile: isMobileProp,
 }) {
+  const safeOrgId = (orgId || "").trim();
+  const hasOrgId = !!safeOrgId;
+
   const locale = useLocale();
   const tNs = useTranslations("integrations.googleSheets"); // namespace
   const screens = useBreakpoint();
-  const isMobile = typeof isMobileProp === "boolean" ? isMobileProp : !screens.md;
+  const isMobile =
+    typeof isMobileProp === "boolean" ? isMobileProp : !screens.md;
 
   // ✅ safe translator: if key missing -> fallback (no raw keys on screen)
   const tx = (key, fallback) => {
@@ -99,9 +104,16 @@ export default function GoogleSheetsIntegrationCard({
   );
 
   async function safeFetchJson(url, options = {}) {
+    // ✅ get token from client session
+    const { data: sessData } = await supabase.auth.getSession();
+    const accessToken = sessData?.session?.access_token || null;
+
     const res = await fetch(url, {
       credentials: "include",
-      headers: { ...(options.headers || {}) },
+      headers: {
+        ...(options.headers || {}),
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
       ...options,
     });
 
@@ -119,8 +131,6 @@ export default function GoogleSheetsIntegrationCard({
         data?.message ||
         `Request failed (${res.status})${text ? `: ${text.slice(0, 180)}` : ""}`;
 
-      console.error("API ERROR:", { url, status: res.status, text, data });
-
       const e = new Error(errMsg);
       e.status = res.status;
       e.data = data;
@@ -132,21 +142,25 @@ export default function GoogleSheetsIntegrationCard({
 
   function buildAuthStartUrl() {
     const qs = new URLSearchParams();
-    qs.set("orgId", orgId);
+    qs.set("orgId", safeOrgId);
     qs.set("returnTo", returnTo);
-    qs.set("locale", locale); // optional
+    qs.set("locale", locale);
     return `/api/integrations/google/auth/start?${qs.toString()}`;
   }
 
   async function loadStatus() {
-    if (!orgId) return;
+    if (!hasOrgId) {
+      setLoading(false);
+      setLastError(null);
+      return;
+    }
 
     setLoading(true);
     setLastError(null);
 
     try {
       const conn = await safeFetchJson(
-        `/api/integrations/google/connection?orgId=${encodeURIComponent(orgId)}`,
+        `/api/integrations/google/connection?orgId=${encodeURIComponent(safeOrgId)}`,
       );
 
       setConnected(!!conn?.connected);
@@ -154,28 +168,37 @@ export default function GoogleSheetsIntegrationCard({
 
       try {
         const st = await safeFetchJson(
-          `/api/integrations/google-sheets/status?orgId=${encodeURIComponent(orgId)}`,
+          `/api/integrations/google-sheets/status?orgId=${encodeURIComponent(safeOrgId)}`,
         );
 
         setSheetUrl(st?.sheet_url || st?.sheetUrl || null);
         setSheetId(st?.sheet_id || st?.sheetId || null);
         setScriptUrl(st?.script_url || st?.scriptUrl || null);
         setDefaultQueueId(st?.default_queue_id || st?.defaultQueueId || null);
-      } catch (_) {
-        // ok
-      }
+      } catch (_) {}
     } catch (e) {
-      setLastError(e?.message || tx("errors.loadStatus", "Failed to load status"));
+      setLastError(
+        e?.message || tx("errors.loadStatus", "Failed to load status"),
+      );
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
+    if (!hasOrgId) {
+      setLoading(false);
+      return;
+    }
     loadStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orgId]);
+  }, [safeOrgId]);
 
+  /**
+   * ✅ Option B (single button):
+   * Create + Install in one call
+   * POST /api/integrations/google-sheets/create { orgId, defaultQueueId, installNow: true }
+   */
   async function onSetup() {
     setLastError(null);
 
@@ -188,17 +211,47 @@ export default function GoogleSheetsIntegrationCard({
 
     setBusyAction("setup");
     try {
-      const data = await safeFetchJson(`/api/integrations/google-sheets/setup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orgId, defaultQueueId }),
-      });
+      const data = await safeFetchJson(
+        `/api/integrations/google-sheets/create`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orgId: safeOrgId, defaultQueueId }),
+        },
+      );
 
-      setSheetUrl(data?.sheetUrl || data?.sheet_url || null);
-      setSheetId(data?.sheetId || data?.sheet_id || null);
-      setScriptUrl(data?.scriptUrl || data?.script_url || null);
+      // create route returns:
+      // { ok, spreadsheetId, sheetUrl, install: { scriptUrl, ... } } OR direct fields
+      const nextSheetUrl = data?.sheetUrl || data?.sheet_url || data?.sheetUrl;
+      const nextSheetId =
+        data?.spreadsheetId ||
+        data?.spreadsheet_id ||
+        data?.sheetId ||
+        data?.sheet_id;
 
-      message.success(tx("messages.setupOk", "✅ Setup בוצע בהצלחה"));
+      const installObj = data?.install || null;
+      const nextScriptUrl =
+        installObj?.scriptUrl ||
+        installObj?.script_url ||
+        data?.scriptUrl ||
+        data?.script_url;
+
+      if (nextSheetUrl) setSheetUrl(nextSheetUrl);
+      if (nextSheetId) setSheetId(nextSheetId);
+      if (nextScriptUrl) setScriptUrl(nextScriptUrl);
+
+      // If setup attempted to run automatically, you might get needsAuth info
+      const needsAuth = !!installObj?.setup?.needsAuth;
+
+      message.success(
+        needsAuth
+          ? tx(
+              "messages.setupOkNeedsAuth",
+              "✅ נוצר והותקן. נדרש אישור חד־פעמי בגוגל (פתח את השיט/סקריפט ואשר).",
+            )
+          : tx("messages.setupOk", "✅ Setup בוצע בהצלחה"),
+      );
+
       await loadStatus();
     } catch (e) {
       setLastError(e?.message || tx("errors.setupFailed", "Setup failed"));
@@ -213,27 +266,40 @@ export default function GoogleSheetsIntegrationCard({
     setBusyAction("install");
 
     try {
-      const data = await safeFetchJson(`/api/integrations/google-sheets/install`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orgId }),
-      });
+      const data = await safeFetchJson(
+        `/api/integrations/google-sheets/install`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orgId: safeOrgId, defaultQueueId }),
+        },
+      );
 
       const nextScriptUrl = data?.scriptUrl || data?.script_url || null;
       if (nextScriptUrl) setScriptUrl(nextScriptUrl);
 
       message.success(
-        tx("messages.installOk", "✅ הסקריפט הותקן. פתח את השיט ואשר הרשאות פעם אחת."),
+        tx(
+          "messages.installOk",
+          "✅ הסקריפט הותקן. ייתכן שתצטרך לאשר הרשאות פעם אחת בגוגל.",
+        ),
       );
       await loadStatus();
     } catch (e) {
       if (e?.status === 404) {
         message.info(
-          tx("errors.installEndpointMissing", "Endpoint של install עדיין לא קיים."),
+          tx(
+            "errors.installEndpointMissing",
+            "Endpoint של install עדיין לא קיים.",
+          ),
         );
       } else {
-        setLastError(e?.message || tx("errors.installFailed", "Install failed"));
-        message.error(e?.message || tx("errors.installFailed", "Install failed"));
+        setLastError(
+          e?.message || tx("errors.installFailed", "Install failed"),
+        );
+        message.error(
+          e?.message || tx("errors.installFailed", "Install failed"),
+        );
       }
     } finally {
       setBusyAction(null);
@@ -248,7 +314,7 @@ export default function GoogleSheetsIntegrationCard({
       await safeFetchJson(`/api/integrations/google/disconnect`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orgId }),
+        body: JSON.stringify({ orgId: safeOrgId, defaultQueueId }),
       });
 
       message.success(tx("messages.disconnected", "החיבור ל־Google נותק"));
@@ -261,7 +327,9 @@ export default function GoogleSheetsIntegrationCard({
 
       await loadStatus();
     } catch (e) {
-      message.error(e?.message || tx("errors.disconnectFailed", "Disconnect failed"));
+      message.error(
+        e?.message || tx("errors.disconnectFailed", "Disconnect failed"),
+      );
     } finally {
       setBusyAction(null);
     }
@@ -377,7 +445,7 @@ export default function GoogleSheetsIntegrationCard({
           type="info"
           showIcon
           icon={<InfoCircleOutlined />}
-          title ={tx("state.connect.title", "Google is not connected")}
+          title={tx("state.connect.title", "Google is not connected")}
           description={tx(
             "state.connect.desc",
             "Connect a Google account to create a Sheet and install Apps Script automation.",
@@ -394,13 +462,22 @@ export default function GoogleSheetsIntegrationCard({
             {tx("actions.connect", "Connect Google")}
           </Button>
 
-          <Button icon={<ReloadOutlined />} onClick={loadStatus} block={isMobile}>
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={loadStatus}
+            block={isMobile}
+          >
             {tx("actions.refresh", "Refresh")}
           </Button>
         </ActionsBar>
 
         <Text type="secondary" style={{ fontSize: 12 }}>
-          <Text code>{tx("hints.redirectHint", "OAuth redirect via /api/integrations/google/auth/start")}</Text>
+          <Text code>
+            {tx(
+              "hints.redirectHint",
+              "OAuth redirect via /api/integrations/google/auth/start",
+            )}
+          </Text>
         </Text>
       </Space>
     );
@@ -413,7 +490,7 @@ export default function GoogleSheetsIntegrationCard({
           type="warning"
           showIcon
           icon={<WarningOutlined />}
-          title ={tx("state.create.title", "Connected — create a Sheet")}
+          title={tx("state.create.title", "Connected — create a Sheet")}
           description={tx(
             "state.create.desc",
             "Pick a default queue, then create the Sheet and install everything automatically.",
@@ -422,9 +499,14 @@ export default function GoogleSheetsIntegrationCard({
 
         <SoftPanel>
           <Space orientation="vertical" size={8} style={{ width: "100%" }}>
-            <Text strong>{tx("fields.defaultQueue.label", "Default Queue")}</Text>
+            <Text strong>
+              {tx("fields.defaultQueue.label", "Default Queue")}
+            </Text>
             <Select
-              placeholder={tx("fields.defaultQueue.placeholder", "Select default queue")}
+              placeholder={tx(
+                "fields.defaultQueue.placeholder",
+                "Select default queue",
+              )}
               options={queueOptions}
               value={defaultQueueId}
               onChange={(v) => setDefaultQueueId(v)}
@@ -440,7 +522,13 @@ export default function GoogleSheetsIntegrationCard({
         </SoftPanel>
 
         <ActionsBar>
-          <Tooltip title={!defaultQueueId ? tx("tooltips.pickQueue", "Pick a queue first") : ""}>
+          <Tooltip
+            title={
+              !defaultQueueId
+                ? tx("tooltips.pickQueue", "Pick a queue first")
+                : ""
+            }
+          >
             <Button
               type="primary"
               icon={<RocketOutlined />}
@@ -453,14 +541,18 @@ export default function GoogleSheetsIntegrationCard({
             </Button>
           </Tooltip>
 
-          <Button icon={<ReloadOutlined />} onClick={loadStatus} block={isMobile}>
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={loadStatus}
+            block={isMobile}
+          >
             {tx("actions.refresh", "Refresh")}
           </Button>
         </ActionsBar>
 
         <Text type="secondary" style={{ fontSize: 12 }}>
           {tx("hints.endpointCreate", "Endpoint")}:{" "}
-          <Text code>POST /api/integrations/google-sheets/setup</Text>
+          <Text code>POST /api/integrations/google-sheets/create</Text>
         </Text>
       </Space>
     );
@@ -472,7 +564,10 @@ export default function GoogleSheetsIntegrationCard({
         <Alert
           type="info"
           showIcon
-          title ={tx("state.install.title", "Sheet created — install Apps Script")}
+          title={tx(
+            "state.install.title",
+            "Sheet created — install Apps Script",
+          )}
           description={tx(
             "state.install.desc",
             "Install the bound Apps Script project so the Sheet can run automation on edit.",
@@ -497,12 +592,21 @@ export default function GoogleSheetsIntegrationCard({
           </Button>
 
           {sheetUrl ? (
-            <Button icon={<LinkOutlined />} href={sheetUrl} target="_blank" block={isMobile}>
+            <Button
+              icon={<LinkOutlined />}
+              href={sheetUrl}
+              target="_blank"
+              block={isMobile}
+            >
               {tx("actions.openSheet", "Open Sheet")}
             </Button>
           ) : null}
 
-          <Button icon={<ReloadOutlined />} onClick={loadStatus} block={isMobile}>
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={loadStatus}
+            block={isMobile}
+          >
             {tx("actions.refresh", "Refresh")}
           </Button>
 
@@ -520,7 +624,7 @@ export default function GoogleSheetsIntegrationCard({
         <Alert
           type="warning"
           showIcon
-          title ={tx("state.install.noteTitle", "One-time authorization")}
+          title={tx("state.install.noteTitle", "One-time authorization")}
           description={tx(
             "state.install.noteDesc",
             "After installation, open the Sheet once and approve permissions (Google security requirement).",
@@ -537,13 +641,12 @@ export default function GoogleSheetsIntegrationCard({
           type="success"
           showIcon
           icon={<CheckCircleOutlined />}
-          title ={tx("state.ready.title", "Integration ready")}
+          title={tx("state.ready.title", "Integration ready")}
           description={tx(
             "state.ready.desc",
             "The Sheet and Script are installed. You may need to authorize once.",
           )}
         />
-
 
         <ActionsBar>
           {sheetUrl ? (
@@ -559,12 +662,22 @@ export default function GoogleSheetsIntegrationCard({
           ) : null}
 
           {scriptUrl ? (
-            <Button icon={<LinkOutlined />} href={scriptUrl} target="_blank" block={isMobile}>
+            <Button
+              icon={<LinkOutlined />}
+              href={scriptUrl}
+              target="_blank"
+              block={isMobile}
+            >
               {tx("actions.openScript", "Open Script")}
             </Button>
           ) : null}
 
-          <Tooltip title={tx("tooltips.reinstall", "Re-upload code and ensure it's bound to this Sheet")}>
+          <Tooltip
+            title={tx(
+              "tooltips.reinstall",
+              "Re-upload code and ensure it's bound to this Sheet",
+            )}
+          >
             <Button
               icon={<ExperimentOutlined />}
               onClick={onInstallScript}
@@ -575,7 +688,9 @@ export default function GoogleSheetsIntegrationCard({
             </Button>
           </Tooltip>
 
-          <Tooltip title={tx("tooltips.setupAgain", "Create/repair everything again")}>
+          <Tooltip
+            title={tx("tooltips.setupAgain", "Create/repair everything again")}
+          >
             <Button
               icon={<RocketOutlined />}
               onClick={onSetup}
@@ -587,7 +702,11 @@ export default function GoogleSheetsIntegrationCard({
             </Button>
           </Tooltip>
 
-          <Button icon={<ReloadOutlined />} onClick={loadStatus} block={isMobile}>
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={loadStatus}
+            block={isMobile}
+          >
             {tx("actions.refresh", "Refresh")}
           </Button>
 
@@ -605,7 +724,7 @@ export default function GoogleSheetsIntegrationCard({
         <Alert
           type="info"
           showIcon
-          title ={tx("state.ready.authTitle", "Authorization may be required")}
+          title={tx("state.ready.authTitle", "Authorization may be required")}
           description={tx(
             "state.ready.authDesc",
             "Open the Sheet → CaseFlow menu → Enable automation (once). After that it runs automatically.",
@@ -616,6 +735,16 @@ export default function GoogleSheetsIntegrationCard({
   }
 
   function renderBody() {
+    if (!hasOrgId) {
+      return (
+        <Alert
+          type="warning"
+          showIcon
+          title="Missing orgId"
+          description="Open this page from an organization context (select an org/workspace first)."
+        />
+      );
+    }
     if (!connected) return renderStateConnect();
     if (!sheetId && !sheetUrl) return renderStateCreate();
     if (!scriptUrl) return renderStateInstall();
@@ -665,8 +794,10 @@ export default function GoogleSheetsIntegrationCard({
             <Alert
               type="error"
               showIcon
-              title ={tx("errors.uiTitle", "Error")}
-              description={<span style={{ whiteSpace: "pre-wrap" }}>{lastError}</span>}
+              title={tx("errors.uiTitle", "Error")}
+              description={
+                <span style={{ whiteSpace: "pre-wrap" }}>{lastError}</span>
+              }
             />
           ) : null}
 

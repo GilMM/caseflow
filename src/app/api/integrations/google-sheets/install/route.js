@@ -1,4 +1,6 @@
+// src/app/api/integrations/google-sheets/install/route.js
 import { NextResponse } from "next/server";
+
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { requireOrgAdminRoute } from "@/lib/auth/requireOrgAdminRoute";
 import { getValidAccessToken } from "@/lib/integrations/google/tokens";
@@ -52,8 +54,6 @@ async function googlePutWithRetry(url, accessToken, payload, tries = 6) {
 
     last = res;
     const msg = res?.body?.error?.message || "";
-
-    // scopes/permissions errors - no point retrying
     if (/insufficient|permission|scope/i.test(msg)) break;
 
     await sleep(250 * Math.pow(2, i));
@@ -85,26 +85,11 @@ function resolveBaseUrl(req) {
   const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
   return `${proto}://${host}`;
 }
-export async function GET(req) {
-  const { searchParams } = new URL(req.url);
-  const orgId = searchParams.get("orgId");
-  const returnTo = searchParams.get("returnTo") || "/en/settings";
-  if (!orgId)
-    return NextResponse.json({ error: "Missing orgId" }, { status: 400 });
 
-  await requireOrgAdminRoute(orgId);
+/* ---------------- Apps Script content (Bound) ---------------- */
 
-  const baseUrl = resolveBaseUrl(req);
-  const redirectUri = `${baseUrl}/api/integrations/google/auth/callback`;
-
-  const state = encryptJson({ orgId, returnTo, ts: Date.now() });
-  return NextResponse.redirect(buildGoogleAuthUrl({ state, redirectUri }));
-}
-/* ---------------- Apps Script content (Option B) ---------------- */
-
-function buildCodeGsB({ webhookUrl, spreadsheetId, webhookSecret }) {
+function buildCodeGsBound({ webhookUrl, webhookSecret }) {
   return `const WEBHOOK_URL = "${webhookUrl}";
-const SPREADSHEET_ID = "${spreadsheetId}";
 const WEBHOOK_SECRET = "${webhookSecret}";
 
 // columns: A title, B desc, C priority, D reporter, E email, F status, G case_id, H error_message
@@ -128,16 +113,20 @@ function t(key) {
       enable: "Enable automation",
       test: "Run test webhook",
       enabledToast: "Automation enabled ✅",
+      alreadyEnabled: "Automation is already enabled ✅",
       testSending: "Sending test…",
       testDone: "Test response: ",
+      setupDone: "Template updated ✅",
     },
     he: {
       menu: "CaseFlow",
       enable: "הפעל אוטומציה",
       test: "בדיקת webhook",
       enabledToast: "האוטומציה הופעלה ✅",
+      alreadyEnabled: "האוטומציה כבר פעילה ✅",
       testSending: "שולח בדיקה…",
       testDone: "תוצאת בדיקה: ",
+      setupDone: "התבנית עודכנה ✅",
     },
   };
   return (dict[lang] && dict[lang][key]) || dict.en[key] || key;
@@ -150,33 +139,133 @@ function onOpen(e) {
       .addItem(t("enable"), "setup")
       .addItem(t("test"), "testWebhook")
       .addToUi();
-  } catch (err) {
-    // swallow - menu will appear after authorization
-  }
+  } catch (err) {}
 }
 
-
+/**
+ * ✅ One-shot setup:
+ * - Creates headers
+ * - Adds validations, conditional formatting
+ * - Protects sheet with editable ranges
+ * - Creates installable onEdit trigger (idempotent)
+ */
 function setup() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const triggers = ScriptApp.getProjectTriggers();
-  const exists = triggers.some((t) => t.getHandlerFunction() === "onEditInstalled");
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheets()[0];
 
+  // 1) headers
+  const headers = ["Title","Description","Priority","Reporter","Email","Status","case_id","error_message"];
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+
+  // header style
+  sheet.getRange(1,1,1,8)
+    .setFontWeight("bold")
+    .setHorizontalAlignment("center")
+    .setBackground("#ededed");
+
+  // 2) dropdown validations
+  const statusRange = sheet.getRange(2, 6, sheet.getMaxRows() - 1, 1);
+  const statusRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(["draft","new","sent","closed","error"], true)
+    .setAllowInvalid(false)
+    .build();
+  statusRange.setDataValidation(statusRule);
+
+  const prioRange = sheet.getRange(2, 3, sheet.getMaxRows() - 1, 1);
+  const prioRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(["low","normal","high","urgent"], true)
+    .setAllowInvalid(false)
+    .build();
+  prioRange.setDataValidation(prioRule);
+
+  // 3) conditional formatting (status)
+  const rules = sheet.getConditionalFormatRules() || [];
+  const statusCol = sheet.getRange(2, 6, sheet.getMaxRows() - 1, 1);
+
+  function addRule(text, bg, fg, bold) {
+    const r = SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo(text)
+      .setRanges([statusCol])
+      .setBackground(bg)
+      .setFontColor(fg);
+    if (bold) r.setBold(true);
+    rules.push(r.build());
+  }
+
+  // wipe old status-only rules (simple approach)
+  sheet.setConditionalFormatRules([]);
+
+  addRule("new",   "#e6f2ff", "#0d59d8", true);
+  addRule("sent",  "#edffed", "#2a8a2a", true);
+  addRule("error", "#ffeded", "#cc1a1a", true);
+  addRule("closed","#f2f2f2", "#777777", true);
+
+  // strike-through row when closed
+  const fullRow = sheet.getRange(2,1,sheet.getMaxRows()-1,8);
+  const strike = SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied('=$F2="closed"')
+    .setRanges([fullRow])
+    .setFontColor("#8c8c8c")
+    .setStrikethrough(true)
+    .build();
+  rules.push(strike);
+
+  sheet.setConditionalFormatRules(rules);
+
+  // 4) protect whole sheet but allow A,B,F
+  try {
+    const protections = sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET);
+    protections.forEach(p => p.remove());
+  } catch (e) {}
+
+  const protection = sheet.protect().setDescription("Protected by CaseFlow");
+  protection.setWarningOnly(false);
+
+  // allow editing A,B,F from row 2 down
+  protection.setUnprotectedRanges([
+    sheet.getRange(2,1,sheet.getMaxRows()-1,1), // A
+    sheet.getRange(2,2,sheet.getMaxRows()-1,1), // B
+    sheet.getRange(2,6,sheet.getMaxRows()-1,1), // F
+  ]);
+
+  // 5) column widths
+  sheet.setColumnWidth(1, 260);
+  sheet.setColumnWidth(2, 420);
+  sheet.setColumnWidth(3, 130);
+  sheet.setColumnWidth(4, 170);
+  sheet.setColumnWidth(5, 240);
+  sheet.setColumnWidth(6, 120);
+  sheet.setColumnWidth(7, 160);
+  sheet.setColumnWidth(8, 260);
+
+  // 6) sample row
+  sheet.getRange(2,1,1,8).setValues([[
+    "Sample issue title",
+    "Describe the issue here",
+    "normal",
+    "",
+    "",
+    "draft",
+    "",
+    ""
+  ]]);
+
+  // 7) installable trigger (idempotent)
+  const triggers = ScriptApp.getProjectTriggers();
+  const exists = triggers.some(t => t.getHandlerFunction() === "onEditInstalled");
   if (!exists) {
     ScriptApp.newTrigger("onEditInstalled").forSpreadsheet(ss).onEdit().create();
     SpreadsheetApp.getActive().toast(t("enabledToast"), t("menu"), 5);
   } else {
-    SpreadsheetApp.getActive().toast(
-      getLang() === "he" ? "האוטומציה כבר פעילה ✅" : "Automation is already enabled ✅",
-      t("menu"),
-      5
-    );
+    SpreadsheetApp.getActive().toast(t("alreadyEnabled"), t("menu"), 5);
   }
-}
 
+  SpreadsheetApp.getActive().toast(t("setupDone"), t("menu"), 5);
+}
 
 function testWebhook() {
   SpreadsheetApp.getActive().toast(t("testSending"), t("menu"), 3);
-
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const payload = {
     title: "Test case from Sheet",
     description: "This is a test webhook call",
@@ -185,8 +274,8 @@ function testWebhook() {
     email: "",
     status: "new",
     external_row: 2,
-    spreadsheet_id: SPREADSHEET_ID,
-    external_ref: SPREADSHEET_ID + ":2"
+    spreadsheet_id: ss.getId(),
+    external_ref: ss.getId() + ":2"
   };
 
   const resp = UrlFetchApp.fetch(WEBHOOK_URL, {
@@ -203,8 +292,6 @@ function testWebhook() {
     5
   );
 }
-
-
 
 function onEditInstalled(e) {
   const lock = LockService.getScriptLock();
@@ -233,7 +320,8 @@ function onEditInstalled(e) {
     errCell.setValue("");
 
     const values = sheet.getRange(row, 1, 1, 8).getValues()[0];
-    const externalRef = SPREADSHEET_ID + ":" + row;
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const externalRef = ss.getId() + ":" + row;
 
     const payload = {
       title: values[0] || null,
@@ -243,7 +331,7 @@ function onEditInstalled(e) {
       email: values[4] || null,
       status: values[5] || null,
       external_row: row,
-      spreadsheet_id: SPREADSHEET_ID,
+      spreadsheet_id: ss.getId(),
       external_ref: externalRef
     };
 
@@ -287,6 +375,8 @@ function onEditInstalled(e) {
 }
 
 function buildManifest() {
+  // This is the Apps Script manifest (scopes for the script runtime).
+  // This does NOT require your app to request spreadsheets scope.
   return {
     timeZone: "Asia/Jerusalem",
     exceptionLogging: "STACKDRIVER",
@@ -301,7 +391,40 @@ function buildManifest() {
   };
 }
 
-/* ---------------- main ---------------- */
+/* ---------------- scripts.run (attempt) ---------------- */
+
+async function runScriptSetup({ accessToken, scriptId }) {
+  const res = await fetch(
+    `https://script.googleapis.com/v1/scripts/${encodeURIComponent(scriptId)}:run`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        function: "setup",
+        parameters: [],
+        devMode: true,
+      }),
+    },
+  );
+
+  const body = await googleJson(res);
+
+  if (!res.ok) {
+    return { ok: false, status: res.status, body };
+  }
+
+  // Even 200 can contain "error" inside body for Apps Script execution
+  if (body?.error) {
+    return { ok: false, status: 200, body };
+  }
+
+  return { ok: true, status: 200, body };
+}
+
+/* ---------------- main POST ---------------- */
 
 export async function POST(req) {
   try {
@@ -309,7 +432,7 @@ export async function POST(req) {
     if (!orgId)
       return NextResponse.json({ error: "Missing orgId" }, { status: 400 });
 
-    await requireOrgAdminRoute(orgId);
+    await requireOrgAdminRoute(req, orgId);
 
     const admin = supabaseAdmin();
     const accessToken = await getValidAccessToken(orgId);
@@ -322,9 +445,14 @@ export async function POST(req) {
 
     if (integErr)
       return NextResponse.json({ error: integErr.message }, { status: 500 });
+    if (!integ)
+      return NextResponse.json(
+        { error: "Missing integration row. Run create first." },
+        { status: 400 },
+      );
     if (!integ?.sheet_id)
       return NextResponse.json(
-        { error: "Missing sheet_id. Create Sheet first." },
+        { error: "Missing sheet_id. Run create first." },
         { status: 400 },
       );
     if (!integ?.webhook_secret)
@@ -333,7 +461,7 @@ export async function POST(req) {
         { status: 500 },
       );
 
-    // ✅ idempotent: reuse script if exists
+    // idempotent: reuse script if exists (but ensure bound to this sheet)
     let scriptId = integ.script_id || null;
     let createdNew = false;
 
@@ -345,9 +473,8 @@ export async function POST(req) {
         {
           name: "Code",
           type: "SERVER_JS",
-          source: buildCodeGsB({
+          source: buildCodeGsBound({
             webhookUrl,
-            spreadsheetId: integ.sheet_id,
             webhookSecret: integ.webhook_secret,
           }),
         },
@@ -358,13 +485,12 @@ export async function POST(req) {
         },
       ],
     };
+
     const desiredParentId = integ.sheet_id;
 
-    // ✅ if script exists, verify it is bound to THIS spreadsheet
     if (scriptId) {
       const meta = await getScriptProjectMeta(scriptId, accessToken);
 
-      // if deleted / not found -> recreate
       if (!meta.ok && meta.status === 404) {
         scriptId = null;
       } else if (!meta.ok) {
@@ -378,26 +504,26 @@ export async function POST(req) {
         );
       } else {
         const parentId = meta?.body?.parentId || null;
-
-        // If it's not bound to this sheet -> force rebind (create new bound script)
         if (!parentId || parentId !== desiredParentId) {
-          scriptId = null; // ✅ this triggers creation of a NEW bound project below
+          scriptId = null; // force new bound project
         }
       }
     }
 
-    async function createNewScriptProject() {
+    async function createNewBoundScriptProject() {
       const created = await googlePost(
         "https://script.googleapis.com/v1/projects",
         accessToken,
         {
           title: `CaseFlow - ${orgId}`,
-          parentId: integ.sheet_id, // ✅ bound to the spreadsheet
+          parentId: desiredParentId, // ✅ bind to spreadsheet
         },
       );
+
       if (!created.ok) return { ok: false, created };
+
       const id = created?.body?.scriptId;
-      if (!id)
+      if (!id) {
         return {
           ok: false,
           created: {
@@ -405,10 +531,11 @@ export async function POST(req) {
             body: { ...created.body, message: "scriptId missing" },
           },
         };
+      }
       return { ok: true, scriptId: id };
     }
 
-    // 1) if script exists -> update
+    // update existing script content
     if (scriptId) {
       const put = await googlePutWithRetry(
         `https://script.googleapis.com/v1/projects/${encodeURIComponent(scriptId)}/content`,
@@ -416,7 +543,6 @@ export async function POST(req) {
         contentPayload,
       );
 
-      // if script deleted/not found -> fallback to new
       if (
         !put.ok &&
         (put.status === 404 ||
@@ -435,9 +561,9 @@ export async function POST(req) {
       }
     }
 
-    // 2) if no script -> create + upload
+    // create + upload
     if (!scriptId) {
-      const created = await createNewScriptProject();
+      const created = await createNewBoundScriptProject();
       if (!created.ok) {
         return NextResponse.json(
           {
@@ -472,6 +598,7 @@ export async function POST(req) {
 
     const scriptUrl = `https://script.google.com/d/${scriptId}/edit`;
 
+    // persist script info
     await admin
       .from("org_google_sheets_integrations")
       .update({
@@ -481,19 +608,45 @@ export async function POST(req) {
       })
       .eq("org_id", orgId);
 
+    // ✅ Attempt to run setup automatically (no manual)
+    const run = await runScriptSetup({ accessToken, scriptId });
+
+    // Even if run failed, return everything so UI can guide user to authorize once.
+    const needsAuth =
+      !run.ok &&
+      (JSON.stringify(run.body || "")
+        .toLowerCase()
+        .includes("authorization") ||
+        JSON.stringify(run.body || "")
+          .toLowerCase()
+          .includes("auth") ||
+        JSON.stringify(run.body || "")
+          .toLowerCase()
+          .includes("permission"));
+
     return NextResponse.json({
       ok: true,
+      createdNew,
       scriptId,
       scriptUrl,
       webhookUrl,
-      createdNew,
-      next: "Open Sheet → Extensions → Apps Script → run setup() once → Authorize",
+      sheetId: integ.sheet_id,
+      sheetUrl:
+        integ.sheet_url ||
+        `https://docs.google.com/spreadsheets/d/${integ.sheet_id}/edit`,
+      setup: {
+        ok: run.ok,
+        needsAuth,
+        details: run.ok ? null : run,
+      },
+      next: run.ok
+        ? "Done ✅ Open the Sheet and start using Status=new to create cases"
+        : "Open scriptUrl once → Run setup() / authorize → then it will work automatically",
     });
   } catch (e) {
-    console.error("INSTALL SCRIPT ERROR (catch):", e);
     return NextResponse.json(
-      { error: e?.message || "Install failed" },
-      { status: 500 },
+      { error: e?.message || "Install failed", details: e?.details || null },
+      { status: e?.status || 500 },
     );
   }
 }

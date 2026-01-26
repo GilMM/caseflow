@@ -22,7 +22,7 @@ export async function GET(req) {
     return NextResponse.json({ error: "Missing orgId" }, { status: 400 });
   }
 
-  await requireOrgAdminRoute(orgId);
+  await requireOrgAdminRoute(req, orgId);
 
   const baseUrl = resolvePublicBaseUrl(req);
   const redirectUri = `${baseUrl}/api/integrations/google/auth/callback`;

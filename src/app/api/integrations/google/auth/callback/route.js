@@ -31,16 +31,16 @@ export async function GET(req) {
     if (!orgId) {
       return NextResponse.json(
         { error: "Invalid state (missing orgId)" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // 2) ensure user is allowed (requires session cookie)
-    await requireOrgAdminRoute(orgId);
-
+    await requireOrgAdminRoute(req, orgId);
     // ✅ IMPORTANT: must match EXACT redirect_uri used in the auth step
     const redirectUri =
-      state?.redirectUri || `${url.origin}/api/integrations/google/auth/callback`;
+      state?.redirectUri ||
+      `${url.origin}/api/integrations/google/auth/callback`;
 
     // 3) exchange code -> tokens
     const tokens = await exchangeCodeForTokens({ code, redirectUri });
@@ -52,7 +52,7 @@ export async function GET(req) {
     if (!accessToken) {
       return NextResponse.json(
         { error: "Missing access_token from Google" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -120,7 +120,7 @@ export async function GET(req) {
         error: "OAuth callback failed",
         message: e?.message || String(e),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

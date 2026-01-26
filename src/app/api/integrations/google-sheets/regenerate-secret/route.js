@@ -25,7 +25,7 @@ export async function POST(req) {
       return NextResponse.json({ error: "Missing orgId" }, { status: 400 });
     }
 
-    await requireOrgAdminRoute(orgId);
+    await requireOrgAdminRoute(req, orgId);
 
     const admin = supabaseAdmin();
     const secret = genSecret();

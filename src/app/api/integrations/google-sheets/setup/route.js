@@ -18,7 +18,7 @@ export async function POST(req) {
     }
 
     // ✅ verifies caller is logged-in org admin (uses cookies from THIS request)
-    await requireOrgAdminRoute(orgId);
+    await requireOrgAdminRoute(req, orgId);
 
     const admin = supabaseAdmin();
 

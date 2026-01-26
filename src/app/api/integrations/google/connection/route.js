@@ -12,7 +12,7 @@ export async function GET(req) {
     }
 
     // Verify user has access
-    await requireOrgAdminRoute(orgId);
+    await requireOrgAdminRoute(req, orgId);
 
     const admin = supabaseAdmin();
 
@@ -40,7 +40,7 @@ export async function GET(req) {
     console.error("GOOGLE CONNECTION STATUS ERROR:", e);
     return NextResponse.json(
       { error: e?.message || "Failed to get connection status" },
-      { status: e?.status || 500 }
+      { status: e?.status || 500 },
     );
   }
 }

@@ -1,14 +1,16 @@
-const SCOPES = [
+export const GOOGLE_SCOPES = [
+  "openid",
+  "email",
+  "profile",
   "https://www.googleapis.com/auth/userinfo.email",
   "https://www.googleapis.com/auth/userinfo.profile",
-  "openid",
 
-  // Sheets + Drive
-  "https://www.googleapis.com/auth/spreadsheets",
+  // ✅ minimum: Drive file-level access
   "https://www.googleapis.com/auth/drive.file",
 
-  // Apps Script API (קריטי ל-create/update content)
+  // Apps Script API
   "https://www.googleapis.com/auth/script.projects",
+  "https://www.googleapis.com/auth/script.deployments",
   "https://www.googleapis.com/auth/script.scriptapp",
   "https://www.googleapis.com/auth/script.external_request",
-];
+].join(" ");

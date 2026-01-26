@@ -299,30 +299,6 @@ export default function LandingPage() {
                     </Space>
                   </Space>
                 </Card>
-
-                {/* Legal Links - outside the card */}
-                <div style={{ textAlign: "center", marginTop: 20 }}>
-                  <Space split={<span style={{ color: token.colorTextQuaternary }}>|</span>} size={16}>
-                    <Link
-                      href="/privacy"
-                      style={{ color: token.colorTextSecondary, fontSize: 13 }}
-                    >
-                      {isHebrew ? "מדיניות פרטיות" : "Privacy Policy"}
-                    </Link>
-                    <Link
-                      href="/terms"
-                      style={{ color: token.colorTextSecondary, fontSize: 13 }}
-                    >
-                      {isHebrew ? "תנאי שימוש" : "Terms of Service"}
-                    </Link>
-                  </Space>
-                </div>
-
-                <div style={{ textAlign: "center", marginTop: 12 }}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    © {new Date().getFullYear()} CaseFlow. {isHebrew ? "כל הזכויות שמורות" : "All rights reserved"}.
-                  </Text>
-                </div>
               </div>
             </Col>
           </Row>
