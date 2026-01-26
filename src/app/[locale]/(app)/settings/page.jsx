@@ -423,7 +423,13 @@ export default function SettingsPage() {
                 isMobile={isMobile}
               />
             ) : null}
-
+            {isAdmin && resolvedOrgId ? (
+              <AnnouncementsManager
+              orgId={resolvedOrgId}
+              isAdmin={isAdmin}
+              isMobile={isMobile}
+              />
+            ) : null}
             <SecurityCard
               isAdmin={isAdmin}
               orgId={resolvedOrgId}
@@ -460,13 +466,7 @@ export default function SettingsPage() {
               />
             ) : null}
 
-            {isAdmin && resolvedOrgId ? (
-              <AnnouncementsManager
-              orgId={resolvedOrgId}
-              isAdmin={isAdmin}
-              isMobile={isMobile}
-              />
-            ) : null}
+
             {isOwner && resolvedOrgId ? (
               <DeleteOrganizationCard
                 orgId={resolvedOrgId}

@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
-    "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.90.0",
     "antd": "^6.1.4",
@@ -22,6 +21,7 @@
     "react-fast-marquee": "^1.6.5"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.1"
   }

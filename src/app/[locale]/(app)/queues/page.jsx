@@ -301,42 +301,50 @@ export default function QueuesPage() {
       }
 
       if (mode === "create") {
-        // 1) get next sequence from DB (safe)
-        const { data: seq, error: seqErr } = await supabase.rpc(
-          "next_queue_seq",
-          {
-            p_org_id: orgId,
-          },
-        );
+        // 1) get next sequence from DB
+        const { data: seq, error: seqErr } = await supabase.rpc("next_queue_seq", {
+          p_org_id: orgId,
+        });
         if (seqErr) throw seqErr;
-
+      
         const code = `QUE-${String(seq).padStart(3, "0")}`;
-
-        // 2) insert queue with code
+      
+        // 2) insert new queue
         const r = await supabase
           .from("queues")
           .insert({
             org_id: orgId,
-            code, // ✅ new
+            code,
             name,
             is_active,
             is_default,
           })
           .select("id")
           .single();
-
+      
         if (r.error) throw r.error;
-
+      
+        // ✅ If this queue is default — unset all others in org (safe even if none exist)
+        if (is_default) {
+          const rUnset = await supabase
+            .from("queues")
+            .update({ is_default: false })
+            .eq("org_id", orgId)
+            .neq("id", r.data.id);
+      
+          if (rUnset.error) throw rUnset.error;
+        }
+      
         if (memberIds.length > 0) {
           await setQueueMembers({ queueId: r.data.id, userIds: memberIds });
         }
-
+      
         message.success("Queue created");
         setModalOpen(false);
         await loadAll({ silent: true });
         return;
       }
-
+      
       // edit
       if (!editing?.id) throw new Error("Missing editing queue id");
 
