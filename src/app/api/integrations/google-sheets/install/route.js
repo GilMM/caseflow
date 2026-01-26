@@ -596,7 +596,7 @@ export async function POST(req) {
       }
     }
 
-    const scriptUrl = `https://script.google.com/d/${scriptId}/edit`;
+    const scriptUrl = `https://script.google.com/home/projects/${scriptId}/edit`;
 
     // persist script info
     await admin
