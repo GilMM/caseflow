@@ -4,9 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePathname } from "next/navigation";
 import { useLocaleContext } from "@/app/[locale]/providers";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 import { supabase } from "@/lib/supabase/client";
-import { createCase, getMyWorkspaces, getActiveWorkspace, uploadCaseAttachment, getQueueMembers } from "@/lib/db";
+import {
+  createCase,
+  getMyWorkspaces,
+  getActiveWorkspace,
+  uploadCaseAttachment,
+  getQueueMembers,
+} from "@/lib/db";
 
 import { App, Col, Form, Row, Space, Spin } from "antd";
 
@@ -19,10 +26,10 @@ export default function NewCasePage() {
   const search = useSearchParams();
   const { message } = App.useApp();
   const [form] = Form.useForm();
-if (process.env.NODE_ENV === "development") {
-  console.log("useForm created here ↓");
-  console.log(new Error().stack);
-}
+  if (process.env.NODE_ENV === "development") {
+    console.log("useForm created here ↓");
+    console.log(new Error().stack);
+  }
   // optional prefill
   const requesterFromUrl = search.get("requester");
   const queueFromUrl = search.get("queue");
@@ -31,9 +38,10 @@ if (process.env.NODE_ENV === "development") {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const [orgId, setOrgId] = useState(null);
-  const [orgName, setOrgName] = useState("");
-  const [workspace, setWorkspace] = useState(null);
+  // const [orgId, setOrgId] = useState(null);
+  // const [orgName, setOrgName] = useState("");
+  // const [workspace, setWorkspace] = useState(null);
+  const { workspace, loading: wsLoading } = useWorkspace();
 
   // queues
   const [queues, setQueues] = useState([]);
@@ -56,7 +64,7 @@ if (process.env.NODE_ENV === "development") {
   const priority = Form.useWatch("priority", form);
 
   const pathname = usePathname();
-const { locale } = useLocaleContext();
+  const { locale } = useLocaleContext();
 
   // 1) Load workspace
   useEffect(() => {
@@ -67,24 +75,19 @@ const { locale } = useLocaleContext();
         setBooting(true);
         setError("");
 
-        const workspaces = await getMyWorkspaces();
-        if (!workspaces?.length) {
-          if (!mounted) return;
+        const ws = await getActiveWorkspace();
+        if (!mounted) return;
+
+        if (!ws?.orgId) {
+          setWorkspace(null);
           setOrgId(null);
           setOrgName("");
           return;
         }
 
-        const ws0 = workspaces[0];
-        const oId = ws0.org_id;
-        const oName = ws0.org_name || ws0.name || "";
-
-        const ws = await getActiveWorkspace();
-        if (!mounted) return;
-
         setWorkspace(ws);
-        setOrgId(oId);
-        setOrgName(oName);
+        setOrgId(ws.orgId);
+        setOrgName(ws.orgName || "");
 
         form.setFieldsValue({
           title: "",
@@ -129,11 +132,14 @@ const { locale } = useLocaleContext();
 
         setQueues(list);
 
-        const fromUrlOk = queueFromUrl && list.some((q) => q.id === queueFromUrl);
+        const fromUrlOk =
+          queueFromUrl && list.some((q) => q.id === queueFromUrl);
         const defaultQ = list.find((q) => q.is_default);
         const firstQ = list[0];
 
-        const chosen = fromUrlOk ? queueFromUrl : defaultQ?.id || firstQ?.id || null;
+        const chosen = fromUrlOk
+          ? queueFromUrl
+          : defaultQ?.id || firstQ?.id || null;
 
         setQueueId(chosen);
         form.setFieldsValue({ queue_id: chosen });
@@ -227,6 +233,25 @@ const { locale } = useLocaleContext();
     };
   }, [queueId, form]);
 
+  useEffect(() => {
+    if (wsLoading) return;
+
+    if (!workspace?.orgId) {
+      setOrgId(null);
+      setOrgName("");
+      return;
+    }
+
+    setOrgId(workspace.orgId);
+    setOrgName(workspace.orgName || "");
+    form.setFieldsValue({
+      title: "",
+      description: "",
+      priority: "normal",
+      requester_contact_id: requesterFromUrl || null,
+    });
+  }, [wsLoading, workspace?.orgId, workspace?.orgName, requesterFromUrl, form]);
+
   // Callbacks for excluding/including members
   const onExcludeMember = (userId) => {
     setExcludedMembers((prev) => [...prev, userId]);
@@ -254,7 +279,8 @@ const { locale } = useLocaleContext();
 
   const filterOption = (input, option) => {
     const c = option?.raw || {};
-    const hay = `${c.full_name || ""} ${c.email || ""} ${c.phone || ""} ${c.department || ""}`.toLowerCase();
+    const hay =
+      `${c.full_name || ""} ${c.email || ""} ${c.phone || ""} ${c.department || ""}`.toLowerCase();
     return hay.includes(String(input || "").toLowerCase());
   };
 
@@ -266,14 +292,24 @@ const { locale } = useLocaleContext();
   }, [queues]);
 
   async function onSubmit(values) {
+    if (workspace?.orgId && orgId !== workspace.orgId) {
+      throw new Error(
+        "Workspace mismatch (orgId != active workspace). Please refresh.",
+      );
+    }
+
     setBusy(true);
     setError("");
 
     try {
-      if (!orgId) throw new Error("No workspace selected. Create an org + membership first.");
+      if (!orgId)
+        throw new Error(
+          "No workspace selected. Create an org + membership first.",
+        );
 
       const selectedQueueId = values.queue_id || queueId;
-      if (!selectedQueueId) throw new Error("No queue found. Create at least one queue first.");
+      if (!selectedQueueId)
+        throw new Error("No queue found. Create at least one queue first.");
 
       const caseId = await createCase({
         orgId,
@@ -291,7 +327,7 @@ const { locale } = useLocaleContext();
           uploadCaseAttachment({ caseId, orgId, file }).catch((err) => {
             console.error("Failed to upload attachment:", err);
             return null;
-          })
+          }),
         );
         await Promise.all(uploadPromises);
       }
@@ -348,8 +384,12 @@ const { locale } = useLocaleContext();
             filterOption={filterOption}
             locale={locale}
             stagedFiles={stagedFiles}
-            onAddStagedFile={(file) => setStagedFiles((prev) => [...prev, file])}
-            onRemoveStagedFile={(index) => setStagedFiles((prev) => prev.filter((_, i) => i !== index))}
+            onAddStagedFile={(file) =>
+              setStagedFiles((prev) => [...prev, file])
+            }
+            onRemoveStagedFile={(index) =>
+              setStagedFiles((prev) => prev.filter((_, i) => i !== index))
+            }
             queueMembers={queueMembers}
             queueMembersLoading={queueMembersLoading}
             excludedMembers={excludedMembers}

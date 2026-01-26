@@ -603,7 +603,8 @@
       "open": "Open →",
       "noMatch": "No queues match your filters",
       "tryClearing": "Try clearing filters or create a new queue.",
-      "toggleTooltip": "Toggle active/inactive"
+      "toggleTooltip": "Toggle active/inactive",
+      "code": "Queue: {code}"
     },
     "actions": {
       "edit": "Edit",

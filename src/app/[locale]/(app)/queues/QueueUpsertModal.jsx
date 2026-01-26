@@ -1,7 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Alert, Avatar, Form, Input, Modal, Row, Col, Switch, Transfer, Typography, Space, Tag } from "antd";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Alert,
+  Avatar,
+  Form,
+  Input,
+  Modal,
+  Row,
+  Col,
+  Switch,
+  Transfer,
+  Typography,
+  Space,
+  Tag,
+} from "antd";
 import { UserOutlined } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
 import { initials } from "@/lib/ui/initials";
@@ -35,19 +48,19 @@ export default function QueueUpsertModal({
       }
     );
 
-    // Set selected members from queueMembers
     const memberIds = (queueMembers || []).map((m) => m.user_id);
     setSelectedMembers(memberIds);
   }, [open, initialValues, form, queueMembers]);
 
-  // Transform org members to transfer data source
-  const transferDataSource = (orgMembers || []).map((m) => ({
-    key: m.user_id,
-    title: m.full_name || t("common.unnamed"),
-    description: m.role,
-    avatar_url: m.avatar_url,
-    role: m.role,
-  }));
+  const transferDataSource = useMemo(() => {
+    return (orgMembers || []).map((m) => ({
+      key: m.user_id,
+      title: m.full_name || t("common.unnamed"),
+      description: m.role,
+      avatar_url: m.avatar_url,
+      role: m.role,
+    }));
+  }, [orgMembers, t]);
 
   function handleTransferChange(targetKeys) {
     setSelectedMembers(targetKeys);
@@ -60,6 +73,10 @@ export default function QueueUpsertModal({
     });
   }
 
+  // ✅ גודל "פרימיום" לרשימות
+  const listW = isMobile ? "100%" : 340;
+  const listH = isMobile ? 260 : 340;
+
   return (
     <Modal
       open={open}
@@ -69,8 +86,10 @@ export default function QueueUpsertModal({
       onOk={() => form.submit()}
       confirmLoading={saving}
       forceRender
-      width={isMobile ? "100%" : 680}
+      width={isMobile ? "100%" : 820} // ✅ רחב יותר
       style={isMobile ? { top: 12 } : undefined}
+      // ✅ זה הדבר הנכון להוסיף padding לגוף המודל
+      bodyStyle={{ paddingTop: 12 }}
     >
       <Form form={form} layout="vertical" onFinish={handleSubmit}>
         <Form.Item
@@ -81,11 +100,7 @@ export default function QueueUpsertModal({
             { min: 2, message: t("queues.modal.nameMin") },
           ]}
         >
-          <Input
-            placeholder={t("queues.modal.namePlaceholder")}
-            maxLength={60}
-            showCount
-          />
+          <Input placeholder={t("queues.modal.namePlaceholder")} maxLength={60} showCount />
         </Form.Item>
 
         <Row gutter={[12, 12]}>
@@ -103,7 +118,7 @@ export default function QueueUpsertModal({
 
         <Form.Item
           label={
-            <Space size={8}>
+            <Space size={8} wrap>
               <span>{t("queues.modal.members")}</span>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 ({selectedMembers.length})
@@ -111,48 +126,60 @@ export default function QueueUpsertModal({
             </Space>
           }
         >
-          <Transfer
-            dataSource={transferDataSource}
-            targetKeys={selectedMembers}
-            onChange={handleTransferChange}
-            showSearch
-            filterOption={(inputValue, item) =>
-              item.title.toLowerCase().includes(inputValue.toLowerCase()) ||
-              item.description?.toLowerCase().includes(inputValue.toLowerCase())
-            }
+          <div
             style={{
-              width: isMobile ? "100%" : 280,
-              height: 280,
+              border: "1px solid rgba(0,0,0,0.08)",
+              borderRadius: 12,
+              padding: 12,
             }}
-            titles={[t("queues.modal.availableMembers"), t("queues.modal.selectedMembers")]}
-            locale={{
-              itemsUnit: "",
-              itemUnit: "",
-              searchPlaceholder: t("common.search"),
-              notFoundContent: t("common.noResults"),
-            }}
-            render={(item) => (
-              <Space size={8}>
-                <Avatar size="small" src={item.avatar_url} icon={<UserOutlined />}>
-                  {initials(item.title)}
-                </Avatar>
-                <span>{item.title}</span>
-                <Tag color="blue" style={{ fontSize: 10 }}>{item.role}</Tag>
-              </Space>
-            )}
-            disabled={membersLoading}
-          />
-          <Text type="secondary" style={{ fontSize: 12, marginTop: 8, display: "block" }}>
-            {t("queues.modal.membersHint")}
-          </Text>
+          >
+            <Transfer
+              dataSource={transferDataSource}
+              targetKeys={selectedMembers}
+              onChange={handleTransferChange}
+              showSearch
+              oneWay
+              disabled={membersLoading}
+              filterOption={(inputValue, item) => {
+                const input = String(inputValue || "").toLowerCase();
+                return (
+                  String(item.title || "").toLowerCase().includes(input) ||
+                  String(item.description || "").toLowerCase().includes(input)
+                );
+              }}
+              // ✅ זה הפרופ הנכון ששולט על גודל שני הפאנלים
+              listStyle={{
+                width: listW,
+                height: listH,
+              }}
+              // ✅ ברירת מחדל נוחה
+              titles={[t("queues.modal.availableMembers"), t("queues.modal.selectedMembers")]}
+              locale={{
+                itemsUnit: "",
+                itemUnit: "",
+                searchPlaceholder: t("common.search"),
+                notFoundContent: t("common.noResults"),
+              }}
+              render={(item) => (
+                <Space size={8}>
+                  <Avatar size="small" src={item.avatar_url} icon={<UserOutlined />}>
+                    {initials(item.title)}
+                  </Avatar>
+                  <span>{item.title}</span>
+                  <Tag color="blue" style={{ fontSize: 10 }}>
+                    {item.role}
+                  </Tag>
+                </Space>
+              )}
+            />
+
+            <Text type="secondary" style={{ fontSize: 12, marginTop: 10, display: "block" }}>
+              {t("queues.modal.membersHint")}
+            </Text>
+          </div>
         </Form.Item>
 
-        <Alert
-          type="info"
-          showIcon
-          title={t("common.note")}
-          description={t("queues.modal.defaultHint")}
-        />
+        <Alert type="info" showIcon title={t("common.note")} description={t("queues.modal.defaultHint")} />
       </Form>
     </Modal>
   );

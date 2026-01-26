@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
-import { getActiveWorkspace, getQueueMembers, setQueueMembers } from "@/lib/db";
+import { getQueueMembers, setQueueMembers } from "@/lib/db"; // ✅ חזרנו להביא
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 import { Alert, Card, Grid, Space, Spin, Row, Col, message } from "antd";
@@ -18,11 +18,12 @@ const { useBreakpoint } = Grid;
 
 export default function QueuesPage() {
   const router = useRouter();
+  const { locale } = useParams();
   const screens = useBreakpoint();
   const isMobile = !screens.md;
-  const { members: orgMembers } = useWorkspace();
 
-  const [workspace, setWorkspace] = useState(null);
+  // ✅ חשוב: קוראים ל-useWorkspace פעם אחת בלבד (מונע Hook warning)
+  const { workspace, members: orgMembers, loading: wsLoading } = useWorkspace();
 
   const [rows, setRows] = useState([]);
   const [tableAvailable, setTableAvailable] = useState(true);
@@ -47,66 +48,78 @@ export default function QueuesPage() {
   const [membersLoading, setMembersLoading] = useState(false);
 
   const lastToastRef = useRef(0);
-  const { locale } = useParams();
 
-  async function loadAll({ silent = false } = {}) {
-    try {
-      setError("");
-      if (!silent) setLoading(true);
-      if (silent) setRefreshing(true);
+  const orgId = workspace?.orgId || null;
 
-      const ws = await getActiveWorkspace();
-      setWorkspace(ws);
-
-      if (!ws?.orgId) {
+  const loadAll = useCallback(
+    async ({ silent = false } = {}) => {
+      if (!orgId) {
         setRows([]);
+        setLoading(false);
+        setRefreshing(false);
         return;
       }
 
-      const res = await supabase
-        .from("queues")
-        .select("id,org_id,name,is_default,is_active,created_at,updated_at")
-        .eq("org_id", ws.orgId)
-        .order("is_default", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(200);
+      try {
+        setError("");
+        if (!silent) setLoading(true);
+        else setRefreshing(true);
 
-      if (res.error) {
-        const msg = String(res.error.message || "").toLowerCase();
-        const looksLikeMissing =
-          msg.includes("does not exist") ||
-          msg.includes("relation") ||
-          msg.includes("schema cache");
+        const res = await supabase
+          .from("queues")
+          .select(
+            "id,org_id,code,name,is_default,is_active,created_at,updated_at",
+          )
+          .eq("org_id", orgId)
+          .order("is_default", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(200);
 
-        if (looksLikeMissing) {
-          setTableAvailable(false);
-          setRows([]);
-          return;
+        if (res.error) {
+          const msg = String(res.error.message || "").toLowerCase();
+          const looksLikeMissing =
+            msg.includes("does not exist") ||
+            msg.includes("relation") ||
+            msg.includes("schema cache");
+
+          if (looksLikeMissing) {
+            setTableAvailable(false);
+            setRows([]);
+            return;
+          }
+
+          throw res.error;
         }
-        throw res.error;
-      }
 
-      setTableAvailable(true);
-      setRows(res.data || []);
+        setTableAvailable(true);
+        setRows(res.data || []);
 
-      const now = Date.now();
-      if (silent && now - lastToastRef.current > 7000) {
-        lastToastRef.current = now;
-        message.success({ content: "Queues refreshed", duration: 1.1 });
+        const now = Date.now();
+        if (silent && now - lastToastRef.current > 7000) {
+          lastToastRef.current = now;
+          message.success({ content: "Queues refreshed", duration: 1.1 });
+        }
+      } catch (e) {
+        setError(e?.message || "Failed to load queues");
+        message.error(e?.message || "Failed to load queues");
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
-    } catch (e) {
-      setError(e?.message || "Failed to load queues");
-      message.error(e?.message || "Failed to load queues");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }
+    },
+    [orgId],
+  );
 
   useEffect(() => {
+    // נחכה גם לטעינת Workspace כדי למנוע ריצות כפולות מיותרות
+    if (wsLoading) return;
+    if (!orgId) {
+      setLoading(false);
+      setRows([]);
+      return;
+    }
     loadAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [wsLoading, orgId, loadAll]);
 
   const filtered = useMemo(() => {
     const qq = q.trim().toLowerCase();
@@ -120,12 +133,20 @@ export default function QueuesPage() {
 
       if (!qq) return true;
 
-      return (r.name || "").toLowerCase().includes(qq) || String(r.id || "").toLowerCase().includes(qq);
+      return (
+        (r.name || "").toLowerCase().includes(qq) ||
+        (r.code || "").toLowerCase().includes(qq) ||
+        String(r.id || "")
+          .toLowerCase()
+          .includes(qq)
+      );
     });
   }, [rows, q, active, defaultOnly]);
 
   const total = rows.length;
-  const activeCount = rows.filter((r) => (r.is_active ?? true) !== false).length;
+  const activeCount = rows.filter(
+    (r) => (r.is_active ?? true) !== false,
+  ).length;
   const defaultCount = rows.filter((r) => !!r.is_default).length;
 
   function openCreate() {
@@ -140,11 +161,19 @@ export default function QueuesPage() {
     setEditing(queue);
     setModalOpen(true);
 
-    // Load queue members
+    // ✅ DEBUG קטן שיעזור לראות התאמה ל-org
+    console.log("[openEdit] workspace.orgId =", orgId);
+    console.log(
+      "[openEdit] queue.id =",
+      queue?.id,
+      "queue.org_id =",
+      queue?.org_id,
+    );
+
     try {
       setMembersLoading(true);
       const members = await getQueueMembers(queue.id);
-      setQueueMembersState(members);
+      setQueueMembersState(members || []);
     } catch (e) {
       message.error(e?.message || "Failed to load queue members");
       setQueueMembersState([]);
@@ -153,45 +182,74 @@ export default function QueuesPage() {
     }
   }
 
+  // ✅ Helper שמזהה "RLS חסם אז אין שורות"
+  function assertUpdatedRows(data, contextLabel) {
+    if (!data || (Array.isArray(data) && data.length === 0)) {
+      throw new Error(
+        `No rows updated (${contextLabel}). Likely RLS blocked or wrong orgId.`,
+      );
+    }
+  }
+
   async function setDefaultQueue(queueId) {
-    if (!workspace?.orgId) return;
+    if (!orgId) return;
 
     try {
+      console.log("---- SET DEFAULT DEBUG ----");
+      console.log("orgId =", orgId);
+      console.log("queueId =", queueId);
+
       message.loading({ content: "Setting default…", key: "setdefault" });
 
-      const { error: e1 } = await supabase
+      // 1) unset all defaults in this org
+      const r1 = await supabase
         .from("queues")
         .update({ is_default: false })
-        .eq("org_id", workspace.orgId);
+        .eq("org_id", orgId)
+        .select("id"); // ✅ כדי לדעת כמה שורות באמת עודכנו
 
-      if (e1) throw e1;
+      if (r1.error) throw r1.error;
+      assertUpdatedRows(r1.data, "unset defaults");
 
-      const { error: e2 } = await supabase
+      // 2) set the chosen one
+      const r2 = await supabase
         .from("queues")
         .update({ is_default: true })
-        .eq("org_id", workspace.orgId)
-        .eq("id", queueId);
+        .eq("org_id", orgId)
+        .eq("id", queueId)
+        .select("id");
 
-      if (e2) throw e2;
+      if (r2.error) throw r2.error;
+      assertUpdatedRows(r2.data, "set default");
 
-      message.success({ content: "Default queue updated", key: "setdefault", duration: 1.2 });
+      message.success({
+        content: "Default queue updated",
+        key: "setdefault",
+        duration: 1.2,
+      });
       await loadAll({ silent: true });
     } catch (e) {
-      message.error({ content: e?.message || "Failed to set default", key: "setdefault" });
+      console.error(e);
+      message.error({
+        content: e?.message || "Failed to set default",
+        key: "setdefault",
+      });
     }
   }
 
   async function toggleActive(queueId, nextActive) {
-    if (!workspace?.orgId) return;
+    if (!orgId) return;
 
     try {
-      const { error } = await supabase
+      const r = await supabase
         .from("queues")
         .update({ is_active: nextActive })
-        .eq("org_id", workspace.orgId)
-        .eq("id", queueId);
+        .eq("org_id", orgId)
+        .eq("id", queueId)
+        .select("id");
 
-      if (error) throw error;
+      if (r.error) throw r.error;
+      assertUpdatedRows(r.data, "toggle active");
 
       message.success(nextActive ? "Queue activated" : "Queue deactivated");
       await loadAll({ silent: true });
@@ -201,7 +259,7 @@ export default function QueuesPage() {
   }
 
   async function onSave(values) {
-    if (!workspace?.orgId) {
+    if (!orgId) {
       message.error("No workspace selected");
       return;
     }
@@ -219,21 +277,47 @@ export default function QueuesPage() {
     try {
       setSaving(true);
 
+      console.log("---- QUEUE SAVE DEBUG ----");
+      console.log("orgId =", orgId);
+      console.log("mode =", mode);
+      console.log(
+        "editing.id =",
+        editing?.id,
+        "editing.org_id =",
+        editing?.org_id,
+      );
+      console.log("values =", values);
+
       // If setting default -> unset defaults first (within org)
       if (is_default) {
-        const { error: e1 } = await supabase
+        const r1 = await supabase
           .from("queues")
           .update({ is_default: false })
-          .eq("org_id", workspace.orgId);
+          .eq("org_id", orgId)
+          .select("id");
 
-        if (e1) throw e1;
+        if (r1.error) throw r1.error;
+        assertUpdatedRows(r1.data, "unset defaults (save)");
       }
 
       if (mode === "create") {
-        const { data: newQueue, error } = await supabase
+        // 1) get next sequence from DB (safe)
+        const { data: seq, error: seqErr } = await supabase.rpc(
+          "next_queue_seq",
+          {
+            p_org_id: orgId,
+          },
+        );
+        if (seqErr) throw seqErr;
+
+        const code = `QUE-${String(seq).padStart(3, "0")}`;
+
+        // 2) insert queue with code
+        const r = await supabase
           .from("queues")
           .insert({
-            org_id: workspace.orgId,
+            org_id: orgId,
+            code, // ✅ new
             name,
             is_active,
             is_default,
@@ -241,11 +325,10 @@ export default function QueuesPage() {
           .select("id")
           .single();
 
-        if (error) throw error;
+        if (r.error) throw r.error;
 
-        // Save queue members
         if (memberIds.length > 0) {
-          await setQueueMembers({ queueId: newQueue.id, userIds: memberIds });
+          await setQueueMembers({ queueId: r.data.id, userIds: memberIds });
         }
 
         message.success("Queue created");
@@ -254,21 +337,26 @@ export default function QueuesPage() {
         return;
       }
 
-      const { error } = await supabase
+      // edit
+      if (!editing?.id) throw new Error("Missing editing queue id");
+
+      const r2 = await supabase
         .from("queues")
         .update({ name, is_active, is_default })
-        .eq("org_id", workspace.orgId)
-        .eq("id", editing.id);
+        .eq("org_id", orgId)
+        .eq("id", editing.id)
+        .select("id");
 
-      if (error) throw error;
+      if (r2.error) throw r2.error;
+      assertUpdatedRows(r2.data, "update queue");
 
-      // Save queue members
       await setQueueMembers({ queueId: editing.id, userIds: memberIds });
 
       message.success("Queue updated");
       setModalOpen(false);
       await loadAll({ silent: true });
     } catch (e) {
+      console.error(e);
       message.error(e?.message || "Save failed");
     } finally {
       setSaving(false);
@@ -292,7 +380,8 @@ export default function QueuesPage() {
     };
   }, [mode, editing, rows.length]);
 
-  if (loading) {
+  // ✅ אם עדיין טוענים workspace או טוענים נתונים
+  if (wsLoading || loading) {
     return (
       <div style={{ height: "60vh", display: "grid", placeItems: "center" }}>
         <Spin size="large" />
@@ -314,7 +403,11 @@ export default function QueuesPage() {
 
       <Row gutter={[12, 12]}>
         <Col xs={24} lg={10}>
-          <QueuesKpis total={total} activeCount={activeCount} defaultCount={defaultCount} />
+          <QueuesKpis
+            total={total}
+            activeCount={activeCount}
+            defaultCount={defaultCount}
+          />
         </Col>
 
         <Col xs={24} lg={14}>
@@ -337,7 +430,12 @@ export default function QueuesPage() {
 
       {error ? (
         <Card style={{ borderRadius: 16, borderColor: "#ffccc7" }}>
-          <Alert type="error" showIcon title="Couldn’t load queues" description={error} />
+          <Alert
+            type="error"
+            showIcon
+            title="Couldn’t load queues"
+            description={error}
+          />
         </Card>
       ) : null}
 
@@ -349,7 +447,9 @@ export default function QueuesPage() {
         onEdit={openEdit}
         onSetDefault={setDefaultQueue}
         onToggleActive={toggleActive}
-        onViewCases={(queueId) => router.push(`/${locale}/cases?queue=${queueId}`)}
+        onViewCases={(queueId) =>
+          router.push(`/${locale}/cases?queue=${queueId}`)
+        }
         onOpenFuture={(queueId) => router.push(`/${locale}/queues/${queueId}`)}
       />
 

@@ -1,6 +1,19 @@
 "use client";
 
-import { Button, Card, Divider, Empty, Row, Col, Space, Typography, Badge, Tag, Tooltip, Switch } from "antd";
+import {
+  Button,
+  Card,
+  Divider,
+  Empty,
+  Row,
+  Col,
+  Space,
+  Typography,
+  Badge,
+  Tag,
+  Tooltip,
+  Switch,
+} from "antd";
 import { StarFilled } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
 
@@ -72,8 +85,19 @@ export default function QueuesList({
               >
                 <Row justify="space-between" align="middle" gutter={[12, 12]}>
                   <Col xs={24} md flex="auto">
-                    <Space orientation="vertical" size={4} style={{ width: "100%" }}>
-                      <Space wrap size={8} style={{ width: "100%", justifyContent: "space-between" }}>
+                    <Space
+                      orientation="vertical"
+                      size={4}
+                      style={{ width: "100%" }}
+                    >
+                      <Space
+                        wrap
+                        size={8}
+                        style={{
+                          width: "100%",
+                          justifyContent: "space-between",
+                        }}
+                      >
                         <Space wrap size={8}>
                           <Text strong style={{ fontSize: 14 }}>
                             {row.name || t("queues.list.untitled")}
@@ -85,20 +109,35 @@ export default function QueuesList({
                             </Tag>
                           ) : null}
 
-                          <Badge status={isActive ? "success" : "default"} text={isActive ? t("common.active") : t("common.inactive")} />
+                          <Badge
+                            status={isActive ? "success" : "default"}
+                            text={
+                              isActive
+                                ? t("common.active")
+                                : t("common.inactive")
+                            }
+                          />
                         </Space>
 
                         <Tooltip title={t("queues.list.toggleTooltip")}>
-                          <Switch checked={isActive} onChange={(v) => onToggleActive(row.id, v)} />
+                          <Switch
+                            checked={isActive}
+                            onChange={(v) => onToggleActive(row.id, v)}
+                          />
                         </Tooltip>
                       </Space>
 
                       <Space wrap size={10}>
                         <Text type="secondary" style={{ fontSize: 12 }}>
-                          {t("queues.list.id", { id: shortId(row.id) })}
+                          {t("queues.list.code", {
+                            code: row.code || shortId(row.id),
+                          })}
                         </Text>
+
                         <Text type="secondary" style={{ fontSize: 12 }}>
-                          {t("queues.list.created", { time: timeAgo(row.created_at) })}
+                          {t("queues.list.created", {
+                            time: timeAgo(row.created_at),
+                          })}
                         </Text>
                       </Space>
                     </Space>
@@ -119,11 +158,17 @@ export default function QueuesList({
 
                 <Divider style={{ margin: "10px 0" }} />
 
-                <Space style={{ justifyContent: "space-between", width: "100%" }}>
+                <Space
+                  style={{ justifyContent: "space-between", width: "100%" }}
+                >
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     {t("queues.list.nextHint")}
                   </Text>
-                  <Button type="link" style={{ padding: 0 }} onClick={() => onOpenFuture(row.id)}>
+                  <Button
+                    type="link"
+                    style={{ padding: 0 }}
+                    onClick={() => onOpenFuture(row.id)}
+                  >
                     {t("queues.list.open")}
                   </Button>
                 </Space>
