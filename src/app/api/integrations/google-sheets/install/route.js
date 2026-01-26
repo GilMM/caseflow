@@ -600,12 +600,13 @@ export async function POST(req) {
 
     const scriptUrl = `https://script.google.com/home/projects/${scriptId}/edit`;
 
-    // persist script info
+    // persist script info + ensure enabled
     await admin
       .from("org_google_sheets_integrations")
       .update({
         script_id: scriptId,
         script_url: scriptUrl,
+        is_enabled: true,
         updated_at: new Date().toISOString(),
       })
       .eq("org_id", orgId);
