@@ -68,7 +68,7 @@ export default function QueuesPage() {
         const res = await supabase
           .from("queues")
           .select(
-            "id,org_id,code,name,is_default,is_active,created_at,updated_at",
+            "id,org_id,code,name,is_default,is_active,created_at,updated_at"
           )
           .eq("org_id", orgId)
           .order("is_default", { ascending: false })
@@ -107,7 +107,7 @@ export default function QueuesPage() {
         setRefreshing(false);
       }
     },
-    [orgId],
+    [orgId]
   );
 
   useEffect(() => {
@@ -145,7 +145,7 @@ export default function QueuesPage() {
 
   const total = rows.length;
   const activeCount = rows.filter(
-    (r) => (r.is_active ?? true) !== false,
+    (r) => (r.is_active ?? true) !== false
   ).length;
   const defaultCount = rows.filter((r) => !!r.is_default).length;
 
@@ -167,7 +167,7 @@ export default function QueuesPage() {
       "[openEdit] queue.id =",
       queue?.id,
       "queue.org_id =",
-      queue?.org_id,
+      queue?.org_id
     );
 
     try {
@@ -186,7 +186,7 @@ export default function QueuesPage() {
   function assertUpdatedRows(data, contextLabel) {
     if (!data || (Array.isArray(data) && data.length === 0)) {
       throw new Error(
-        `No rows updated (${contextLabel}). Likely RLS blocked or wrong orgId.`,
+        `No rows updated (${contextLabel}). Likely RLS blocked or wrong orgId.`
       );
     }
   }
@@ -284,31 +284,23 @@ export default function QueuesPage() {
         "editing.id =",
         editing?.id,
         "editing.org_id =",
-        editing?.org_id,
+        editing?.org_id
       );
       console.log("values =", values);
 
-      // If setting default -> unset defaults first (within org)
-      if (is_default) {
-        const r1 = await supabase
-          .from("queues")
-          .update({ is_default: false })
-          .eq("org_id", orgId)
-          .select("id");
-
-        if (r1.error) throw r1.error;
-        assertUpdatedRows(r1.data, "unset defaults (save)");
-      }
-
+      // ---------------- CREATE ----------------
       if (mode === "create") {
         // 1) get next sequence from DB
-        const { data: seq, error: seqErr } = await supabase.rpc("next_queue_seq", {
-          p_org_id: orgId,
-        });
+        const { data: seq, error: seqErr } = await supabase.rpc(
+          "next_queue_seq",
+          {
+            p_org_id: orgId,
+          }
+        );
         if (seqErr) throw seqErr;
-      
+
         const code = `QUE-${String(seq).padStart(3, "0")}`;
-      
+
         // 2) insert new queue
         const r = await supabase
           .from("queues")
@@ -317,37 +309,41 @@ export default function QueuesPage() {
             code,
             name,
             is_active,
-            is_default,
+            is_default, // can be true
           })
           .select("id")
           .single();
-      
+
         if (r.error) throw r.error;
-      
-        // ✅ If this queue is default — unset all others in org (safe even if none exist)
+
+        const newQueueId = r.data.id;
+
+        // 3) if default -> unset all other defaults in org (OK even if none exist)
         if (is_default) {
           const rUnset = await supabase
             .from("queues")
             .update({ is_default: false })
             .eq("org_id", orgId)
-            .neq("id", r.data.id);
-      
+            .neq("id", newQueueId);
+
           if (rUnset.error) throw rUnset.error;
         }
-      
+
+        // 4) members
         if (memberIds.length > 0) {
-          await setQueueMembers({ queueId: r.data.id, userIds: memberIds });
+          await setQueueMembers({ queueId: newQueueId, userIds: memberIds });
         }
-      
+
         message.success("Queue created");
         setModalOpen(false);
         await loadAll({ silent: true });
         return;
       }
-      
-      // edit
+
+      // ---------------- EDIT ----------------
       if (!editing?.id) throw new Error("Missing editing queue id");
 
+      // 1) update queue fields
       const r2 = await supabase
         .from("queues")
         .update({ name, is_active, is_default })
@@ -358,6 +354,18 @@ export default function QueuesPage() {
       if (r2.error) throw r2.error;
       assertUpdatedRows(r2.data, "update queue");
 
+      // 2) if default -> unset all other defaults in org
+      if (is_default) {
+        const rUnset2 = await supabase
+          .from("queues")
+          .update({ is_default: false })
+          .eq("org_id", orgId)
+          .neq("id", editing.id);
+
+        if (rUnset2.error) throw rUnset2.error;
+      }
+
+      // 3) members
       await setQueueMembers({ queueId: editing.id, userIds: memberIds });
 
       message.success("Queue updated");
