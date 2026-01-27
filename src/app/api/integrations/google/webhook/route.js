@@ -57,23 +57,24 @@ export async function POST(req) {
         }, { status: 400 });
       }
 
-      const { data: updated, error: updErr } = await supabase
-        .from("cases")
-        .update({
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", caseId)
-        .eq("org_id", integration.org_id)
-        .select("id, status")
-        .single();
+      // Use RPC to update in a single transaction with user context
+      const { data: result, error: rpcErr } = await supabase.rpc("update_case_status_webhook", {
+        p_case_id: caseId,
+        p_new_status: newStatus,
+        p_user_id: integration.connected_by_user_id,
+        p_org_id: integration.org_id,
+      });
 
-      if (updErr) {
-        console.error("case update error:", updErr);
-        return NextResponse.json({ error: "Case update failed", details: updErr }, { status: 500 });
+      if (rpcErr) {
+        console.error("case update error:", rpcErr);
+        return NextResponse.json({ error: "Case update failed", details: rpcErr }, { status: 500 });
       }
 
-      return NextResponse.json({ ok: true, action: "updated", caseId: updated.id, status: updated.status }, { status: 200 });
+      if (!result?.ok) {
+        return NextResponse.json({ error: result?.error || "Update failed" }, { status: 400 });
+      }
+
+      return NextResponse.json({ ok: true, action: result.action, caseId, status: newStatus }, { status: 200 });
     }
 
     // Handle CREATE (original behavior)
