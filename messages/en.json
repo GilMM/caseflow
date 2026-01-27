@@ -37,7 +37,7 @@
     "none": "None",
     "untitled": "Untitled",
     "unnamed": "Unnamed",
-    "noQueue": "No queue",
+    "noQueue": "No department",
     "workspace": "Workspace",
     "workspaceNone": "None",
     "unknown": "Unknown",
@@ -55,7 +55,7 @@
     "dashboard": "Dashboard",
     "cases": "Cases",
     "contacts": "Contacts",
-    "queues": "Queues",
+    "queues": "Departments",
     "calendar": "Calendar",
     "settings": "Settings",
     "announcements": "Announcements"
@@ -162,7 +162,7 @@
     "error": "Join error",
     "features": {
       "caseManagement": "Case management",
-      "caseManagementDesc": "Open, track and resolve requests with queues and priorities.",
+      "caseManagementDesc": "Open, track and resolve requests with departments and priorities.",
       "teamsRoles": "Teams & roles",
       "teamsRolesDesc": "Admins manage users. Agents handle cases. Viewers are read-only.",
       "dbSecurity": "Database-level security",
@@ -286,14 +286,14 @@
     "header": {
       "title": "Cases",
       "list": "List",
-      "queueFiltered": "Filtered by queue",
+      "queueFiltered": "Filtered by department",
       "shownTotal": "{shown} shown • {total} total",
       "refreshTooltip": "Refresh cases list",
       "newCase": "New case"
     },
     "filters": {
       "searchPlaceholder": "Search by title or ID…",
-      "allQueues": "All queues",
+      "allQueues": "All departments",
       "allStatuses": "All statuses",
       "allPriorities": "All priorities",
       "defaultQueue": "{name} (Default)",
@@ -317,11 +317,11 @@
       "couldntCreate": "Couldn't create case",
       "noWorkspace": "No workspace found",
       "noWorkspaceDesc": "Create an organization + membership first, then come back to create cases.",
-      "noQueues": "No queues found",
-      "noQueuesDesc": "Create at least one queue, then you can create cases.",
-      "queue": "Queue",
-      "queueRequired": "Please select a queue",
-      "selectQueue": "Select a queue",
+      "noQueues": "No departments found",
+      "noQueuesDesc": "Create at least one department, then you can create cases.",
+      "queue": "Department",
+      "queueRequired": "Please select a department",
+      "selectQueue": "Select a department",
       "requester": "Requester",
       "selectRequester": "Select an employee (optional)",
       "noEmail": "No email/phone",
@@ -335,9 +335,9 @@
       "priorityRequired": "Select a priority",
       "assignee": "Assignee",
       "selectAssignee": "Select an assignee (optional)",
-      "noQueueMembers": "No members in this queue",
-      "selectQueueFirst": "Select a queue first",
-      "queueMembers": "Queue members",
+      "noQueueMembers": "No members in this department",
+      "selectQueueFirst": "Select a department first",
+      "queueMembers": "Department members",
       "clickToAssign": "Click to assign",
       "excludedMembers": "{count} excluded",
       "allMembersExcluded": "All members excluded. Click a name above to restore.",
@@ -345,8 +345,8 @@
       "aiFix": "Fix spelling",
       "aiFixTooltip": "Fix spelling & minor grammar (Hebrew/English). Does not rewrite.",
       "header": {
-        "queueSelected": "Queue selected",
-        "queueLabel": "Queue",
+        "queueSelected": "Department selected",
+        "queueLabel": "Department",
         "requesterPrefilled": "Requester prefilled",
         "hint": "Fill the form and create a case in one click",
         "backToCases": "Back to cases"
@@ -358,8 +358,8 @@
         "tipUrgentPrefix": "Use",
         "tipUrgentSuffix": "only for escalations.",
         "defaults": "Defaults",
-        "queueSelected": "Queue selected",
-        "queueLabel": "Queue",
+        "queueSelected": "Department selected",
+        "queueLabel": "Department",
         "nextPolishTitle": "Next polish (optional)",
         "nextPolishDesc": "On create: auto add activity note + \"Assign to me\"."
       }
@@ -536,32 +536,32 @@
   },
   "queues": {
     "header": {
-      "title": "Queues",
+      "title": "Departments",
       "routing": "Routing",
       "shownTotal": "{shown} shown • {total} total",
-      "refreshTooltip": "Refresh queues list",
-      "newQueue": "New queue"
+      "refreshTooltip": "Refresh departments list",
+      "newQueue": "New department"
     },
     "modal": {
-      "newTitle": "New queue",
-      "editTitle": "Edit queue",
-      "name": "Queue name",
-      "nameRequired": "Please enter a queue name",
+      "newTitle": "New department",
+      "editTitle": "Edit department",
+      "name": "Department name",
+      "nameRequired": "Please enter a department name",
       "nameMin": "Name must be at least 2 characters",
       "namePlaceholder": "e.g., Support, Billing, Onboarding…",
       "active": "Active",
       "default": "Default",
-      "defaultHint": "Setting this queue as default will unset default from other queues in the workspace.",
-      "members": "Queue members",
-      "membersHint": "Only selected members can be assigned to cases in this queue.",
+      "defaultHint": "Setting this department as default will unset default from other departments in the workspace.",
+      "members": "Department members",
+      "membersHint": "Only selected members can be assigned to cases in this department.",
       "availableMembers": "Available",
       "selectedMembers": "Members"
     },
     "upsert": {
-      "titleCreate": "New queue",
-      "titleEdit": "Edit queue",
+      "titleCreate": "New department",
+      "titleEdit": "Edit department",
       "fields": {
-        "name": "Queue name",
+        "name": "Department name",
         "active": "Active",
         "default": "Default"
       },
@@ -569,22 +569,22 @@
         "name": "e.g., Support, Billing, Onboarding…"
       },
       "validation": {
-        "nameRequired": "Please enter a queue name",
+        "nameRequired": "Please enter a department name",
         "nameMin": "Name must be at least 2 characters"
       },
       "note": {
         "title": "Note",
-        "description": "Setting a default queue will unset the default from other queues in the workspace."
+        "description": "Setting a default department will unset the default from other departments in the workspace."
       }
     },
     "filters": {
-      "searchPlaceholder": "Search queues by name or ID…",
+      "searchPlaceholder": "Search departments by name or ID…",
       "allStates": "All states",
       "active": "Active",
       "inactive": "Inactive",
-      "allQueues": "All queues",
+      "allQueues": "All departments",
       "defaultOnly": "Default only",
-      "hint": "Default queue is used for \"New case\" routing (MVP)."
+      "hint": "Default department is used for \"New case\" routing (MVP)."
     },
     "kpis": {
       "default": "Default"
@@ -596,22 +596,22 @@
       "default": "Default",
       "untitled": "Untitled",
       "noWorkspace": "No workspace",
-      "noWorkspaceDesc": "Create org + membership to start managing queues.",
-      "tableNotAvailable": "Queues table not available",
-      "tableNotAvailableDesc": "Create the queues table (and RLS), then this page will light up.",
-      "nextHint": "Next: queue settings (name, SLA, members).",
+      "noWorkspaceDesc": "Create org + membership to start managing departments.",
+      "tableNotAvailable": "Departments table not available",
+      "tableNotAvailableDesc": "Create the departments table (and RLS), then this page will light up.",
+      "nextHint": "Next: department settings (name, SLA, members).",
       "open": "Open →",
-      "noMatch": "No queues match your filters",
-      "tryClearing": "Try clearing filters or create a new queue.",
+      "noMatch": "No departments match your filters",
+      "tryClearing": "Try clearing filters or create a new department.",
       "toggleTooltip": "Toggle active/inactive",
-      "code": "Queue: {code}"
+      "code": "Department: {code}"
     },
     "actions": {
       "edit": "Edit",
       "setDefault": "Set default",
       "default": "Default",
       "viewCases": "View cases",
-      "toggleActive": "Activate / Deactivate queue"
+      "toggleActive": "Activate / Deactivate department"
     },
     "form": {
       "default": "Default",
@@ -786,7 +786,7 @@
     },
     "nextUpgrades": {
       "title": "Next settings upgrades",
-      "items": "Persist profile in profiles • Workspace switcher • Notifications • SLA per queue"
+      "items": "Persist profile in profiles • Workspace switcher • Notifications • SLA per department"
     },
     "invites": {
       "created": "Invite created and link copied",
@@ -908,7 +908,7 @@
         },
         "create": {
           "title": "Google connected — need to create Sheet",
-          "desc": "Select a Default Queue, then we'll create a Sheet and set up Apps Script + Trigger automatically."
+          "desc": "Select a Default Department, then we'll create a Sheet and set up Apps Script + Trigger automatically."
         },
         "ready": {
           "title": "Integration ready",
@@ -925,9 +925,9 @@
       },
       "fields": {
         "defaultQueue": {
-          "label": "Default Queue",
-          "placeholder": "Select default queue",
-          "help": "Cases from the Sheet will be routed to this queue."
+          "label": "Default Department",
+          "placeholder": "Select default department",
+          "help": "Cases from the Sheet will be routed to this department."
         }
       },
       "labels": {
@@ -936,7 +936,7 @@
         "scriptUrl": "Script URL"
       },
       "tooltips": {
-        "pickQueue": "Select a queue first",
+        "pickQueue": "Select a department first",
         "reinstall": "Reinstall the script if something broke",
         "setupAgain": "Run setup again to recreate Sheet + Script"
       },
@@ -945,7 +945,7 @@
         "endpointCreate": "Endpoint:"
       },
       "messages": {
-        "pickDefaultQueue": "Select a Default Queue before creating the Sheet.",
+        "pickDefaultQueue": "Select a Default Department before creating the Sheet.",
         "setupOk": "Sheet created and script installed successfully.",
         "installOk": "Script installed. Open the Sheet once and authorize permissions.",
         "disconnected": "Google connection disconnected. Reconnect to authorize permissions.",
@@ -992,14 +992,14 @@
     }
   },
   "queueDetails": {
-    "notFound": "Queue not found",
-    "backToQueues": "Back to Queues",
+    "notFound": "Department not found",
+    "backToQueues": "Back to Departments",
     "edit": "Edit",
     "members": "Members",
     "manage": "Manage",
-    "noMembers": "No members assigned to this queue",
+    "noMembers": "No members assigned to this department",
     "cases": "Cases",
-    "noCases": "No cases in this queue",
+    "noCases": "No cases in this department",
     "table": {
       "title": "Title",
       "status": "Status",
@@ -1007,7 +1007,7 @@
       "created": "Created"
     },
     "errors": {
-      "load": "Failed to load queue",
+      "load": "Failed to load department",
       "save": "Failed to save"
     }
   }

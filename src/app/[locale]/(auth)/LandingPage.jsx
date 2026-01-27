@@ -171,8 +171,8 @@ export default function LandingPage() {
                     title={isHebrew ? "ניהול תיקים" : "Case Management"}
                     desc={
                       isHebrew
-                        ? "פתחו, עקבו ופתרו פניות עם תורים ועדיפויות. הכל מסודר ונגיש."
-                        : "Open, track, and resolve requests with queues and priorities. Everything organized and accessible."
+                        ? "פתחו, עקבו ופתרו פניות עם מחלקות ועדיפויות. הכל מסודר ונגיש."
+                        : "Open, track, and resolve requests with departments and priorities. Everything organized and accessible."
                     }
                   />
                   <Feature

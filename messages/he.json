@@ -37,7 +37,7 @@
     "none": "ללא",
     "untitled": "ללא כותרת",
     "unnamed": "ללא שם",
-    "noQueue": "ללא תור",
+    "noQueue": "ללא מחלקה",
     "workspace": "סביבת עבודה",
     "workspaceNone": "אין",
     "unknown": "לא ידוע",
@@ -55,7 +55,7 @@
     "dashboard": "לוח בקרה",
     "cases": "פניות",
     "contacts": "אנשי קשר",
-    "queues": "תורים",
+    "queues": "מחלקות",
     "calendar": "לוח שנה",
     "settings": "הגדרות",
     "announcements": "הודעות"
@@ -162,7 +162,7 @@
     "error": "שגיאה בהצטרפות",
     "features": {
       "caseManagement": "ניהול פניות",
-      "caseManagementDesc": "פתח, עקוב ופתור בקשות עם תורים ועדיפויות.",
+      "caseManagementDesc": "פתח, עקוב ופתור בקשות עם מחלקות ועדיפויות.",
       "teamsRoles": "צוותים ותפקידים",
       "teamsRolesDesc": "מנהלים מנהלים משתמשים. סוכנים מטפלים בפניות. צופים קוראים בלבד.",
       "dbSecurity": "אבטחה ברמת מסד הנתונים",
@@ -286,14 +286,14 @@
     "header": {
       "title": "פניות",
       "list": "רשימה",
-      "queueFiltered": "מסונן לפי תור",
+      "queueFiltered": "מסונן לפי מחלקה",
       "shownTotal": "{shown} מוצגות • {total} סה\"כ",
       "refreshTooltip": "רענן רשימת פניות",
       "newCase": "פניה חדשה"
     },
     "filters": {
       "searchPlaceholder": "חפש לפי כותרת או מזהה…",
-      "allQueues": "כל התורים",
+      "allQueues": "כל המחלקות",
       "allStatuses": "כל הסטטוסים",
       "allPriorities": "כל העדיפויות",
       "defaultQueue": "{name} (ברירת מחדל)",
@@ -317,11 +317,11 @@
       "couldntCreate": "לא ניתן ליצור פניה",
       "noWorkspace": "לא נמצאה סביבת עבודה",
       "noWorkspaceDesc": "צור ארגון + חברות קודם, ואז חזור ליצור פניות.",
-      "noQueues": "לא נמצאו תורים",
-      "noQueuesDesc": "צור לפחות תור אחד, ואז תוכל ליצור פניות.",
-      "queue": "תור",
-      "queueRequired": "אנא בחר תור",
-      "selectQueue": "בחר תור",
+      "noQueues": "לא נמצאו מחלקות",
+      "noQueuesDesc": "צור לפחות מחלקה אחת, ואז תוכל ליצור פניות.",
+      "queue": "מחלקה",
+      "queueRequired": "אנא בחר מחלקה",
+      "selectQueue": "בחר מחלקה",
       "requester": "מבקש",
       "selectRequester": "בחר עובד (אופציונלי)",
       "noEmail": "אין אימייל/טלפון",
@@ -335,8 +335,8 @@
       "priorityRequired": "בחר עדיפות",
       "assignee": "מוקצה",
       "selectAssignee": "בחר מוקצה (אופציונלי)",
-      "noQueueMembers": "אין חברים בתור זה",
-      "selectQueueFirst": "בחר תור קודם",
+      "noQueueMembers": "אין חברים במחלקה זו",
+      "selectQueueFirst": "בחר מחלקה קודם",
       "queueMembers": "חברי המחלקה",
       "clickToAssign": "לחץ להקצאה",
       "excludedMembers": "{count} הוסרו",
@@ -345,8 +345,8 @@
       "aiFix": "תיקון שגיאות",
       "aiFixTooltip": "תיקון שגיאות כתיב ודקדוק קל (עברית/אנגלית), בלי לשכתב.",
       "header": {
-        "queueSelected": "נבחר תור",
-        "queueLabel": "תור",
+        "queueSelected": "נבחרה מחלקה",
+        "queueLabel": "מחלקה",
         "requesterPrefilled": "המבקש מולא מראש",
         "hint": "מלא את הטופס ופתח פנייה בלחיצה אחת",
         "backToCases": "חזרה לפניות"
@@ -358,8 +358,8 @@
         "tipUrgentPrefix": "השתמש ב",
         "tipUrgentSuffix": "רק להסלמות.",
         "defaults": "ברירות מחדל",
-        "queueSelected": "נבחר תור",
-        "queueLabel": "תור",
+        "queueSelected": "נבחרה מחלקה",
+        "queueLabel": "מחלקה",
         "nextPolishTitle": "ליטוש הבא (אופציונלי)",
         "nextPolishDesc": "ביצירה: להוסיף אוטומטית הערת פעילות + \"הקצה לי\"."
       }
@@ -540,24 +540,24 @@
   },
   "queues": {
     "header": {
-      "title": "תורים",
+      "title": "מחלקות",
       "routing": "ניתוב",
       "shownTotal": "{shown} מוצגים • {total} סה\"כ",
-      "refreshTooltip": "רענן רשימת תורים",
-      "newQueue": "תור חדש"
+      "refreshTooltip": "רענן רשימת מחלקות",
+      "newQueue": "מחלקה חדשה"
     },
     "modal": {
-      "newTitle": "תור חדש",
-      "editTitle": "עריכת תור",
-      "name": "שם התור",
-      "nameRequired": "אנא הזן שם תור",
+      "newTitle": "מחלקה חדשה",
+      "editTitle": "עריכת מחלקה",
+      "name": "שם המחלקה",
+      "nameRequired": "אנא הזן שם מחלקה",
       "nameMin": "השם צריך להכיל לפחות 2 תווים",
-      "namePlaceholder": "לדוגמה: תמיכה, חיובים, Onboarding…",
+      "namePlaceholder": "לדוגמה: תמיכה, חיובים, קליטה…",
       "active": "פעיל",
       "default": "ברירת מחדל",
-      "defaultHint": "הגדרת תור כברירת מחדל תבטל את ברירת המחדל משאר התורים בסביבת העבודה.",
-      "members": "חברי התור",
-      "membersHint": "רק החברים הנבחרים יוכלו להיות מוקצים לפניות בתור זה.",
+      "defaultHint": "הגדרת מחלקה כברירת מחדל תבטל את ברירת המחדל משאר המחלקות בסביבת העבודה.",
+      "members": "חברי המחלקה",
+      "membersHint": "רק החברים הנבחרים יוכלו להיות מוקצים לפניות במחלקה זו.",
       "availableMembers": "זמינים",
       "selectedMembers": "חברים"
     },
@@ -566,11 +566,11 @@
       "active": "פעיל"
     },
     "upsert": {
-      "titleCreate": "תור חדש",
-      "titleEdit": "עריכת תור",
+      "titleCreate": "מחלקה חדשה",
+      "titleEdit": "עריכת מחלקה",
 
       "fields": {
-        "name": "שם התור",
+        "name": "שם המחלקה",
         "active": "פעיל",
         "default": "ברירת מחדל"
       },
@@ -580,24 +580,24 @@
       },
 
       "validation": {
-        "nameRequired": "אנא הזן שם לתור",
+        "nameRequired": "אנא הזן שם למחלקה",
         "nameMin": "השם חייב להכיל לפחות 2 תווים"
       },
 
       "note": {
         "title": "הערה",
-        "description": "הגדרת תור כברירת מחדל תבטל את ברירת המחדל מתורים אחרים בסביבת העבודה."
+        "description": "הגדרת מחלקה כברירת מחדל תבטל את ברירת המחדל ממחלקות אחרות בסביבת העבודה."
       }
     },
 
     "filters": {
-      "searchPlaceholder": "חפש תור לפי שם או מזהה…",
+      "searchPlaceholder": "חפש מחלקה לפי שם או מזהה…",
       "allStates": "כל המצבים",
       "active": "פעיל",
       "inactive": "לא פעיל",
-      "allQueues": "כל התורים",
+      "allQueues": "כל המחלקות",
       "defaultOnly": "ברירת מחדל בלבד",
-      "hint": "תור ברירת מחדל משמש לניתוב \"פניה חדשה\" (MVP)."
+      "hint": "מחלקת ברירת מחדל משמשת לניתוב \"פניה חדשה\" (MVP)."
     },
     "kpis": {
       "default": "ברירת מחדל"
@@ -609,22 +609,22 @@
       "default": "ברירת מחדל",
       "untitled": "ללא כותרת",
       "noWorkspace": "אין סביבת עבודה",
-      "noWorkspaceDesc": "צור ארגון + חברות כדי להתחיל לנהל תורים.",
-      "tableNotAvailable": "טבלת תורים לא זמינה",
-      "tableNotAvailableDesc": "צור את טבלת התורים (ו-RLS), ואז הדף הזה יפעל.",
-      "nextHint": "הבא: עמוד עריכת תור (שם, SLA, חברי צוות).",
+      "noWorkspaceDesc": "צור ארגון + חברות כדי להתחיל לנהל מחלקות.",
+      "tableNotAvailable": "טבלת מחלקות לא זמינה",
+      "tableNotAvailableDesc": "צור את טבלת המחלקות (ו-RLS), ואז הדף הזה יפעל.",
+      "nextHint": "הבא: עמוד עריכת מחלקה (שם, SLA, חברי צוות).",
       "open": "פתח →",
-      "noMatch": "אין תורים התואמים למסננים",
-      "tryClearing": "נסה לנקות מסננים או צור תור חדש.",
+      "noMatch": "אין מחלקות התואמות למסננים",
+      "tryClearing": "נסה לנקות מסננים או צור מחלקה חדשה.",
       "toggleTooltip": "החלף מצב פעיל/לא פעיל",
-      "code": "תור: {code}"
+      "code": "מחלקה: {code}"
     },
     "actions": {
       "edit": "ערוך",
       "setDefault": "הגדר ברירת מחדל",
       "default": "ברירת מחדל",
       "viewCases": "צפה בפניות",
-      "toggleActive": "הפעל / השבת תור"
+      "toggleActive": "הפעל / השבת מחלקה"
     }
   },
   "calendar": {
@@ -795,7 +795,7 @@
     },
     "nextUpgrades": {
       "title": "שדרוגי הגדרות הבאים",
-      "items": "שמירת פרופיל בפרופילים • החלפת סביבת עבודה • התראות • SLA לכל תור"
+      "items": "שמירת פרופיל בפרופילים • החלפת סביבת עבודה • התראות • SLA לכל מחלקה"
     },
     "invites": {
       "created": "ההזמנה נוצרה והקישור הועתק",
@@ -917,7 +917,7 @@
         },
         "create": {
           "title": "Google מחובר — צריך ליצור Sheet",
-          "desc": "בחר תור ברירת מחדל, ואז ניצור Sheet ונקים Apps Script + Trigger אוטומטית."
+          "desc": "בחר מחלקת ברירת מחדל, ואז ניצור Sheet ונקים Apps Script + Trigger אוטומטית."
         },
         "ready": {
           "title": "האינטגרציה מוכנה",
@@ -934,9 +934,9 @@
       },
       "fields": {
         "defaultQueue": {
-          "label": "תור ברירת מחדל",
-          "placeholder": "בחר תור ברירת מחדל",
-          "help": "פניות מה-Sheet ינותבו לתור זה."
+          "label": "מחלקת ברירת מחדל",
+          "placeholder": "בחר מחלקת ברירת מחדל",
+          "help": "פניות מה-Sheet ינותבו למחלקה זו."
         }
       },
       "labels": {
@@ -945,7 +945,7 @@
         "scriptUrl": "כתובת סקריפט"
       },
       "tooltips": {
-        "pickQueue": "בחר תור קודם",
+        "pickQueue": "בחר מחלקה קודם",
         "reinstall": "התקן מחדש את הסקריפט אם משהו נשבר",
         "setupAgain": "הרץ הגדרה מחדש ליצירת Sheet + סקריפט חדשים"
       },
@@ -954,7 +954,7 @@
         "endpointCreate": "Endpoint:"
       },
       "messages": {
-        "pickDefaultQueue": "בחר תור ברירת מחדל לפני יצירת ה-Sheet.",
+        "pickDefaultQueue": "בחר מחלקת ברירת מחדל לפני יצירת ה-Sheet.",
         "setupOk": "ה-Sheet נוצר והסקריפט הותקן בהצלחה.",
         "installOk": "הסקריפט הותקן. פתח את ה-Sheet פעם אחת ואשר הרשאות.",
         "disconnected": "החיבור ל-Google נותק. התחבר מחדש כדי לאשר הרשאות.",
@@ -1001,14 +1001,14 @@
     }
   },
   "queueDetails": {
-    "notFound": "התור לא נמצא",
-    "backToQueues": "חזרה לתורים",
+    "notFound": "המחלקה לא נמצאה",
+    "backToQueues": "חזרה למחלקות",
     "edit": "עריכה",
-    "members": "חברי התור",
+    "members": "חברי המחלקה",
     "manage": "ניהול",
-    "noMembers": "אין חברים שמשויכים לתור הזה",
+    "noMembers": "אין חברים שמשויכים למחלקה הזו",
     "cases": "פניות",
-    "noCases": "אין פניות בתור הזה",
+    "noCases": "אין פניות במחלקה הזו",
     "table": {
       "title": "כותרת",
       "status": "סטטוס",
@@ -1016,7 +1016,7 @@
       "created": "נוצר בתאריך"
     },
     "errors": {
-      "load": "טעינת התור נכשלה",
+      "load": "טעינת המחלקה נכשלה",
       "save": "השמירה נכשלה"
     }
   }
