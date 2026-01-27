@@ -36,8 +36,10 @@ export async function GET(req) {
     }
 
     // 2) ensure user is allowed (requires session cookie)
-    await requireOrgAdminRoute(req, orgId);
-    // ✅ IMPORTANT: must match EXACT redirect_uri used in the auth step
+    if (!orgId) {
+      return NextResponse.json({ error: "Invalid OAuth state" }, { status: 400 });
+    }
+        // ✅ IMPORTANT: must match EXACT redirect_uri used in the auth step
     const redirectUri =
       state?.redirectUri ||
       `${url.origin}/api/integrations/google/auth/callback`;
