@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+// Valid case statuses in the app
+const VALID_STATUSES = ["new", "in_progress", "waiting_customer", "resolved", "closed"];
+
 export async function POST(req) {
   try {
     const secret = (req.headers.get("x-webhook-secret") || "").trim();
@@ -12,16 +15,6 @@ export async function POST(req) {
     if (!body || typeof body !== "object") {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
-
-    const title = String(body.title ?? "").trim();
-    const description = String(body.description ?? "").trim();
-    const externalRef = body.external_ref ? String(body.external_ref).trim() : null;
-
-    if (!title) return NextResponse.json({ error: "Missing title" }, { status: 400 });
-    if (!externalRef) return NextResponse.json({ error: "Missing external_ref" }, { status: 400 });
-
-    const rawPriority = String(body.priority ?? "normal").trim().toLowerCase();
-    const priority = ["low", "normal", "high", "urgent"].includes(rawPriority) ? rawPriority : "normal";
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -41,6 +34,56 @@ export async function POST(req) {
     if (!integration || !integration.is_enabled) {
       return NextResponse.json({ error: "Integration not found/disabled" }, { status: 404 });
     }
+
+    const action = String(body.action ?? "create").trim().toLowerCase();
+    const externalRef = body.external_ref ? String(body.external_ref).trim() : null;
+
+    if (!externalRef) {
+      return NextResponse.json({ error: "Missing external_ref" }, { status: 400 });
+    }
+
+    // Handle status UPDATE for existing case
+    if (action === "update") {
+      const caseId = body.case_id ? String(body.case_id).trim() : null;
+      const newStatus = String(body.status ?? "").trim().toLowerCase();
+
+      if (!caseId) {
+        return NextResponse.json({ error: "Missing case_id for update" }, { status: 400 });
+      }
+      if (!newStatus || !VALID_STATUSES.includes(newStatus)) {
+        return NextResponse.json({
+          error: "Invalid status",
+          valid: VALID_STATUSES
+        }, { status: 400 });
+      }
+
+      const { data: updated, error: updErr } = await supabase
+        .from("cases")
+        .update({
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", caseId)
+        .eq("org_id", integration.org_id)
+        .select("id, status")
+        .single();
+
+      if (updErr) {
+        console.error("case update error:", updErr);
+        return NextResponse.json({ error: "Case update failed", details: updErr }, { status: 500 });
+      }
+
+      return NextResponse.json({ ok: true, action: "updated", caseId: updated.id, status: updated.status }, { status: 200 });
+    }
+
+    // Handle CREATE (original behavior)
+    const title = String(body.title ?? "").trim();
+    const description = String(body.description ?? "").trim();
+
+    if (!title) return NextResponse.json({ error: "Missing title" }, { status: 400 });
+
+    const rawPriority = String(body.priority ?? "normal").trim().toLowerCase();
+    const priority = ["low", "normal", "high", "urgent"].includes(rawPriority) ? rawPriority : "normal";
 
     // optional rule: statusEquals
     const statusEquals = integration?.create_rule?.statusEquals ?? "new";
@@ -86,7 +129,7 @@ export async function POST(req) {
       return NextResponse.json({ error: "Case insert failed", details: insErr }, { status: 500 });
     }
 
-    return NextResponse.json({ ok: true, caseId: inserted.id }, { status: 200 });
+    return NextResponse.json({ ok: true, action: "created", caseId: inserted.id }, { status: 200 });
   } catch (e) {
     console.error("webhook fatal:", e);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

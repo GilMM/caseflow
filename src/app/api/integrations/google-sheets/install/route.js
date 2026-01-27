@@ -97,6 +97,9 @@ const COL_STATUS = 6;
 const COL_CASE_ID = 7;
 const COL_ERROR = 8;
 
+// App statuses that can be synced
+const APP_STATUSES = ["new", "in_progress", "waiting_customer", "resolved", "closed"];
+
 function getLang() {
   try {
     const loc = (Session.getActiveUserLocale() || "").toLowerCase();
@@ -117,6 +120,7 @@ function t(key) {
       testSending: "Sending test…",
       testDone: "Test response: ",
       setupDone: "Template updated ✅",
+      statusUpdated: "Status updated ✅",
     },
     he: {
       menu: "CaseFlow",
@@ -127,6 +131,7 @@ function t(key) {
       testSending: "שולח בדיקה…",
       testDone: "תוצאת בדיקה: ",
       setupDone: "התבנית עודכנה ✅",
+      statusUpdated: "הסטטוס עודכן ✅",
     },
   };
   return (dict[lang] && dict[lang][key]) || dict.en[key] || key;
@@ -163,10 +168,10 @@ function setup() {
     .setHorizontalAlignment("center")
     .setBackground("#ededed");
 
-  // 2) dropdown validations
+  // 2) dropdown validations - using app statuses + draft for new rows
   const statusRange = sheet.getRange(2, 6, sheet.getMaxRows() - 1, 1);
   const statusRule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(["draft","new","sent","closed","error"], true)
+    .requireValueInList(["draft","new","in_progress","waiting_customer","resolved","closed"], true)
     .setAllowInvalid(false)
     .build();
   statusRange.setDataValidation(statusRule);
@@ -195,10 +200,12 @@ function setup() {
   // wipe old status-only rules (simple approach)
   sheet.setConditionalFormatRules([]);
 
-  addRule("new",   "#e6f2ff", "#0d59d8", true);
-  addRule("sent",  "#edffed", "#2a8a2a", true);
-  addRule("error", "#ffeded", "#cc1a1a", true);
-  addRule("closed","#f2f2f2", "#777777", true);
+  addRule("draft",            "#f5f5f5", "#666666", false);
+  addRule("new",              "#e6f2ff", "#0d59d8", true);
+  addRule("in_progress",      "#fff7e6", "#d48806", true);
+  addRule("waiting_customer", "#f9f0ff", "#722ed1", true);
+  addRule("resolved",         "#f6ffed", "#389e0d", true);
+  addRule("closed",           "#f2f2f2", "#777777", true);
 
   // strike-through row when closed
   const fullRow = sheet.getRange(2,1,sheet.getMaxRows()-1,8);
@@ -234,7 +241,7 @@ function setup() {
   sheet.setColumnWidth(3, 130);
   sheet.setColumnWidth(4, 170);
   sheet.setColumnWidth(5, 240);
-  sheet.setColumnWidth(6, 120);
+  sheet.setColumnWidth(6, 140);
   sheet.setColumnWidth(7, 160);
   sheet.setColumnWidth(8, 260);
 
@@ -311,61 +318,97 @@ function onEditInstalled(e) {
 
     const statusCell = sheet.getRange(row, COL_STATUS);
     const status = String(statusCell.getValue() || "").toLowerCase().trim();
-    if (status !== "new") return;
+
+    // Skip draft - no action needed
+    if (status === "draft") return;
 
     const caseIdCell = sheet.getRange(row, COL_CASE_ID);
     const errCell = sheet.getRange(row, COL_ERROR);
-
     const existingCaseId = String(caseIdCell.getValue() || "").trim();
-    if (existingCaseId) return;
 
-    errCell.setValue("");
-
-    const values = sheet.getRange(row, 1, 1, 8).getValues()[0];
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const externalRef = ss.getId() + ":" + row;
 
-    const payload = {
-      title: values[0] || null,
-      description: values[1] || null,
-      priority: values[2] || null,
-      reporter: values[3] || null,
-      email: values[4] || null,
-      status: values[5] || null,
-      external_row: row,
-      spreadsheet_id: ss.getId(),
-      external_ref: externalRef
-    };
-
-    const resp = UrlFetchApp.fetch(WEBHOOK_URL, {
-      method: "post",
-      contentType: "application/json",
-      headers: { "x-webhook-secret": WEBHOOK_SECRET },
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    });
-
-    const code = resp.getResponseCode();
-    const text = resp.getContentText() || "";
-
-    let data = null;
-    try { data = text ? JSON.parse(text) : null; } catch (err) {}
-
-    if (code >= 200 && code < 300 && data && data.ok) {
-      const caseId = data.caseId || "";
-      if (caseId) caseIdCell.setValue(caseId);
-      statusCell.setValue("sent");
+    // Case 1: status = "new" and no case_id → CREATE new case
+    if (status === "new" && !existingCaseId) {
       errCell.setValue("");
-    } else {
-      statusCell.setValue("error");
-      errCell.setValue(("Webhook failed (" + code + "): " + text).slice(0, 500));
+
+      const values = sheet.getRange(row, 1, 1, 8).getValues()[0];
+      const payload = {
+        action: "create",
+        title: values[0] || null,
+        description: values[1] || null,
+        priority: values[2] || null,
+        reporter: values[3] || null,
+        email: values[4] || null,
+        status: values[5] || null,
+        external_row: row,
+        spreadsheet_id: ss.getId(),
+        external_ref: externalRef
+      };
+
+      const resp = UrlFetchApp.fetch(WEBHOOK_URL, {
+        method: "post",
+        contentType: "application/json",
+        headers: { "x-webhook-secret": WEBHOOK_SECRET },
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      });
+
+      const code = resp.getResponseCode();
+      const text = resp.getContentText() || "";
+
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch (err) {}
+
+      if (code >= 200 && code < 300 && data && data.ok) {
+        const caseId = data.caseId || "";
+        if (caseId) caseIdCell.setValue(caseId);
+        errCell.setValue("");
+      } else {
+        errCell.setValue(("Create failed (" + code + "): " + text).slice(0, 500));
+      }
+      return;
     }
+
+    // Case 2: case_id exists and status is a valid app status → UPDATE case status
+    if (existingCaseId && APP_STATUSES.includes(status)) {
+      errCell.setValue("");
+
+      const payload = {
+        action: "update",
+        case_id: existingCaseId,
+        status: status,
+        external_ref: externalRef
+      };
+
+      const resp = UrlFetchApp.fetch(WEBHOOK_URL, {
+        method: "post",
+        contentType: "application/json",
+        headers: { "x-webhook-secret": WEBHOOK_SECRET },
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      });
+
+      const code = resp.getResponseCode();
+      const text = resp.getContentText() || "";
+
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch (err) {}
+
+      if (code >= 200 && code < 300 && data && data.ok) {
+        errCell.setValue("");
+      } else {
+        errCell.setValue(("Update failed (" + code + "): " + text).slice(0, 500));
+      }
+      return;
+    }
+
   } catch (err) {
     try {
       const sheet = e?.range?.getSheet();
       const row = e?.range?.getRow();
       if (sheet && row >= 2) {
-        sheet.getRange(row, COL_STATUS).setValue("error");
         sheet.getRange(row, COL_ERROR).setValue(String(err).slice(0, 500));
       }
     } catch (_) {}
