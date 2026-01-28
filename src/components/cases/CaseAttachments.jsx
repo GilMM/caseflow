@@ -1,39 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   Button,
-  Image,
   Modal,
   Space,
   Spin,
   Typography,
   Upload,
   message,
+  Tooltip,
 } from "antd";
 import {
   DeleteOutlined,
   EyeOutlined,
   PaperClipOutlined,
-  PlusOutlined,
   UploadOutlined,
+  FilePdfOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 
 const { Text } = Typography;
 
-/**
- * Component for uploading and displaying case attachments.
- * Used in both NewCaseForm (upload mode) and CaseDetailsPage (view/upload mode).
- *
- * Props:
- * - attachments: Array of { id, url, file_name, file_type, file_size }
- * - onUpload: async (file) => attachment object - called when file is uploaded
- * - onDelete: async (attachmentId) => void - called when attachment is deleted
- * - uploading: boolean - show loading state
- * - readOnly: boolean - hide upload controls
- * - maxFiles: number - max attachments allowed (default 10)
- */
+function formatFileSize(bytes) {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function isImage(fileType) {
+  return !!fileType?.startsWith("image/");
+}
+
+function isPdf(fileType, fileName) {
+  if (fileType === "application/pdf") return true;
+  return String(fileName || "").toLowerCase().endsWith(".pdf");
+}
+
 export default function CaseAttachments({
   attachments = [],
   onUpload,
@@ -43,26 +48,30 @@ export default function CaseAttachments({
   maxFiles = 10,
 }) {
   const t = useTranslations();
+
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
   const [previewTitle, setPreviewTitle] = useState("");
   const [deletingId, setDeletingId] = useState(null);
 
-  const isImage = (fileType) => {
-    return fileType?.startsWith("image/");
-  };
+  const canUpload = !readOnly && !!onUpload && attachments.length < maxFiles;
 
-  const handlePreview = (attachment) => {
-    setPreviewImage(attachment.url);
-    setPreviewTitle(attachment.file_name || "Preview");
+  const grid = useMemo(() => {
+    // newest first if you ever add created_at in attachments
+    return Array.isArray(attachments) ? attachments : [];
+  }, [attachments]);
+
+  const handlePreview = (att) => {
+    setPreviewImage(att.url);
+    setPreviewTitle(att.file_name || "Preview");
     setPreviewOpen(true);
   };
 
-  const handleDelete = async (attachment) => {
+  const handleDelete = async (att) => {
     if (!onDelete) return;
     try {
-      setDeletingId(attachment.id);
-      await onDelete(attachment.id);
+      setDeletingId(att.id);
+      await onDelete(att.id);
       message.success(t("attachments.deleted"));
     } catch (e) {
       message.error(e?.message || t("attachments.deleteFailed"));
@@ -72,9 +81,12 @@ export default function CaseAttachments({
   };
 
   const beforeUpload = (file) => {
-    const isValidType =
-      file.type.startsWith("image/") || file.type === "application/pdf";
-    if (!isValidType) {
+    const ok =
+      file.type?.startsWith("image/") ||
+      file.type === "application/pdf" ||
+      String(file.name || "").toLowerCase().endsWith(".pdf");
+
+    if (!ok) {
       message.error(t("attachments.invalidType"));
       return Upload.LIST_IGNORE;
     }
@@ -109,211 +121,277 @@ export default function CaseAttachments({
     }
   };
 
-  const formatFileSize = (bytes) => {
-    if (!bytes) return "";
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
-
-  // Gallery view for existing attachments
-  const renderGallery = () => {
-    if (!attachments.length) {
-      if (readOnly) return null;
-      return (
-        <Text type="secondary" style={{ fontSize: 13 }}>
-          {t("attachments.noAttachments")}
-        </Text>
-      );
-    }
-
+  const EmptyState = () => {
+    if (readOnly) return null;
     return (
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-          gap: 12,
-        }}
-      >
-        {attachments.map((att) => (
-          <div
-            key={att.id}
-            style={{
-              position: "relative",
-              borderRadius: 10,
-              overflow: "hidden",
-              border: "1px solid rgba(255,255,255,0.1)",
-              background: "rgba(255,255,255,0.02)",
-            }}
-          >
-            {isImage(att.file_type) ? (
-              <div
-                style={{
-                  width: "100%",
-                  paddingTop: "100%",
-                  position: "relative",
-                  cursor: "pointer",
-                }}
-                onClick={() => handlePreview(att)}
-              >
-                <img
-                  src={att.url}
-                  alt={att.file_name}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
-                />
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: "rgba(0,0,0,0.4)",
-                    opacity: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    transition: "opacity 0.2s",
-                  }}
-                  className="attachment-overlay"
-                >
-                  <Button
-                    type="text"
-                    icon={<EyeOutlined />}
-                    style={{ color: "#fff" }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePreview(att);
-                    }}
-                  />
-                  {!readOnly && onDelete && (
-                    <Button
-                      type="text"
-                      danger
-                      icon={<DeleteOutlined />}
-                      loading={deletingId === att.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(att);
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div
-                style={{
-                  padding: 16,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <PaperClipOutlined style={{ fontSize: 32, opacity: 0.5 }} />
-                <Text
-                  ellipsis={{ tooltip: att.file_name }}
-                  style={{ fontSize: 12, maxWidth: "100%" }}
-                >
-                  {att.file_name}
-                </Text>
-                <Text type="secondary" style={{ fontSize: 11 }}>
-                  {formatFileSize(att.file_size)}
-                </Text>
-                <Space size={4}>
-                  <Button
-                    size="small"
-                    type="link"
-                    icon={<EyeOutlined />}
-                    href={att.url}
-                    target="_blank"
-                  />
-                  {!readOnly && onDelete && (
-                    <Button
-                      size="small"
-                      type="link"
-                      danger
-                      icon={<DeleteOutlined />}
-                      loading={deletingId === att.id}
-                      onClick={() => handleDelete(att)}
-                    />
-                  )}
-                </Space>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      <Text type="secondary" style={{ fontSize: 13 }}>
+        {t("attachments.noAttachments")}
+      </Text>
     );
   };
 
   return (
     <div>
-      <style jsx global>{`
-        .attachment-overlay:hover {
-          opacity: 1 !important;
+      {/* Scoped styles */}
+      <style jsx>{`
+        .grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+          gap: 12px;
         }
-        .attachment-card:hover .attachment-overlay {
-          opacity: 1 !important;
+
+        .tile {
+          position: relative;
+          border-radius: 14px;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.02);
+          transition: transform 0.15s ease, border-color 0.15s ease;
+        }
+
+        .tile:hover {
+          transform: translateY(-2px);
+          border-color: rgba(255, 255, 255, 0.18);
+        }
+
+        .thumb {
+          width: 100%;
+          aspect-ratio: 1 / 1;
+          position: relative;
+          cursor: pointer;
+          background: rgba(0, 0, 0, 0.12);
+        }
+
+        .thumbImg {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .overlay {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          background: rgba(0, 0, 0, 0.45);
+          opacity: 0;
+          transition: opacity 0.15s ease;
+        }
+
+        .tile:hover .overlay {
+          opacity: 1;
+        }
+
+        .meta {
+          padding: 10px 10px 12px 10px;
+          display: grid;
+          gap: 4px;
+        }
+
+        .fileLine {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+        }
+
+        .fileName {
+          font-size: 12px;
+          max-width: 100%;
+        }
+
+        .sizeLine {
+          font-size: 11px;
+          opacity: 0.75;
         }
       `}</style>
 
-      {renderGallery()}
+      {!grid.length ? (
+        <EmptyState />
+      ) : (
+        <div className="grid">
+          {grid.map((att) => {
+            const image = isImage(att.file_type);
+            const pdf = isPdf(att.file_type, att.file_name);
+            const size = formatFileSize(att.file_size);
 
-      {!readOnly && onUpload && attachments.length < maxFiles && (
-        <Upload
-          accept="image/*,.pdf"
-          showUploadList={false}
-          beforeUpload={beforeUpload}
-          customRequest={customUpload}
-          disabled={uploading}
-          multiple
-        >
-          <Button
-            icon={uploading ? <Spin size="small" /> : <UploadOutlined />}
-            disabled={uploading}
-            style={{ marginTop: attachments.length > 0 ? 12 : 0 }}
-          >
-            {t("attachments.addFiles")}
-          </Button>
-        </Upload>
+            return (
+              <div key={att.id} className="tile">
+                {/* Thumbnail */}
+                {image ? (
+                  <div className="thumb" onClick={() => handlePreview(att)}>
+                    <img className="thumbImg" src={att.url} alt={att.file_name} />
+                    <div className="overlay" onClick={(e) => e.stopPropagation()}>
+                      <Tooltip title={t("common.view") || "View"}>
+                        <Button
+                          type="primary"
+                          icon={<EyeOutlined />}
+                          onClick={() => handlePreview(att)}
+                        />
+                      </Tooltip>
+
+                      <Tooltip title={t("common.download") || "Download"}>
+                        <Button
+                          icon={<DownloadOutlined />}
+                          onClick={() => window.open(att.url, "_blank")}
+                        />
+                      </Tooltip>
+
+                      {!readOnly && onDelete ? (
+                        <Tooltip title={t("common.delete") || "Delete"}>
+                          <Button
+                            danger
+                            icon={<DeleteOutlined />}
+                            loading={deletingId === att.id}
+                            onClick={() => handleDelete(att)}
+                          />
+                        </Tooltip>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className="thumb"
+                    style={{
+                      display: "grid",
+                      placeItems: "center",
+                      cursor: "default",
+                    }}
+                  >
+                    {pdf ? (
+                      <FilePdfOutlined style={{ fontSize: 40, opacity: 0.55 }} />
+                    ) : (
+                      <PaperClipOutlined style={{ fontSize: 40, opacity: 0.55 }} />
+                    )}
+
+                    <div className="overlay">
+                      <Tooltip title={t("common.view") || "View"}>
+                        <Button
+                          type="primary"
+                          icon={<EyeOutlined />}
+                          onClick={() => window.open(att.url, "_blank")}
+                        />
+                      </Tooltip>
+
+                      <Tooltip title={t("common.download") || "Download"}>
+                        <Button
+                          icon={<DownloadOutlined />}
+                          onClick={() => window.open(att.url, "_blank")}
+                        />
+                      </Tooltip>
+
+                      {!readOnly && onDelete ? (
+                        <Tooltip title={t("common.delete") || "Delete"}>
+                          <Button
+                            danger
+                            icon={<DeleteOutlined />}
+                            loading={deletingId === att.id}
+                            onClick={() => handleDelete(att)}
+                          />
+                        </Tooltip>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+
+                {/* Meta */}
+                <div className="meta">
+                  <div className="fileLine">
+                    {pdf ? <FilePdfOutlined style={{ opacity: 0.7 }} /> : <PaperClipOutlined style={{ opacity: 0.7 }} />}
+                    <Text
+                      className="fileName"
+                      ellipsis={{ tooltip: att.file_name }}
+                      style={{ margin: 0 }}
+                    >
+                      {att.file_name || "—"}
+                    </Text>
+                  </div>
+
+                  <Text type="secondary" className="sizeLine" style={{ margin: 0 }}>
+                    {size}
+                  </Text>
+
+                  <Space size={6} wrap>
+                    <Button
+                      size="small"
+                      icon={<EyeOutlined />}
+                      onClick={() => (image ? handlePreview(att) : window.open(att.url, "_blank"))}
+                    >
+                      {t("common.view") || "View"}
+                    </Button>
+
+                    {!readOnly && onDelete ? (
+                      <Button
+                        size="small"
+                        danger
+                        icon={<DeleteOutlined />}
+                        loading={deletingId === att.id}
+                        onClick={() => handleDelete(att)}
+                      >
+                        {t("common.delete") || "Delete"}
+                      </Button>
+                    ) : null}
+                  </Space>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
 
+      {/* Upload CTA */}
+      {canUpload ? (
+        <div style={{ marginTop: grid.length ? 12 : 0 }}>
+          <Upload
+            accept="image/*,.pdf"
+            showUploadList={false}
+            beforeUpload={beforeUpload}
+            customRequest={customUpload}
+            disabled={uploading}
+            multiple
+          >
+            <Button
+              icon={uploading ? <Spin size="small" /> : <UploadOutlined />}
+              disabled={uploading}
+              style={{ borderRadius: 12 }}
+            >
+              {t("attachments.addFiles")}
+            </Button>
+          </Upload>
+
+          <Text type="secondary" style={{ fontSize: 12, display: "block", marginTop: 6 }}>
+            {t("attachments.hint") || "Images and PDF up to 10MB. Max files:"} {maxFiles}
+          </Text>
+        </div>
+      ) : null}
+
+      {/* Image preview */}
       <Modal
         open={previewOpen}
         title={previewTitle}
         footer={null}
         onCancel={() => setPreviewOpen(false)}
         width="80%"
-        style={{ maxWidth: 900 }}
+        style={{ maxWidth: 980 }}
       >
-        <img alt={previewTitle} style={{ width: "100%" }} src={previewImage} />
+        <img alt={previewTitle} style={{ width: "100%", borderRadius: 12 }} src={previewImage} />
       </Modal>
     </div>
   );
 }
 
-/**
- * Compact attachment indicator for case list cards.
- * Shows a small icon with count if case has attachments.
- */
+/** Compact indicator for lists */
 export function AttachmentIndicator({ count = 0 }) {
-  const t = useTranslations();
-
   if (!count) return null;
 
   return (
-    <Space size={4} style={{ opacity: 0.7 }}>
+    <Space size={4} style={{ opacity: 0.75 }}>
       <PaperClipOutlined style={{ fontSize: 12 }} />
-      <Text type="secondary" style={{ fontSize: 12 }}>
+      <Text type="secondary" style={{ fontSize: 12, margin: 0 }}>
         {count}
       </Text>
     </Space>

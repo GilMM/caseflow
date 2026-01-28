@@ -112,23 +112,32 @@ export async function createCase({
   priority,
   requesterContactId,
   assignedTo,
+  eligibleUserIds = [], // ✅ NEW
 }) {
   if (!queueId) throw new Error("Queue is required");
 
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
+  const cleanEligible =
+    Array.isArray(eligibleUserIds) && eligibleUserIds.length > 0
+      ? Array.from(new Set(eligibleUserIds)).filter(Boolean)
+      : null;
+
   const { data, error } = await supabase
     .from("cases")
     .insert({
       org_id: orgId,
-      queue_id: queueId, // ✅ no null
+      queue_id: queueId,
       title,
       description: description || null,
       priority,
       created_by: user.id,
       requester_contact_id: requesterContactId || null,
       assigned_to: assignedTo || null,
+
+      // ✅ Persist "handlers list"
+      eligible_user_ids: cleanEligible,
     })
     .select("id")
     .single();
@@ -142,7 +151,24 @@ export async function getCaseById(caseId) {
   const { data, error } = await supabase
     .from("cases")
     .select(
-      "id, org_id, title, description, status, priority, assigned_to, requester_contact_id, created_at, updated_at",
+      `
+      id,
+      org_id,
+      queue_id,
+      title,
+      description,
+      status,
+      priority,
+      assigned_to,
+      requester_contact_id,
+      eligible_user_ids,
+      created_at,
+      updated_at,
+      queue:queues (
+        id,
+        name
+      )
+    `
     )
     .eq("id", caseId)
     .single();
@@ -158,21 +184,26 @@ export async function getCaseById(caseId) {
       .maybeSingle();
 
     data.requester = requester || null;
+  } else {
+    data.requester = null;
   }
 
   // Fetch assignee profile if exists
   if (data?.assigned_to) {
     const { data: assignee } = await supabase
       .from("profiles")
-      .select("id, full_name, avatar_url")
+      .select("id, full_name, avatar_url, email")
       .eq("id", data.assigned_to)
       .maybeSingle();
 
     data.assignee = assignee || null;
+  } else {
+    data.assignee = null;
   }
 
   return data;
 }
+
 
 /** Load timeline */
 export async function getCaseActivities(caseId) {
@@ -186,7 +217,6 @@ export async function getCaseActivities(caseId) {
   if (error) throw error;
   return data || [];
 }
-
 /** Add a note activity */
 export async function addCaseNote({ caseId, orgId, body }) {
   const user = await getCurrentUser();
@@ -249,7 +279,7 @@ export async function getActiveWorkspace() {
     const { data, error } = await supabase
       .from("org_memberships")
       .select(
-        "org_id, role, is_active, created_at, organizations:org_id ( id, name, logo_url, owner_user_id, deleted_at )"
+        "org_id, role, is_active, created_at, organizations:org_id ( id, name, logo_url, owner_user_id, deleted_at )",
       )
       .eq("user_id", userId)
       .eq("org_id", orgId)
@@ -275,7 +305,7 @@ export async function getActiveWorkspace() {
     const { data, error } = await supabase
       .from("org_memberships")
       .select(
-        "org_id, role, is_active, created_at, organizations:org_id ( id, name, logo_url, owner_user_id, deleted_at )"
+        "org_id, role, is_active, created_at, organizations:org_id ( id, name, logo_url, owner_user_id, deleted_at )",
       )
       .eq("user_id", userId)
       .eq("is_active", true)
@@ -290,7 +320,10 @@ export async function getActiveWorkspace() {
     if (m?.org_id) {
       await supabase
         .from("user_workspaces")
-        .upsert({ user_id: userId, active_org_id: m.org_id }, { onConflict: "user_id" });
+        .upsert(
+          { user_id: userId, active_org_id: m.org_id },
+          { onConflict: "user_id" },
+        );
     }
   }
 

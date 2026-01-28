@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Button, Select, Space, Tag, Typography, message, Grid } from "antd";
-import { UserOutlined, ThunderboltOutlined } from "@ant-design/icons";
+import { Button, Select, Space, Tag, Typography, message, Grid, Tooltip } from "antd";
+import { UserOutlined, ThunderboltOutlined, SwapOutlined } from "@ant-design/icons";
 import { supabase } from "@/lib/supabase/client";
 import { assignCase, getOrgMembers } from "@/lib/db";
 
@@ -10,7 +10,7 @@ const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
 function shortId(id) {
-  if (!id) return "Unassigned";
+  if (!id) return "—";
   return `${String(id).slice(0, 8)}…`;
 }
 
@@ -37,7 +37,7 @@ export default function CaseAssignment({ caseId, orgId, assignedTo, onChanged })
     (async () => {
       try {
         const list = await getOrgMembers(orgId);
-        setMembers(list);
+        setMembers(list || []);
       } catch (e) {
         message.error(e?.message || "Failed to load members");
       }
@@ -45,14 +45,13 @@ export default function CaseAssignment({ caseId, orgId, assignedTo, onChanged })
   }, [orgId]);
 
   function displayName(m) {
-    return m.full_name || shortId(m.user_id);
+    return m.full_name || m.email || shortId(m.user_id);
   }
 
   const options = useMemo(() => {
-    return members.map((m) => {
+    return (members || []).map((m) => {
       const name = displayName(m);
-      // labelText משמש לחיפוש
-      const labelText = `${name} ${m.role} ${m.email || ""}`.toLowerCase();
+      const labelText = `${name} ${m.role || ""} ${m.email || ""}`.toLowerCase();
 
       return {
         value: m.user_id,
@@ -60,10 +59,17 @@ export default function CaseAssignment({ caseId, orgId, assignedTo, onChanged })
         label: (
           <Space>
             <UserOutlined />
-            <span style={{ maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span
+              style={{
+                maxWidth: 220,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
               {name}
             </span>
-            <Tag>{m.role}</Tag>
+            {m.role ? <Tag>{m.role}</Tag> : null}
           </Space>
         ),
       };
@@ -71,14 +77,14 @@ export default function CaseAssignment({ caseId, orgId, assignedTo, onChanged })
   }, [members]);
 
   async function doAssign(toUserId) {
-    if (!toUserId) return;
+    // allow unassign too:
     setBusy(true);
     try {
-      await assignCase({ caseId, orgId, toUserId });
-      message.success("Assignment updated");
+      await assignCase({ caseId, toUserId: toUserId || null });
+      message.success("Owner updated");
       onChanged?.();
     } catch (e) {
-      message.error(e?.message || "Failed to assign");
+      message.error(e?.message || "Failed to update owner");
     } finally {
       setBusy(false);
     }
@@ -86,6 +92,7 @@ export default function CaseAssignment({ caseId, orgId, assignedTo, onChanged })
 
   const assignedLabel =
     members.find((x) => x.user_id === value)?.full_name ||
+    members.find((x) => x.user_id === value)?.email ||
     (value ? shortId(value) : "Unassigned");
 
   return (
@@ -100,11 +107,11 @@ export default function CaseAssignment({ caseId, orgId, assignedTo, onChanged })
         }}
       >
         <Space style={{ minWidth: 0 }}>
-          <Text strong>Assigned</Text>
+          <Text strong>Owner</Text>
           <Tag
             color={value ? "geekblue" : "default"}
             style={{
-              maxWidth: isMobile ? "100%" : 320,
+              maxWidth: isMobile ? "100%" : 360,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -114,20 +121,38 @@ export default function CaseAssignment({ caseId, orgId, assignedTo, onChanged })
           </Tag>
         </Space>
 
-        <Button
-          icon={<ThunderboltOutlined />}
-          disabled={!me?.id}
-          loading={busy}
-          onClick={() => doAssign(me.id)}
-          block={isMobile}
-        >
-          Assign to me
-        </Button>
+        <Space wrap>
+          <Tooltip title="Assign this case to yourself">
+            <Button
+              icon={<ThunderboltOutlined />}
+              disabled={!me?.id}
+              loading={busy}
+              onClick={() => doAssign(me?.id)}
+              block={isMobile}
+            >
+              Take ownership
+            </Button>
+          </Tooltip>
+
+          <Tooltip title="Clear owner (leave unassigned)">
+            <Button
+              icon={<SwapOutlined />}
+              disabled={busy}
+              onClick={() => {
+                setValue(null);
+                doAssign(null);
+              }}
+              block={isMobile}
+            >
+              Unassign
+            </Button>
+          </Tooltip>
+        </Space>
       </div>
 
       <Select
         value={value}
-        placeholder="Select assignee…"
+        placeholder="Change owner…"
         options={options}
         onChange={(v) => {
           setValue(v);
@@ -140,10 +165,15 @@ export default function CaseAssignment({ caseId, orgId, assignedTo, onChanged })
         filterOption={(input, option) =>
           (option?.labelText || "").includes(String(input || "").toLowerCase())
         }
+        allowClear
+        onClear={() => {
+          setValue(null);
+          doAssign(null);
+        }}
       />
 
       <Text type="secondary" style={{ fontSize: 12 }}>
-        Tip: search by name / role (UUID search is still supported by typing the first chars).
+        Owner is who is responsible right now. Participants are handled separately.
       </Text>
     </Space>
   );

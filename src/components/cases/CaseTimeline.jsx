@@ -1,25 +1,36 @@
 "use client";
 
-import { Card, Space, Tag, Typography, Tooltip, Grid } from "antd";
+import { useMemo } from "react";
+import { Avatar, Empty, Space, Tag, Typography, Tooltip, Grid } from "antd";
 import {
   MessageOutlined,
   SwapOutlined,
-  ClockCircleOutlined,
+  FlagOutlined,
   UserSwitchOutlined,
+  ClockCircleOutlined,
   UserOutlined,
 } from "@ant-design/icons";
+import { useTranslations } from "next-intl";
+
+import { initials } from "@/lib/ui/initials";
+import { getStatusMeta } from "@/lib/ui/status";
+import { getPriorityMeta } from "@/lib/ui/priority";
 
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
 function shortId(id) {
   if (!id) return "—";
-  return `${String(id).slice(0, 8)}…`;
+  const s = String(id);
+  return s.length > 10 ? `${s.slice(0, 8)}…` : s;
 }
 
-function displayUser(userId, userMap) {
-  if (!userId) return "unknown";
-  return userMap?.[userId] || shortId(userId);
+function safeLocaleString(ts, locale) {
+  try {
+    return new Date(ts).toLocaleString(locale || undefined);
+  } catch {
+    return String(ts || "—");
+  }
 }
 
 function timeAgo(iso) {
@@ -27,129 +38,282 @@ function timeAgo(iso) {
   const t = new Date(iso).getTime();
   const now = Date.now();
   const sec = Math.max(1, Math.floor((now - t) / 1000));
-  if (sec < 60) return `${sec}s ago`;
+  if (sec < 60) return `${sec}s`;
   const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
+  if (min < 60) return `${min}m`;
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
+  if (hr < 24) return `${hr}h`;
   const d = Math.floor(hr / 24);
-  return `${d}d ago`;
+  return `${d}d`;
 }
 
-function typeTag(type) {
-  switch (type) {
-    case "note":
-      return <Tag>NOTE</Tag>;
-    case "status_change":
-      return <Tag color="blue">STATUS</Tag>;
-    case "assignment":
-      return <Tag color="purple">ASSIGN</Tag>;
-    default:
-      return <Tag>{String(type || "ACTIVITY").toUpperCase()}</Tag>;
-  }
+function useSafeT() {
+  const t = useTranslations();
+  return (key, fallback, values) => {
+    try {
+      return t(key, values);
+    } catch {
+      return fallback;
+    }
+  };
 }
 
-function typeIcon(type) {
-  switch (type) {
-    case "note":
-      return <MessageOutlined />;
-    case "status_change":
-      return <SwapOutlined />;
-    case "assignment":
-      return <UserSwitchOutlined />;
-    default:
-      return <ClockCircleOutlined />;
-  }
+function pickMap(userMap, profilesById) {
+  const m = userMap || profilesById || {};
+  return m && typeof m === "object" ? m : {};
 }
 
-function renderBody(it, userMap) {
-  if (it.type !== "assignment") {
-    return it.body || "—";
+function getUserLabel(userId, map) {
+  if (!userId) return "—";
+  const v = map?.[userId];
+
+  if (!v) return shortId(userId);
+  if (typeof v === "string") return v;
+
+  if (typeof v === "object") {
+    return v.full_name || v.email || shortId(userId);
   }
 
-  const fromId = it?.meta?.from ?? null;
-  const toId = it?.meta?.to ?? null;
+  return shortId(userId);
+}
 
-  if (fromId !== null || toId !== null) {
+function getUserAvatarUrl(userId, map) {
+  const v = userId ? map?.[userId] : null;
+  if (v && typeof v === "object") return v.avatar_url || null;
+  return null;
+}
+
+function activityMeta(type, safeT) {
+  const t = String(type || "").toLowerCase();
+
+  if (t === "note") {
+    return { color: "default", icon: <MessageOutlined />, label: safeT("caseDetails.timeline.type.note", "Note") };
+  }
+  if (t === "status_change" || t === "status") {
+    return { color: "blue", icon: <SwapOutlined />, label: safeT("caseDetails.timeline.type.status", "Status") };
+  }
+  if (t === "priority_change" || t === "priority") {
+    return { color: "gold", icon: <FlagOutlined />, label: safeT("caseDetails.timeline.type.priority", "Priority") };
+  }
+  if (t === "assignment" || t === "assigned" || t === "assignment_change") {
+    return { color: "purple", icon: <UserSwitchOutlined />, label: safeT("caseDetails.timeline.type.assignment", "Assignment") };
+  }
+  return { color: "default", icon: <ClockCircleOutlined />, label: safeT("caseDetails.timeline.type.activity", "Activity") };
+}
+
+function StatusPill({ value }) {
+  const sm = getStatusMeta(value);
+  const Icon = sm?.Icon;
+  return (
+    <Tag color={sm?.color || "default"} style={{ borderRadius: 999, paddingInline: 10, margin: 0 }}>
+      <Space size={6} align="center">
+        {Icon ? <Icon style={{ fontSize: 12 }} /> : null}
+        <span style={{ fontSize: 12 }}>{String(value || "—").replaceAll("_", " ")}</span>
+      </Space>
+    </Tag>
+  );
+}
+
+function PriorityPill({ value }) {
+  const pm = getPriorityMeta(value);
+  const Icon = pm?.Icon;
+  return (
+    <Tag color={pm?.color || "default"} style={{ borderRadius: 999, paddingInline: 10, margin: 0 }}>
+      <Space size={6} align="center">
+        {Icon ? <Icon style={{ fontSize: 12 }} /> : null}
+        <span style={{ fontSize: 12 }}>{String(value || "—").replaceAll("_", " ")}</span>
+      </Space>
+    </Tag>
+  );
+}
+
+function ChangeInline({ type, meta, map, safeT }) {
+  const t = String(type || "").toLowerCase();
+  const m = meta || {};
+
+  if ((t === "status_change" || t === "status") && m?.from && m?.to) {
     return (
-      <Space wrap size={8}>
-        <Space size={6}>
-          <UserOutlined style={{ opacity: 0.7 }} />
-          <Text>Assignment:</Text>
-        </Space>
-
-        <Tag>{fromId ? displayUser(fromId, userMap) : "Unassigned"}</Tag>
-
-        <Text style={{ opacity: 0.6 }}>→</Text>
-
-        <Tag color="geekblue">{toId ? displayUser(toId, userMap) : "Unassigned"}</Tag>
+      <Space size={8} wrap align="center">
+        <StatusPill value={m.from} />
+        <Text type="secondary" style={{ fontSize: 12 }}>→</Text>
+        <StatusPill value={m.to} />
       </Space>
     );
   }
 
-  return it.body || "Assigned";
+  if ((t === "priority_change" || t === "priority") && m?.from && m?.to) {
+    return (
+      <Space size={8} wrap align="center">
+        <PriorityPill value={m.from} />
+        <Text type="secondary" style={{ fontSize: 12 }}>→</Text>
+        <PriorityPill value={m.to} />
+      </Space>
+    );
+  }
+
+  if (t === "assignment" || t === "assigned" || t === "assignment_change") {
+    const fromU = m?.from_user ?? m?.from ?? null;
+    const toU = m?.to_user ?? m?.to ?? null;
+
+    if (fromU !== null || toU !== null) {
+      const fromLabel = fromU ? getUserLabel(fromU, map) : safeT("caseDetails.timeline.unassigned", "Unassigned");
+      const toLabel = toU ? getUserLabel(toU, map) : safeT("caseDetails.timeline.unassigned", "Unassigned");
+
+      return (
+        <Space size={8} wrap align="center">
+          <Tag style={{ borderRadius: 999, paddingInline: 10, margin: 0 }}>{fromLabel}</Tag>
+          <Text type="secondary" style={{ fontSize: 12 }}>→</Text>
+          <Tag color="geekblue" style={{ borderRadius: 999, paddingInline: 10, margin: 0 }}>{toLabel}</Tag>
+        </Space>
+      );
+    }
+  }
+
+  return null;
 }
 
-export default function CaseTimeline({ items, userMap = {} }) {
+export default function CaseTimeline({ items = [], profilesById, userMap, locale }) {
   const screens = useBreakpoint();
   const isMobile = !screens.md;
 
-  if (!items || items.length === 0) {
-    return <Text type="secondary">No activity yet</Text>;
+  const safeT = useSafeT();
+  const map = pickMap(userMap, profilesById);
+
+  const sorted = useMemo(() => {
+    const arr = Array.isArray(items) ? [...items] : [];
+    arr.sort((a, b) => new Date(b?.created_at || 0) - new Date(a?.created_at || 0));
+    return arr;
+  }, [items]);
+
+  // ✅ Guarantee: if items exists -> render something
+  if (!sorted.length) {
+    return (
+      <Empty
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+        description={
+          <Space direction="vertical" size={2}>
+            <Text>{safeT("caseDetails.timeline.emptyTitle", "No activity yet")}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {safeT("caseDetails.timeline.emptyHint", "Notes, status updates and assignments will appear here.")}
+            </Text>
+          </Space>
+        }
+      />
+    );
   }
 
   return (
-    <Space orientation="vertical" size={10} style={{ width: "100%" }}>
-      {items.map((it) => (
-        <Card
-          key={it.id}
-          size="small"
-          style={{ borderRadius: 14 }}
-          bodyStyle={{ padding: isMobile ? 12 : 16 }}
-        >
-          <Space orientation="vertical" size={6} style={{ width: "100%" }}>
+    <div style={{ display: "grid", gap: 10, width: "100%" }}>
+      {sorted.map((it, idx) => {
+        const am = activityMeta(it?.type, safeT);
+
+        // ✅ Make sure these are always strings
+        const createdBy = it?.created_by ? String(it.created_by) : "";
+        const actorLabel = getUserLabel(createdBy, map);
+        const avatarSrc = getUserAvatarUrl(createdBy, map);
+
+        const exact = it?.created_at ? safeLocaleString(it.created_at, locale) : "—";
+        const rel = it?.created_at ? timeAgo(it.created_at) : "—";
+
+        const body = String(it?.body || "").trim();
+        const change = (
+          <ChangeInline type={it?.type} meta={it?.meta || {}} map={map} safeT={safeT} />
+        );
+
+        return (
+          <div
+            key={it?.id || `${idx}-${it?.created_at || "x"}`}
+            style={{
+              borderRadius: 14,
+              border: "1px solid rgba(255,255,255,0.08)",
+              background: "rgba(255,255,255,0.02)",
+              padding: isMobile ? 12 : 14,
+              display: "grid",
+              gap: 8,
+            }}
+          >
             {/* Header */}
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 gap: 10,
-                alignItems: "flex-start",
+                alignItems: "center",
                 flexWrap: "wrap",
               }}
             >
-              <Space size={8} wrap>
-                <span style={{ opacity: 0.75 }}>{typeIcon(it.type)}</span>
-                {typeTag(it.type)}
+              <Space size={10} wrap style={{ minWidth: 0 }}>
+                <Tag color={am.color} style={{ borderRadius: 999, paddingInline: 10, margin: 0 }}>
+                  <Space size={6} align="center">
+                    <span style={{ display: "inline-flex", alignItems: "center" }}>{am.icon}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600 }}>{am.label}</span>
+                  </Space>
+                </Tag>
 
-                <Tooltip title={it.created_by || ""}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    {displayUser(it.created_by, userMap)}
-                  </Text>
-                </Tooltip>
+                <Space size={8} style={{ minWidth: 0 }}>
+                  <Avatar
+                    size={24}
+                    src={avatarSrc}
+                    icon={<UserOutlined />}
+                    style={{ background: "rgba(255,255,255,0.08)" }}
+                  >
+                    {initials(actorLabel)}
+                  </Avatar>
+
+                  <Tooltip title={actorLabel}>
+                    <Text type="secondary" style={{ fontSize: 12 }} ellipsis>
+                      {actorLabel}
+                    </Text>
+                  </Tooltip>
+                </Space>
               </Space>
 
-              <Tooltip title={new Date(it.created_at).toLocaleString()}>
+              <Tooltip title={exact}>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  {timeAgo(it.created_at)}
+                  {rel}
                 </Text>
               </Tooltip>
             </div>
 
-            {/* Body */}
-            <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-              {renderBody(it, userMap)}
-            </div>
+            {/* Change */}
+            {change ? (
+              <div
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 12,
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                }}
+              >
+                {change}
+              </div>
+            ) : null}
 
-            {/* Footer */}
-            {!isMobile && (
+            {/* Body */}
+            {body ? (
+              <div
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  background: "rgba(0,0,0,0.14)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  lineHeight: 1.45,
+                }}
+              >
+                <Text>{body}</Text>
+              </div>
+            ) : null}
+
+            {!isMobile ? (
               <Text type="secondary" style={{ fontSize: 12 }}>
-                {new Date(it.created_at).toLocaleString()}
+                {exact}
               </Text>
-            )}
-          </Space>
-        </Card>
-      ))}
-    </Space>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
   );
 }

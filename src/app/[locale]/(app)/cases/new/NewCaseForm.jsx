@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Avatar,
@@ -31,12 +31,17 @@ import { priorityColor, PRIORITY_OPTIONS } from "@/lib/ui/priority";
 const { Text } = Typography;
 const { TextArea } = Input;
 
-// Visual queue members selector with tags
+/**
+ * Visual queue members selector with tags (MULTI SELECT)
+ * - click: toggle select
+ * - close: exclude (removes from selection too)
+ * - hidden chips: click to include (adds back + selects)
+ */
 function QueueMembersTags({
   members,
   excludedMembers = [],
-  selectedId,
-  onSelect,
+  selectedIds = [],
+  onToggle,
   onExclude,
   onInclude,
   disabled,
@@ -51,7 +56,7 @@ function QueueMembersTags({
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         {visibleMembers.map((m) => {
           const profile = m.profiles || {};
-          const isSelected = selectedId === m.user_id;
+          const isSelected = selectedIds.includes(m.user_id);
 
           return (
             <Tag
@@ -60,13 +65,9 @@ function QueueMembersTags({
               onClose={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                // If this was selected, clear selection
-                if (isSelected) {
-                  onSelect(null);
-                }
                 onExclude?.(m.user_id);
               }}
-              onClick={() => !disabled && onSelect(isSelected ? null : m.user_id)}
+              onClick={() => !disabled && onToggle?.(m.user_id)}
               style={{
                 cursor: disabled ? "not-allowed" : "pointer",
                 padding: "4px 8px",
@@ -78,6 +79,7 @@ function QueueMembersTags({
                 borderColor: isSelected ? "#1677ff" : "rgba(255,255,255,0.15)",
                 color: isSelected ? "#fff" : "inherit",
                 transition: "all 0.2s",
+                userSelect: "none",
               }}
             >
               <Avatar
@@ -90,7 +92,9 @@ function QueueMembersTags({
               >
                 {initials(profile.full_name)}
               </Avatar>
-              <span style={{ fontSize: 13 }}>{profile.full_name || t("common.unnamed")}</span>
+              <span style={{ fontSize: 13 }}>
+                {profile.full_name || t("common.unnamed")}
+              </span>
             </Tag>
           );
         })}
@@ -117,6 +121,7 @@ function QueueMembersTags({
                   gap: 4,
                   opacity: 0.6,
                   fontSize: 11,
+                  userSelect: "none",
                 }}
               >
                 <PlusOutlined style={{ fontSize: 10 }} />
@@ -162,10 +167,15 @@ export default function NewCaseForm({
   onIncludeMember,
 }) {
   const t = useTranslations();
+
   const priority = Form.useWatch("priority", form) || "normal";
+  const eligibleUserIds = Form.useWatch("eligible_user_ids", form) || [];
+
   const [aiFixing, setAiFixing] = useState(false);
 
-  // ✅ translate priority options using messages: cases.priority.low/normal/high/urgent
+  // used to initialize "select all" once per queue
+  const initializedQueueRef = useRef(null);
+
   const priorityOptions = PRIORITY_OPTIONS.map((o) => ({
     ...o,
     label: t(`cases.priority.${o.value}`),
@@ -174,7 +184,34 @@ export default function NewCaseForm({
   const priorityTag = (
     <Tag color={priorityColor(priority)}>{t(`cases.priority.${priority}`)}</Tag>
   );
+
   const { message } = App.useApp();
+
+  // ✅ Default: when queue members load for a selected queue => select ALL (except excluded)
+  useEffect(() => {
+    if (!queueId) return;
+    if (queueMembersLoading) return;
+    if (!Array.isArray(queueMembers) || queueMembers.length === 0) return;
+
+    // prevent re-initializing for same queue
+    if (initializedQueueRef.current === queueId) return;
+
+    const defaultIds = queueMembers
+      .map((m) => m.user_id)
+      .filter((id) => !excludedMembers.includes(id));
+
+    form.setFieldsValue({ eligible_user_ids: defaultIds });
+    initializedQueueRef.current = queueId;
+  }, [queueId, queueMembersLoading, queueMembers, excludedMembers, form]);
+
+  // ✅ Safety: if excludedMembers changes, make sure we never keep an excluded user selected
+  useEffect(() => {
+    const current = form.getFieldValue("eligible_user_ids") || [];
+    const cleaned = current.filter((id) => !excludedMembers.includes(id));
+    if (cleaned.length !== current.length) {
+      form.setFieldsValue({ eligible_user_ids: cleaned });
+    }
+  }, [excludedMembers, form]);
 
   async function fixSpelling() {
     try {
@@ -215,9 +252,7 @@ export default function NewCaseForm({
       });
 
       message.success(
-        changed
-          ? t("common.fixed") || "Fixed"
-          : t("common.noChanges") || "No changes",
+        changed ? t("common.fixed") || "Fixed" : t("common.noChanges") || "No changes",
       );
     } catch (e) {
       message.error(e?.message || "Failed");
@@ -226,11 +261,13 @@ export default function NewCaseForm({
     }
   }
 
+  const backToCases = () => {
+    const loc = locale || "he";
+    router.push(`/${loc}/cases`);
+  };
+
   return (
-    <Card
-      title={t("cases.new.caseDetails")}
-      style={{ borderRadius: 16 }}
-    >
+    <Card title={t("cases.new.caseDetails")} style={{ borderRadius: 16 }}>
       {error ? (
         <Alert
           type="error"
@@ -264,7 +301,10 @@ export default function NewCaseForm({
           form={form}
           layout="vertical"
           onFinish={onSubmit}
-          initialValues={{ priority: "normal" }}
+          initialValues={{
+            priority: "normal",
+            eligible_user_ids: [],
+          }}
         >
           <Form.Item
             label={
@@ -283,13 +323,20 @@ export default function NewCaseForm({
               options={queueOptions}
               placeholder={t("cases.new.selectQueue")}
               disabled={busy}
-              onChange={(v) => setQueueId?.(v)}
-              onClear={() => setQueueId?.(null)}
+              onChange={(v) => {
+                initializedQueueRef.current = null; // allow init for new queue
+                setQueueId?.(v);
+              }}
+              onClear={() => {
+                initializedQueueRef.current = null;
+                setQueueId?.(null);
+                form.setFieldsValue({ eligible_user_ids: [] });
+              }}
               allowClear
             />
           </Form.Item>
 
-          {/* Queue Members Visual Selector */}
+          {/* ✅ Queue Members Multi Selector (default: all selected) */}
           {queueId && (
             <Form.Item
               label={
@@ -300,7 +347,17 @@ export default function NewCaseForm({
                   </Text>
                 </Space>
               }
-              name="assigned_to"
+              name="eligible_user_ids"
+              rules={[
+                {
+                  validator: async (_, value) => {
+                    if (!value || value.length === 0) {
+                      // make it required for real-world ops
+                      throw new Error(t("cases.new.mustSelectAtLeastOneAssignee") || "Select at least one");
+                    }
+                  },
+                },
+              ]}
             >
               {queueMembersLoading ? (
                 <div style={{ padding: "8px 0" }}>
@@ -314,10 +371,30 @@ export default function NewCaseForm({
                 <QueueMembersTags
                   members={queueMembers}
                   excludedMembers={excludedMembers}
-                  selectedId={form.getFieldValue("assigned_to")}
-                  onSelect={(userId) => form.setFieldsValue({ assigned_to: userId })}
-                  onExclude={onExcludeMember}
-                  onInclude={onIncludeMember}
+                  selectedIds={eligibleUserIds}
+                  onToggle={(userId) => {
+                    const current = form.getFieldValue("eligible_user_ids") || [];
+                    const next = current.includes(userId)
+                      ? current.filter((x) => x !== userId)
+                      : [...current, userId];
+                    form.setFieldsValue({ eligible_user_ids: next });
+                  }}
+                  onExclude={(userId) => {
+                    onExcludeMember?.(userId);
+                    const current = form.getFieldValue("eligible_user_ids") || [];
+                    if (current.includes(userId)) {
+                      form.setFieldsValue({
+                        eligible_user_ids: current.filter((x) => x !== userId),
+                      });
+                    }
+                  }}
+                  onInclude={(userId) => {
+                    onIncludeMember?.(userId);
+                    const current = form.getFieldValue("eligible_user_ids") || [];
+                    if (!current.includes(userId)) {
+                      form.setFieldsValue({ eligible_user_ids: [...current, userId] });
+                    }
+                  }}
                   disabled={busy}
                   t={t}
                 />
@@ -325,10 +402,7 @@ export default function NewCaseForm({
             </Form.Item>
           )}
 
-          <Form.Item
-            label={t("cases.new.requester")}
-            name="requester_contact_id"
-          >
+          <Form.Item label={t("cases.new.requester")} name="requester_contact_id">
             <Select
               allowClear
               showSearch
@@ -347,16 +421,10 @@ export default function NewCaseForm({
                       {initials(c.full_name)}
                     </Avatar>
 
-                    <Space
-                      orientation="vertical"
-                      size={0}
-                      style={{ width: "100%" }}
-                    >
+                    <Space orientation="vertical" size={0} style={{ width: "100%" }}>
                       <Space wrap size={8}>
                         <Text strong>{c.full_name || t("common.unnamed")}</Text>
-                        {c.department ? (
-                          <Tag color="geekblue">{c.department}</Tag>
-                        ) : null}
+                        {c.department ? <Tag color="geekblue">{c.department}</Tag> : null}
                         {!isActive ? <Tag>{t("common.inactive")}</Tag> : null}
                       </Space>
 
@@ -372,16 +440,12 @@ export default function NewCaseForm({
                 const c = opt?.raw;
                 if (!c) return opt?.label;
 
-                const secondary = [c.email, c.phone]
-                  .filter(Boolean)
-                  .join(" • ");
+                const secondary = [c.email, c.phone].filter(Boolean).join(" • ");
                 return (
                   <Space size={8}>
                     <Avatar size="small">{initials(c.full_name)}</Avatar>
                     <span>{c.full_name || t("common.unnamed")}</span>
-                    {secondary ? (
-                      <Text type="secondary">({secondary})</Text>
-                    ) : null}
+                    {secondary ? <Text type="secondary">({secondary})</Text> : null}
                   </Space>
                 );
               }}
@@ -427,9 +491,7 @@ export default function NewCaseForm({
               </Space>
             }
             name="priority"
-            rules={[
-              { required: true, message: t("cases.new.priorityRequired") },
-            ]}
+            rules={[{ required: true, message: t("cases.new.priorityRequired") }]}
           >
             <Select
               options={priorityOptions}
@@ -438,10 +500,7 @@ export default function NewCaseForm({
                 <Space>
                   {opt.data.value === "urgent" ? <ThunderboltOutlined /> : null}
                   <span>{t(`cases.priority.${opt.data.value}`)}</span>
-                  <Tag
-                    color={priorityColor(opt.data.value)}
-                    style={{ marginInlineStart: 8 }}
-                  >
+                  <Tag color={priorityColor(opt.data.value)} style={{ marginInlineStart: 8 }}>
                     {t(`cases.priority.${opt.data.value}`)}
                   </Tag>
                 </Space>
@@ -476,13 +535,7 @@ export default function NewCaseForm({
                         }}
                       >
                         {isImage ? (
-                          <div
-                            style={{
-                              width: "100%",
-                              paddingTop: "100%",
-                              position: "relative",
-                            }}
-                          >
+                          <div style={{ width: "100%", paddingTop: "100%", position: "relative" }}>
                             <img
                               src={previewUrl}
                               alt={file.name}
@@ -577,10 +630,7 @@ export default function NewCaseForm({
           </Form.Item>
 
           <Space style={{ marginTop: 6 }}>
-            <Button
-              onClick={() => router.push("/cases")}
-              disabled={busy || aiFixing}
-            >
+            <Button onClick={backToCases} disabled={busy || aiFixing}>
               {t("common.cancel")}
             </Button>
 

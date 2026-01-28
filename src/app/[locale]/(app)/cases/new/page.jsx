@@ -7,11 +7,7 @@ import { useLocaleContext } from "@/app/[locale]/providers";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 import { supabase } from "@/lib/supabase/client";
-import {
-  createCase,
-  uploadCaseAttachment,
-  getQueueMembers,
-} from "@/lib/db";
+import { createCase, uploadCaseAttachment, getQueueMembers } from "@/lib/db";
 
 import { App, Col, Form, Row, Space, Spin } from "antd";
 
@@ -24,10 +20,12 @@ export default function NewCasePage() {
   const search = useSearchParams();
   const { message } = App.useApp();
   const [form] = Form.useForm();
+
   if (process.env.NODE_ENV === "development") {
     console.log("useForm created here ↓");
     console.log(new Error().stack);
   }
+
   // optional prefill
   const requesterFromUrl = search.get("requester");
   const queueFromUrl = search.get("queue");
@@ -45,7 +43,7 @@ export default function NewCasePage() {
   const [queuesLoading, setQueuesLoading] = useState(false);
   const [queueId, setQueueId] = useState(null);
 
-  // queue members (for assignee selection)
+  // queue members (for eligible selection UI)
   const [queueMembers, setQueueMembers] = useState([]);
   const [queueMembersLoading, setQueueMembersLoading] = useState(false);
   const [excludedMembers, setExcludedMembers] = useState([]);
@@ -93,14 +91,11 @@ export default function NewCasePage() {
 
         setQueues(list);
 
-        const fromUrlOk =
-          queueFromUrl && list.some((q) => q.id === queueFromUrl);
+        const fromUrlOk = queueFromUrl && list.some((q) => q.id === queueFromUrl);
         const defaultQ = list.find((q) => q.is_default);
         const firstQ = list[0];
 
-        const chosen = fromUrlOk
-          ? queueFromUrl
-          : defaultQ?.id || firstQ?.id || null;
+        const chosen = fromUrlOk ? queueFromUrl : defaultQ?.id || firstQ?.id || null;
 
         setQueueId(chosen);
         form.setFieldsValue({ queue_id: chosen });
@@ -185,8 +180,8 @@ export default function NewCasePage() {
 
     loadQueueMembers();
 
-    // Clear assignee and excluded members when queue changes
-    form.setFieldsValue({ assigned_to: null });
+    // ✅ reset selection state when queue changes
+    form.setFieldsValue({ eligible_user_ids: [] });
     setExcludedMembers([]);
 
     return () => {
@@ -210,6 +205,7 @@ export default function NewCasePage() {
       description: "",
       priority: "normal",
       requester_contact_id: requesterFromUrl || null,
+      eligible_user_ids: [], // ✅ init
     });
   }, [wsLoading, workspace?.orgId, workspace?.orgName, requesterFromUrl, form]);
 
@@ -227,7 +223,9 @@ export default function NewCasePage() {
       const isActive = (c.is_active ?? true) !== false;
       const secondary = [c.email, c.phone].filter(Boolean).join(" • ");
       const dept = c.department ? ` • ${c.department}` : "";
-      const labelText = `${c.full_name || "Unnamed"}${secondary ? ` — ${secondary}` : ""}${dept}`;
+      const labelText = `${c.full_name || "Unnamed"}${
+        secondary ? ` — ${secondary}` : ""
+      }${dept}`;
 
       return {
         value: c.id,
@@ -240,8 +238,9 @@ export default function NewCasePage() {
 
   const filterOption = (input, option) => {
     const c = option?.raw || {};
-    const hay =
-      `${c.full_name || ""} ${c.email || ""} ${c.phone || ""} ${c.department || ""}`.toLowerCase();
+    const hay = `${c.full_name || ""} ${c.email || ""} ${c.phone || ""} ${
+      c.department || ""
+    }`.toLowerCase();
     return hay.includes(String(input || "").toLowerCase());
   };
 
@@ -254,23 +253,26 @@ export default function NewCasePage() {
 
   async function onSubmit(values) {
     if (workspace?.orgId && orgId !== workspace.orgId) {
-      throw new Error(
-        "Workspace mismatch (orgId != active workspace). Please refresh.",
-      );
+      throw new Error("Workspace mismatch (orgId != active workspace). Please refresh.");
     }
 
     setBusy(true);
     setError("");
 
     try {
-      if (!orgId)
-        throw new Error(
-          "No workspace selected. Create an org + membership first.",
-        );
+      if (!orgId) {
+        throw new Error("No workspace selected. Create an org + membership first.");
+      }
 
       const selectedQueueId = values.queue_id || queueId;
-      if (!selectedQueueId)
+      if (!selectedQueueId) {
         throw new Error("No queue found. Create at least one queue first.");
+      }
+
+      // ✅ Multi-assignees
+      const eligibleUserIds = Array.isArray(values.eligible_user_ids)
+        ? values.eligible_user_ids
+        : [];
 
       const caseId = await createCase({
         orgId,
@@ -279,7 +281,12 @@ export default function NewCasePage() {
         description: values.description?.trim() || "",
         priority: values.priority || "normal",
         requesterContactId: values.requester_contact_id || null,
-        assignedTo: values.assigned_to || null,
+
+        // ❌ remove single assignee (you can bring it back if you want a "primary")
+        // assignedTo: values.assigned_to || null,
+
+        // ✅ NEW
+        eligibleUserIds,
       });
 
       // Upload staged attachments after case creation
@@ -345,9 +352,7 @@ export default function NewCasePage() {
             filterOption={filterOption}
             locale={locale}
             stagedFiles={stagedFiles}
-            onAddStagedFile={(file) =>
-              setStagedFiles((prev) => [...prev, file])
-            }
+            onAddStagedFile={(file) => setStagedFiles((prev) => [...prev, file])}
             onRemoveStagedFile={(index) =>
               setStagedFiles((prev) => prev.filter((_, i) => i !== index))
             }
@@ -360,12 +365,7 @@ export default function NewCasePage() {
         </Col>
 
         <Col xs={24} lg={8}>
-          <NewCaseSidebar
-            orgId={orgId}
-            orgName={orgName}
-            queueId={queueId}
-            priority={priority}
-          />
+          <NewCaseSidebar orgId={orgId} orgName={orgName} queueId={queueId} priority={priority} />
         </Col>
       </Row>
     </Space>

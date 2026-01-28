@@ -49,7 +49,10 @@
     "fixed": "Fixed",
     "noChanges": "No changes",
     "nothingToFix": "Nothing to fix",
-    "created": "Created"
+    "created": "Created",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyFailed": "Copy failed"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -344,6 +347,8 @@
       "createCase": "Create case",
       "aiFix": "Fix spelling",
       "aiFixTooltip": "Fix spelling & minor grammar (Hebrew/English). Does not rewrite.",
+      "selectedCount": "Selected: {count}",
+
       "header": {
         "queueSelected": "Department selected",
         "queueLabel": "Department",
@@ -444,7 +449,8 @@
     "tooLarge": "File is too large. Maximum 10MB",
     "maxFilesReached": "Maximum {max} files reached",
     "filesAttached": "{count} files",
-    "stagedCount": "{count} files will be uploaded when case is created"
+    "stagedCount": "{count} files will be uploaded when case is created",
+    "hint": "Up to {max} files. Images/PDF only (max 10MB each)."
   },
   "contacts": {
     "header": {
@@ -961,27 +967,51 @@
       }
     }
   },
+
   "caseDetails": {
     "notFound": {
       "title": "Not found",
       "subtitle": "The case does not exist or you don't have permission to view it."
     },
+    "timeline": {
+      "type": {
+        "note": "Note",
+        "status": "Status",
+        "priority": "Priority",
+        "assignment": "Assignment",
+        "calendar": "Calendar",
+        "activity": "Activity"
+      },
+      "unassigned": "Unassigned",
+      "emptyTitle": "No activity yet",
+      "emptyHint": "Updates, notes, and changes will appear here."
+    },
     "meta": {
-      "created": "Created:"
+      "created": "Created:",
+      "updated": "Updated",
+      "participants": "Participants",
+      "queueRoster": "Queue roster"
     },
     "assigned": "Assigned",
     "sections": {
-      "description": "Description",
+      "activity": "Activity",
       "quickStatus": "Quick status",
+      "owner": "Owner",
+      "timeline": "Timeline",
       "addNote": "Add note",
-      "timeline": "Timeline"
+      "description": "Description",
+      "team": "Team"
     },
+
     "note": {
       "placeholder": "Write an internal note…",
       "add": "Add note"
     },
     "tips": {
-      "mobileQuickStatus": "Tip: tap a status to update quickly"
+      "mobileQuickStatus": "Tip: tap a status to update quickly",
+      "teamVsOwner": "Team = who can work on this case. Owner = who is responsible right now.",
+      "activity": "Updates, notes and changes will appear here.",
+      "quickStatus": "Update status instantly (logged in the activity feed)."
     },
     "messages": {
       "loadFailed": "Failed to load case",
@@ -989,8 +1019,13 @@
       "noteAddFailed": "Failed to add note",
       "statusUpdated": "Status updated to {status}",
       "statusUpdateFailed": "Failed to update status"
+    },
+    "labels": {
+      "owner": "Owner"
     }
   },
+  
+
   "queueDetails": {
     "notFound": "Department not found",
     "backToQueues": "Back to Departments",

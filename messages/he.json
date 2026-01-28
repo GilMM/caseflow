@@ -49,7 +49,10 @@
     "fixed": "תוקן",
     "noChanges": "אין שינוי",
     "nothingToFix": "אין מה לתקן",
-    "created": "נוצר"
+    "created": "נוצר",
+    "copy": "העתק",
+    "copied": "הועתק",
+    "copyFailed": "ההעתקה נכשלה"
   },
   "navigation": {
     "dashboard": "לוח בקרה",
@@ -344,6 +347,7 @@
       "createCase": "צור פניה",
       "aiFix": "תיקון שגיאות",
       "aiFixTooltip": "תיקון שגיאות כתיב ודקדוק קל (עברית/אנגלית), בלי לשכתב.",
+      "selectedCount": "נבחרו: {count}",
       "header": {
         "queueSelected": "נבחרה מחלקה",
         "queueLabel": "מחלקה",
@@ -975,22 +979,45 @@
       "title": "לא נמצא",
       "subtitle": "הפנייה לא קיימת או שאין לך הרשאה לצפות בה."
     },
+    "timeline": {
+      "type": {
+        "note": "הערה",
+        "status": "סטטוס",
+        "priority": "דחיפות",
+        "assignment": "שיוך",
+        "calendar": "יומן",
+        "activity": "פעילות"
+      },
+      "unassigned": "לא משויך",
+      "emptyTitle": "אין פעילות עדיין",
+      "emptyHint": "כאן יופיעו עדכונים, הערות ושינויים."
+    },
     "meta": {
-      "created": "נוצר:"
+      "created": "נוצר:",
+      "updated": "עודכן",
+      "participants": "משתתפים",
+      "queueRoster": "צוות המחלקה"
     },
     "assigned": "מוקצה",
     "sections": {
       "description": "תיאור",
       "quickStatus": "סטטוס מהיר",
       "addNote": "הוספת הערה",
-      "timeline": "ציר זמן"
+      "timeline": "ציר זמן",
+      "team": "צוות מטפל",
+      "owner": "אחראי"
     },
     "note": {
       "placeholder": "כתוב הערה פנימית…",
       "add": "הוסף הערה"
     },
     "tips": {
-      "mobileQuickStatus": "טיפ: לחץ על סטטוס כדי לעדכן מהר"
+      "mobileQuickStatus": "טיפ: לחץ על סטטוס כדי לעדכן מהר",
+      "teamVsOwner": "צוות מטפל = מי שיכול לטפל בפנייה. אחראי = מי שמוגדר כרגע כבעלים של הפנייה.",
+      "quickStatus": "פעולות מהירות לעדכון סטטוס באופן מיידי (נרשם בטיימליין)."
+    },
+    "labels": {
+      "owner": "אחראי"
     },
     "messages": {
       "loadFailed": "נכשל בטעינת הפנייה",
