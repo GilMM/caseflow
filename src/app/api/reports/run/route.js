@@ -43,10 +43,19 @@ async function enrichUsers(supabase, rows, userIdFields = []) {
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { orgId, report, filters, sort, page = 1, pageSize = 25 } = body || {};
+    const {
+      orgId,
+      report,
+      filters,
+      sort,
+      page = 1,
+      pageSize = 25,
+    } = body || {};
 
-    if (!orgId) return NextResponse.json({ error: "Missing orgId" }, { status: 400 });
-    if (!report) return NextResponse.json({ error: "Missing report" }, { status: 400 });
+    if (!orgId)
+      return NextResponse.json({ error: "Missing orgId" }, { status: 400 });
+    if (!report)
+      return NextResponse.json({ error: "Missing report" }, { status: 400 });
 
     const supabase = await createServerSupabaseClient();
 
@@ -62,7 +71,7 @@ export async function POST(req) {
         .from("cases")
         .select(
           "id, org_id, title, description, status, priority, queue_id, requester_contact_id, assigned_to, created_by, source, created_at, updated_at",
-          { count: "exact" }
+          { count: "exact" },
         )
         .eq("org_id", orgId);
 
@@ -85,15 +94,22 @@ export async function POST(req) {
       // enrich queue + requester contact names
       const rows = data || [];
 
-      const queueIds = Array.from(new Set(rows.map((r) => r.queue_id).filter(Boolean)));
-      const contactIds = Array.from(new Set(rows.map((r) => r.requester_contact_id).filter(Boolean)));
+      const queueIds = Array.from(
+        new Set(rows.map((r) => r.queue_id).filter(Boolean)),
+      );
+      const contactIds = Array.from(
+        new Set(rows.map((r) => r.requester_contact_id).filter(Boolean)),
+      );
 
       const [{ data: qs }, { data: cs }] = await Promise.all([
         queueIds.length
           ? supabase.from("queues").select("id,name").in("id", queueIds)
           : Promise.resolve({ data: [] }),
         contactIds.length
-          ? supabase.from("contacts").select("id,full_name,email").in("id", contactIds)
+          ? supabase
+              .from("contacts")
+              .select("id,full_name,email")
+              .in("id", contactIds)
           : Promise.resolve({ data: [] }),
       ]);
 
@@ -119,7 +135,9 @@ export async function POST(req) {
     if (report === "activities") {
       let q = supabase
         .from("case_activities")
-        .select("id, org_id, case_id, type, body, created_by, created_at", { count: "exact" })
+        .select("id, org_id, case_id, type, body, created_by, created_at", {
+          count: "exact",
+        })
         .eq("org_id", orgId);
 
       q = applyCommonFilters(q, filters, "created_at");
@@ -136,7 +154,10 @@ export async function POST(req) {
 
       let out = await enrichUsers(supabase, data || [], ["created_by"]);
       // נוח יותר לשם עמודה
-      out = out.map((r) => ({ ...r, created_by_name: r.created_by_name || r.created_by }));
+      out = out.map((r) => ({
+        ...r,
+        created_by_name: r.created_by_name || r.created_by,
+      }));
 
       return NextResponse.json({ rows: out, total: count || 0 });
     }
@@ -147,7 +168,7 @@ export async function POST(req) {
         .from("contacts")
         .select(
           "id, org_id, full_name, email, phone, department, job_title, location, notes, is_active, created_at, updated_at",
-          { count: "exact" }
+          { count: "exact" },
         )
         .eq("org_id", orgId);
 
@@ -155,7 +176,9 @@ export async function POST(req) {
 
       if (filters?.search?.trim()) {
         const s = filters.search.trim();
-        q = q.or(`full_name.ilike.%${s}%,email.ilike.%${s}%,phone.ilike.%${s}%`);
+        q = q.or(
+          `full_name.ilike.%${s}%,email.ilike.%${s}%,phone.ilike.%${s}%`,
+        );
       }
 
       q = q.order(sortField, { ascending: sortAsc }).range(from, to);
@@ -167,12 +190,14 @@ export async function POST(req) {
     }
 
     // ---- AUDIT LOG
+    // ---- AUDIT LOG
     if (report === "audit") {
       let q = supabase
         .from("audit_log")
-        .select("id, org_id, entity_type, entity_id, action, actor_user_id, changes, created_at", {
-          count: "exact",
-        })
+        .select(
+          "id, org_id, entity_type, entity_id, action, actor_user_id, changes, created_at",
+          { count: "exact" },
+        )
         .eq("org_id", orgId);
 
       q = applyCommonFilters(q, filters, "created_at");
@@ -187,9 +212,17 @@ export async function POST(req) {
       const { data, error, count } = await q;
       if (error) throw error;
 
-      let out = (data || []).map((r) => ({ ...r, actor: r.actor_user_id }));
-      out = await enrichUsers(supabase, out, ["actor"]);
-      out = out.map((r) => ({ ...r, actor_name: r.actor_name || r.actor }));
+      // enrich actor_user_id -> actor_name
+      const rows = (data || []).map((r) => ({
+        ...r,
+        actor: r.actor_user_id || null,
+      }));
+      let out = await enrichUsers(supabase, rows, ["actor"]);
+
+      out = out.map((r) => ({
+        ...r,
+        actor_name: r.actor_name || r.actor || null,
+      }));
 
       return NextResponse.json({ rows: out, total: count || 0 });
     }
@@ -200,7 +233,7 @@ export async function POST(req) {
         .from("calendar_events")
         .select(
           "id, org_id, case_id, title, description, location, start_at, end_at, all_day, color, created_by, created_at, updated_at",
-          { count: "exact" }
+          { count: "exact" },
         )
         .eq("org_id", orgId);
 
@@ -208,7 +241,9 @@ export async function POST(req) {
 
       if (filters?.search?.trim()) {
         const s = filters.search.trim();
-        q = q.or(`title.ilike.%${s}%,description.ilike.%${s}%,location.ilike.%${s}%`);
+        q = q.or(
+          `title.ilike.%${s}%,description.ilike.%${s}%,location.ilike.%${s}%`,
+        );
       }
 
       q = q.order(sortField, { ascending: sortAsc }).range(from, to);
@@ -217,13 +252,22 @@ export async function POST(req) {
       if (error) throw error;
 
       let out = await enrichUsers(supabase, data || [], ["created_by"]);
-      out = out.map((r) => ({ ...r, created_by_name: r.created_by_name || r.created_by }));
+      out = out.map((r) => ({
+        ...r,
+        created_by_name: r.created_by_name || r.created_by,
+      }));
 
       return NextResponse.json({ rows: out, total: count || 0 });
     }
 
-    return NextResponse.json({ error: `Unknown report: ${report}` }, { status: 400 });
+    return NextResponse.json(
+      { error: `Unknown report: ${report}` },
+      { status: 400 },
+    );
   } catch (e) {
-    return NextResponse.json({ error: e.message || "Server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: e.message || "Server error" },
+      { status: 500 },
+    );
   }
 }

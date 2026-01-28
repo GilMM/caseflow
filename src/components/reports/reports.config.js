@@ -250,14 +250,12 @@ export function getReports(locale = "en") {
           dataIndex: "entity_type",
           sorter: true,
           width: 170,
-          render: renderEnum,
         },
         {
           title: labelMap(locale, "פעולה", "Action"),
           dataIndex: "action",
           sorter: true,
           width: 170,
-          render: renderEnum,
         },
         {
           title: labelMap(locale, "מזהה ישות", "Entity ID"),
@@ -269,7 +267,7 @@ export function getReports(locale = "en") {
           title: labelMap(locale, "מבצע", "Actor"),
           dataIndex: "actor_name",
           ellipsis: true,
-          width: 200,
+          width: 220,
         },
         {
           title: labelMap(locale, "נוצר בתאריך", "Created"),

@@ -82,6 +82,7 @@ export default function ReportFilters({
 
     // ✅ FIX: range[0] startOf('day'), range[1] endOf('day')
     const date_from = range?.[0] ? range[0].startOf("day").toISOString() : null;
+
     const date_to = range?.[1] ? range[1].endOf("day").toISOString() : null;
 
     onApply({

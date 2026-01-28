@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase/client";
+import { logAuditClient } from "@/lib/audit/client";
 
 // ═══════════════════════════════════════════════════════════════════
 // Auth session cache - prevents redundant auth calls
@@ -112,7 +113,7 @@ export async function createCase({
   priority,
   requesterContactId,
   assignedTo,
-  eligibleUserIds = [], // ✅ NEW
+  eligibleUserIds = [],
 }) {
   if (!queueId) throw new Error("Queue is required");
 
@@ -135,14 +136,31 @@ export async function createCase({
       created_by: user.id,
       requester_contact_id: requesterContactId || null,
       assigned_to: assignedTo || null,
-
-      // ✅ Persist "handlers list"
       eligible_user_ids: cleanEligible,
     })
-    .select("id")
+    .select(
+      "id, org_id, queue_id, title, priority, requester_contact_id, assigned_to",
+    )
     .single();
 
   if (error) throw error;
+
+  // ✅ audit
+  logAuditClient({
+    orgId,
+    entityType: "cases",
+    entityId: data.id,
+    action: "case_created",
+    changes: {
+      title: data.title,
+      priority: data.priority,
+      queue_id: data.queue_id,
+      requester_contact_id: data.requester_contact_id,
+      assigned_to: data.assigned_to,
+      eligible_user_ids: cleanEligible,
+    },
+  });
+
   return data.id;
 }
 
@@ -168,7 +186,7 @@ export async function getCaseById(caseId) {
         id,
         name
       )
-    `
+    `,
     )
     .eq("id", caseId)
     .single();
@@ -204,7 +222,6 @@ export async function getCaseById(caseId) {
   return data;
 }
 
-
 /** Load timeline */
 export async function getCaseActivities(caseId) {
   const { data, error } = await supabase
@@ -222,15 +239,30 @@ export async function addCaseNote({ caseId, orgId, body }) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const { error } = await supabase.from("case_activities").insert({
-    org_id: orgId,
-    case_id: caseId,
-    type: "note",
-    body,
-    created_by: user.id,
-  });
+  const { data, error } = await supabase
+    .from("case_activities")
+    .insert({
+      org_id: orgId,
+      case_id: caseId,
+      type: "note",
+      body,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
 
   if (error) throw error;
+
+  logAuditClient({
+    orgId,
+    entityType: "cases",
+    entityId: caseId,
+    action: "case_note_added",
+    changes: {
+      activity_id: data?.id || null,
+      body_preview: String(body || "").slice(0, 200),
+    },
+  });
 }
 
 /** Update case status (activity is logged by DB trigger) */
@@ -240,12 +272,30 @@ export async function updateCaseStatus({ caseId, status }) {
 
   const toStatus = String(status || "").toLowerCase();
 
-  const { error: upErr } = await supabase
+  // get previous
+  const { data: before, error: bErr } = await supabase
+    .from("cases")
+    .select("id, org_id, status")
+    .eq("id", caseId)
+    .maybeSingle();
+  if (bErr) throw bErr;
+
+  const { data: after, error: upErr } = await supabase
     .from("cases")
     .update({ status: toStatus })
-    .eq("id", caseId);
+    .eq("id", caseId)
+    .select("id, org_id, status")
+    .single();
 
   if (upErr) throw upErr;
+
+  logAuditClient({
+    orgId: after.org_id || before?.org_id,
+    entityType: "cases",
+    entityId: caseId,
+    action: "case_status_changed",
+    changes: { from: before?.status || null, to: after.status },
+  });
 }
 
 /**
@@ -465,12 +515,32 @@ export async function assignCase({ caseId, toUserId }) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const { error: upErr } = await supabase
+  const { data: before, error: bErr } = await supabase
+    .from("cases")
+    .select("id, org_id, assigned_to")
+    .eq("id", caseId)
+    .maybeSingle();
+  if (bErr) throw bErr;
+
+  const { data: after, error: upErr } = await supabase
     .from("cases")
     .update({ assigned_to: toUserId || null })
-    .eq("id", caseId);
+    .eq("id", caseId)
+    .select("id, org_id, assigned_to")
+    .single();
 
   if (upErr) throw upErr;
+
+  logAuditClient({
+    orgId: after.org_id || before?.org_id,
+    entityType: "cases",
+    entityId: caseId,
+    action: "case_assignee_changed",
+    changes: {
+      from: before?.assigned_to || null,
+      to: after.assigned_to || null,
+    },
+  });
 }
 
 export async function addOrgMember({ orgId, userId, role = "viewer" }) {
@@ -636,21 +706,21 @@ export async function updateOrgSettings({
   const user = await getCurrentUser();
   const userId = user?.id;
 
-  const payload = {
-    name,
-    logo_url: logoUrl,
-  };
+  // fetch before
+  const { data: before } = await supabase
+    .from("organizations")
+    .select("id, name, logo_url, dashboard_update")
+    .eq("id", orgId)
+    .maybeSingle();
 
-  // Add dashboard_update fields if provided
+  const payload = { name, logo_url: logoUrl };
+
   if (dashboardUpdate !== null && dashboardUpdate !== undefined) {
     payload.dashboard_update = dashboardUpdate;
     payload.dashboard_update_updated_at = new Date().toISOString();
-    if (userId) {
-      payload.dashboard_update_updated_by = userId;
-    }
+    if (userId) payload.dashboard_update_updated_by = userId;
   }
 
-  // avoid overwriting with undefined
   Object.keys(payload).forEach(
     (k) => payload[k] === undefined && delete payload[k],
   );
@@ -659,8 +729,18 @@ export async function updateOrgSettings({
     .from("organizations")
     .update(payload)
     .eq("id", orgId);
-
   if (error) throw error;
+
+  logAuditClient({
+    orgId,
+    entityType: "organizations",
+    entityId: orgId,
+    action: "org_settings_updated",
+    changes: {
+      before: before || null,
+      after: { ...before, ...payload },
+    },
+  });
 }
 
 export async function diagnosticsOrgAccess(orgId) {
@@ -678,12 +758,29 @@ export async function updateCasePriority({ caseId, priority }) {
 
   const toPriority = String(priority || "").toLowerCase();
 
-  const { error: upErr } = await supabase
+  const { data: before, error: bErr } = await supabase
+    .from("cases")
+    .select("id, org_id, priority")
+    .eq("id", caseId)
+    .maybeSingle();
+  if (bErr) throw bErr;
+
+  const { data: after, error: upErr } = await supabase
     .from("cases")
     .update({ priority: toPriority })
-    .eq("id", caseId);
+    .eq("id", caseId)
+    .select("id, org_id, priority")
+    .single();
 
   if (upErr) throw upErr;
+
+  logAuditClient({
+    orgId: after.org_id || before?.org_id,
+    entityType: "cases",
+    entityId: caseId,
+    action: "case_priority_changed",
+    changes: { from: before?.priority || null, to: after.priority },
+  });
 }
 
 /* ---------------- profiles ---------------- */
@@ -1039,7 +1136,19 @@ export async function createCalendarEvent(payload) {
     type: "calendar_created",
     event: data,
   });
-
+  logAuditClient({
+    orgId: data.org_id,
+    entityType: "calendar_events",
+    entityId: data.id,
+    action: "calendar_created",
+    changes: {
+      title: data.title,
+      start_at: data.start_at,
+      end_at: data.end_at,
+      all_day: data.all_day,
+      case_id: data.case_id,
+    },
+  });
   return data;
 }
 
@@ -1072,6 +1181,14 @@ export async function updateCalendarEvent(
     type: activityType, // "calendar_updated" or "calendar_moved"
     event: after,
   });
+  logAuditClient({
+    orgId: after.org_id || before.org_id,
+    entityType: "calendar_events",
+    entityId: after.id,
+    action:
+      activityType === "calendar_moved" ? "calendar_moved" : "calendar_updated",
+    changes: { before, after },
+  });
 
   return true;
 }
@@ -1096,7 +1213,14 @@ export async function deleteCalendarEvent(id) {
     type: "calendar_deleted",
     event: before,
   });
-
+  logAuditClient({
+    orgId: after.org_id || before.org_id,
+    entityType: "calendar_events",
+    entityId: after.id,
+    action:
+      activityType === "calendar_moved" ? "calendar_moved" : "calendar_updated",
+    changes: { before, after },
+  });
   return true;
 }
 
