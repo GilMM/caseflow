@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+import { BarChartOutlined } from "@ant-design/icons";
 
 import {
   Layout,
@@ -109,6 +110,7 @@ export default function AppShell({ children }) {
     if (basePath.startsWith("/contacts")) return "contacts";
     if (basePath.startsWith("/queues")) return "queues";
     if (basePath.startsWith("/calendar")) return "calendar";
+    if (basePath.startsWith("/reports")) return "reports";
     if (basePath.startsWith("/settings")) return "settings";
     return "dashboard";
   }, [pathname]);
@@ -120,6 +122,7 @@ export default function AppShell({ children }) {
       contacts: tNav("contacts"),
       queues: tNav("queues"),
       calendar: tNav("calendar"),
+      reports: tNav("reports"),
       settings: tNav("settings"),
     };
     return map[selectedKey] || "CaseFlow";
@@ -203,12 +206,18 @@ export default function AppShell({ children }) {
         label: <Link href={`${linkPrefix}/calendar`}>{tNav("calendar")}</Link>,
       },
       {
+        key: "reports",
+        icon: <BarChartOutlined />,
+        label: <Link href={`${linkPrefix}/reports`}>{tNav("reports")}</Link>,
+      },
+
+      {
         key: "settings",
         icon: <SettingOutlined />,
         label: <Link href={`${linkPrefix}/settings`}>{tNav("settings")}</Link>,
       },
     ],
-    [linkPrefix, tNav]
+    [linkPrefix, tNav],
   );
 
   const Brand = ({ compact = false }) => (
@@ -266,7 +275,9 @@ export default function AppShell({ children }) {
     >
       <AnnouncementBanner items={announcements} />
 
-      <Layout style={{ flex: 1, overflow: "hidden", background: token.colorBgLayout }}>
+      <Layout
+        style={{ flex: 1, overflow: "hidden", background: token.colorBgLayout }}
+      >
         {!isMobile && (
           <Sider
             width={240}
@@ -278,7 +289,13 @@ export default function AppShell({ children }) {
               overflow: "hidden",
             }}
           >
-            <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+            <div
+              style={{
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
               <Brand />
               <div style={{ flex: 1, overflow: "auto", paddingBottom: 8 }}>
                 <Menu
@@ -315,7 +332,10 @@ export default function AppShell({ children }) {
             size={280}
             styles={{
               body: { padding: 0 },
-              header: { padding: 0, borderBottom: `1px solid ${token.colorBorder}` },
+              header: {
+                padding: 0,
+                borderBottom: `1px solid ${token.colorBorder}`,
+              },
             }}
             title={<Brand compact />}
           >
@@ -344,7 +364,13 @@ export default function AppShell({ children }) {
           </Drawer>
         )}
 
-        <Layout style={{ background: token.colorBgLayout, height: "100%", overflow: "hidden" }}>
+        <Layout
+          style={{
+            background: token.colorBgLayout,
+            height: "100%",
+            overflow: "hidden",
+          }}
+        >
           <Header
             style={{
               background: token.colorBgContainer,
@@ -386,7 +412,11 @@ export default function AppShell({ children }) {
             <Space size={8}>
               <OrgSwitcher />
 
-              <Dropdown menu={userMenu} trigger={["click"]} placement={isRTL ? "bottomLeft" : "bottomRight"}>
+              <Dropdown
+                menu={userMenu}
+                trigger={["click"]}
+                placement={isRTL ? "bottomLeft" : "bottomRight"}
+              >
                 {isMobile ? (
                   <Button icon={<UserOutlined />} />
                 ) : (

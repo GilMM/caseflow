@@ -61,6 +61,7 @@
     "queues": "Departments",
     "calendar": "Calendar",
     "settings": "Settings",
+    "reports": "Reports",
     "announcements": "Announcements"
   },
   "userMenu": {
@@ -681,6 +682,7 @@
       "noEventsHint": "Create an event to see it here"
     }
   },
+
   "settings": {
     "header": {
       "title": "Settings",
@@ -689,7 +691,12 @@
       "role": "Role: {role}",
       "realtimeEnabled": "Realtime enabled",
       "subtitle": "Account & workspace preferences",
-      "refreshTooltip": "Refresh settings"
+      "refreshTooltip": "Refresh settings",
+      "profile": "Profile",
+      "organization": "Organization",
+      "integrations": "Integrations",
+      "security": "Security",
+      "dangerZone": "Danger Zone"
     },
     "profile": {
       "title": "Profile",
@@ -1024,7 +1031,6 @@
       "owner": "Owner"
     }
   },
-  
 
   "queueDetails": {
     "notFound": "Department not found",
@@ -1044,6 +1050,49 @@
     "errors": {
       "load": "Failed to load department",
       "save": "Failed to save"
+    }
+  },
+
+  "reports": {
+    "title": "Reports",
+    "subtitle": "Generate reports with filters, clean tables, and Excel export.",
+    "refresh": "Refresh",
+    "export": "Export to Excel",
+    "noActiveOrg": "No active organization. Select an organization in the OrgSwitcher above.",
+    "loadError": "Failed to load report",
+    "exportPreparing": "Preparing Excel file...",
+    "exportDone": "Export completed ✅",
+    "exportError": "Export failed",
+    "workspaceLoadError": "Failed to load workspace",
+
+    "tabs": {
+      "cases": "Cases",
+      "activities": "Activities",
+      "contacts": "Contacts",
+      "audit": "Audit Log",
+      "calendar": "Calendar"
+    },
+
+    "filters": {
+      "dateRange": "Date range",
+      "queue": "Queue",
+      "queuePlaceholder": "Select a queue",
+      "status": "Status",
+      "statusPlaceholder": "Status",
+      "priority": "Priority",
+      "priorityPlaceholder": "Priority",
+      "search": "Search",
+      "searchPlaceholder": "Title / description / free text",
+      "apply": "Apply filters",
+      "clear": "Clear"
+    },
+    "header": {
+      "title": "Reports",
+      "total": "{count} rows",
+      "export": "Export to Excel",
+      "exportTooltip": "Download an Excel file",
+      "refreshTooltip": "Refresh report",
+      "noOrgTooltip": "No active organization. Choose one above."
     }
   }
 }

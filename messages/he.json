@@ -61,6 +61,7 @@
     "queues": "מחלקות",
     "calendar": "לוח שנה",
     "settings": "הגדרות",
+    "reports": "דוחות",
     "announcements": "הודעות"
   },
   "userMenu": {
@@ -696,7 +697,12 @@
       "role": "תפקיד: {role}",
       "realtimeEnabled": "זמן אמת מופעל",
       "subtitle": "העדפות חשבון וסביבת עבודה",
-      "refreshTooltip": "רענן הגדרות"
+      "refreshTooltip": "רענן הגדרות",
+      "profile": "פרופיל",
+      "organization": "ארגון",
+      "integrations": "אינטגרציות",
+      "security": "אבטחה",
+      "dangerZone": "אזור מסוכן"
     },
     "profile": {
       "title": "פרופיל",
@@ -1045,6 +1051,48 @@
     "errors": {
       "load": "טעינת המחלקה נכשלה",
       "save": "השמירה נכשלה"
+    }
+  },
+  "reports": {
+    "title": "דוחות",
+    "subtitle": "הפק דוחות לפי פילטרים, טבלאות מסודרות וייצוא לאקסל.",
+    "refresh": "רענן",
+    "export": "ייצוא לאקסל",
+    "noActiveOrg": "אין ארגון פעיל. בחר ארגון ב-OrgSwitcher למעלה.",
+    "loadError": "שגיאה בטעינת הדוח",
+    "exportPreparing": "מכין קובץ Excel...",
+    "exportDone": "הייצוא הושלם ✅",
+    "exportError": "שגיאה בייצוא",
+    "workspaceLoadError": "שגיאה בטעינת סביבת עבודה",
+
+    "tabs": {
+      "cases": "פניות",
+      "activities": "פעילויות",
+      "contacts": "אנשי קשר",
+      "audit": "Audit Log",
+      "calendar": "יומן"
+    },
+
+    "filters": {
+      "dateRange": "טווח תאריכים",
+      "queue": "תור",
+      "queuePlaceholder": "בחר תור",
+      "status": "סטטוס",
+      "statusPlaceholder": "סטטוס",
+      "priority": "עדיפות",
+      "priorityPlaceholder": "עדיפות",
+      "search": "חיפוש",
+      "searchPlaceholder": "כותרת / תיאור / טקסט חופשי",
+      "apply": "החל פילטרים",
+      "clear": "נקה"
+    },
+    "header": {
+      "title": "דוחות",
+      "total": "{count} רשומות",
+      "export": "ייצוא לאקסל",
+      "exportTooltip": "הורדת קובץ Excel",
+      "refreshTooltip": "רענון הדוח",
+      "noOrgTooltip": "אין ארגון פעיל. בחר ארגון למעלה."
     }
   }
 }

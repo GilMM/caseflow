@@ -1,16 +1,12 @@
-// src/app/(app)/settings/page.jsx
+// src/app/[locale]/(app)/settings/page.jsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import { supabase } from "@/lib/supabase/client";
-import {
-  diagnosticsOrgAccess,
-  upsertMyProfile,
-  updateOrgSettings,
-} from "@/lib/db";
+import { diagnosticsOrgAccess, upsertMyProfile, updateOrgSettings } from "@/lib/db";
 import { useUser, useWorkspace } from "@/contexts";
 
 import {
@@ -20,7 +16,9 @@ import {
   Card,
   Col,
   Grid,
+  Menu,
   Row,
+  Segmented,
   Space,
   Spin,
   Tag,
@@ -33,6 +31,11 @@ import {
   ReloadOutlined,
   WifiOutlined,
   LogoutOutlined,
+  UserOutlined,
+  AppstoreOutlined,
+  ApiOutlined,
+  SafetyOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 
 import ProfileCard from "./_components/ProfileCard";
@@ -47,9 +50,19 @@ import DeleteOrganizationCard from "./_components/DeleteOrganizationCard";
 const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
 
+const SECTION = {
+  PROFILE: "profile",
+  ORG: "org",
+  INTEGRATIONS: "integrations",
+  SECURITY: "security",
+  DANGER: "danger",
+};
+
 export default function SettingsPage() {
   const t = useTranslations();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { message } = App.useApp();
 
   const screens = useBreakpoint();
@@ -95,6 +108,26 @@ export default function SettingsPage() {
 
   const [queues, setQueues] = useState([]);
 
+  // ✅ Section state (synced with URL ?section=)
+  const initialSection = useMemo(() => {
+    const s = searchParams?.get("section");
+    if (Object.values(SECTION).includes(s)) return s;
+    return SECTION.PROFILE;
+  }, [searchParams]);
+
+  const [active, setActive] = useState(initialSection);
+
+  // keep URL in sync (nice for refresh/share)
+  useEffect(() => {
+    const s = searchParams?.get("section");
+    if (s === active) return;
+    const next = new URLSearchParams(searchParams?.toString() || "");
+    next.set("section", active);
+    router.replace(`${pathname}?${next.toString()}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
+
+  // Fetch queues for integrations (default queue select)
   useEffect(() => {
     async function fetchQueues() {
       if (!resolvedOrgId) return;
@@ -116,6 +149,7 @@ export default function SettingsPage() {
     fetchQueues();
   }, [resolvedOrgId]);
 
+  // Fetch org logo for OrgSettingsCard
   useEffect(() => {
     async function fetchOrgLogo() {
       if (!resolvedOrgId) {
@@ -259,9 +293,7 @@ export default function SettingsPage() {
 
       if (upErr) throw upErr;
 
-      const { data: pub } = supabase.storage
-        .from("org-logos")
-        .getPublicUrl(path);
+      const { data: pub } = supabase.storage.from("org-logos").getPublicUrl(path);
       const url = pub?.publicUrl || null;
 
       const name = (workspace?.orgName || "").trim();
@@ -313,9 +345,223 @@ export default function SettingsPage() {
     }
   }
 
+  const menuItems = useMemo(() => {
+    const items = [
+      {
+        key: SECTION.PROFILE,
+        icon: <UserOutlined />,
+        label: t("settings.header.profile") ?? "Profile",
+      },
+      {
+        key: SECTION.ORG,
+        icon: <AppstoreOutlined />,
+        label: t("settings.header.organization") ?? "Organization",
+      },
+      {
+        key: SECTION.INTEGRATIONS,
+        icon: <ApiOutlined />,
+        label: t("settings.header.integrations") ?? "Integrations",
+      },
+      {
+        key: SECTION.SECURITY,
+        icon: <SafetyOutlined />,
+        label: t("settings.header.security") ?? "Security",
+      },
+    ];
+
+    if (isOwner) {
+      items.push({
+        key: SECTION.DANGER,
+        icon: <DeleteOutlined />,
+        label: t("settings.header.dangerZone") ?? "Danger Zone",
+        danger: true,
+      });
+    }
+
+    return items;
+  }, [t, isOwner]);
+
+  // Mobile control: friendly segmented tabs instead of hamburger
+  const mobileSegments = useMemo(() => {
+    const base = [
+      { label: t("settings.header.profile") ?? "Profile", value: SECTION.PROFILE, icon: <UserOutlined /> },
+      { label: t("settings.header.organization") ?? "Org", value: SECTION.ORG, icon: <AppstoreOutlined /> },
+      { label: t("settings.header.integrations") ?? "Integrations", value: SECTION.INTEGRATIONS, icon: <ApiOutlined /> },
+      { label: t("settings.header.security") ?? "Security", value: SECTION.SECURITY, icon: <SafetyOutlined /> },
+    ];
+
+    if (isOwner) {
+      base.push({ label: t("settings.header.dangerZone") ?? "Danger", value: SECTION.DANGER, icon: <DeleteOutlined /> });
+    }
+
+    return base;
+  }, [t, isOwner]);
+
+  function renderSection() {
+    const hasOrg = !!resolvedOrgId;
+
+    switch (active) {
+      case SECTION.PROFILE:
+        return (
+          <Space direction="vertical" size={12} style={{ width: "100%" }}>
+            <Title level={5} style={{ margin: 0 }}>
+              {t("settings.header.profile") ?? "Profile"}
+            </Title>
+            <ProfileCard
+              sessionUser={sessionUser}
+              profile={profile}
+              onSaveProfile={onSaveProfile}
+              onUploadAvatar={onUploadAvatar}
+              isMobile={isMobile}
+            />
+          </Space>
+        );
+
+      case SECTION.ORG:
+        return (
+          <Space direction="vertical" size={12} style={{ width: "100%" }}>
+            <Title level={5} style={{ margin: 0 }}>
+              {t("settings.header.organization") ?? "Organization"}
+            </Title>
+
+            <WorkspaceCard
+              workspace={workspace}
+              isAdmin={isAdmin}
+              isOwner={isOwner}
+              isMobile={isMobile}
+              onManageUsers={() => router.push(`/${locale}/settings/users`)}
+              onRequestAccess={() =>
+                message.info(t("settings.messages.adminsOnlyManage"))
+              }
+            />
+
+            {/* ✅ Announcements belong here (org communication), not integrations */}
+            {isAdmin && hasOrg ? (
+              <AnnouncementsManager
+                orgId={resolvedOrgId}
+                isAdmin={isAdmin}
+                isMobile={isMobile}
+              />
+            ) : null}
+
+            {isAdmin && hasOrg ? (
+              <OrgSettingsCard
+                workspace={workspace}
+                orgLogoUrl={orgLogoUrl}
+                savingOrg={savingOrg}
+                onUploadLogo={onUploadOrgLogo}
+                isMobile={isMobile}
+                onSaveOrg={onSaveOrg}
+                isOwner={isOwner}
+                logoBust={logoBust}
+              />
+            ) : null}
+          </Space>
+        );
+
+      case SECTION.INTEGRATIONS:
+        return (
+          <Space direction="vertical" size={12} style={{ width: "100%" }}>
+            <Title level={5} style={{ margin: 0 }}>
+              {t("settings.header.integrations") ?? "Integrations"}
+            </Title>
+
+            {isAdmin && hasOrg ? (
+              <GoogleSheetsIntegrationCard
+                orgId={resolvedOrgId}
+                queues={queues}
+                returnTo={`/${locale}/settings`}
+                isMobile={isMobile}
+              />
+            ) : (
+              <Alert
+                type="info"
+                showIcon
+                message={t("settings.users.adminsOnly") ?? "Admins only"}
+                description={
+                  t("settings.messages.adminsOnlyManage") ??
+                  "Only admins can manage integrations."
+                }
+              />
+            )}
+          </Space>
+        );
+
+      case SECTION.SECURITY:
+        return (
+          <Space direction="vertical" size={12} style={{ width: "100%" }}>
+            <Title level={5} style={{ margin: 0 }}>
+              {t("settings.header.security") ?? "Security"}
+            </Title>
+
+            <SecurityCard
+              isAdmin={isAdmin}
+              orgId={resolvedOrgId}
+              diag={diag}
+              diagLoading={diagLoading}
+              onRunDiagnostics={() => runDiagnostics(resolvedOrgId)}
+              isMobile={isMobile}
+            />
+          </Space>
+        );
+
+      case SECTION.DANGER:
+        return (
+          <Space direction="vertical" size={12} style={{ width: "100%" }}>
+            <Title level={5} style={{ margin: 0 }}>
+              {t("settings.header.dangerZone") ?? "Danger Zone"}
+            </Title>
+
+            {isOwner && hasOrg ? (
+              <DeleteOrganizationCard
+                orgId={resolvedOrgId}
+                orgName={workspace?.orgName || ""}
+                isMobile={isMobile}
+              />
+            ) : (
+              <Alert type="warning" showIcon message="Owners only" />
+            )}
+          </Space>
+        );
+
+      default:
+        return null;
+    }
+  }
+
+  const sidebar = (
+    <Space direction="vertical" size={10} style={{ width: "100%" }}>
+      <Space direction="vertical" size={2} style={{ width: "100%" }}>
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          {t("settings.header.title")}
+        </Text>
+        <Text strong style={{ fontSize: 16 }}>
+          {workspace?.orgName || t("common.workspaceNone")}
+        </Text>
+
+        <Space wrap size={6}>
+          {workspace?.role ? (
+            <Tag color="geekblue">
+              {t("settings.header.role", { role: workspace.role })}
+            </Tag>
+          ) : null}
+          {isOwner ? <Tag color="gold">{t("settings.header.owner")}</Tag> : null}
+        </Space>
+      </Space>
+
+      <Menu
+        mode="inline"
+        selectedKeys={[active]}
+        items={menuItems}
+        onClick={({ key }) => setActive(key)}
+        style={{ border: "none" }}
+      />
+    </Space>
+  );
+
   return (
     <Spin spinning={loading} size="large">
-      <Space orientation="vertical" size={14} style={{ width: "100%" }}>
+      <Space direction="vertical" size={14} style={{ width: "100%" }}>
         {/* Header */}
         <Card
           style={{
@@ -326,7 +572,7 @@ export default function SettingsPage() {
         >
           <Row justify="space-between" align="middle" gutter={[12, 12]}>
             <Col xs={24} md="auto">
-              <Space orientation="vertical" size={2} style={{ width: "100%" }}>
+              <Space direction="vertical" size={2} style={{ width: "100%" }}>
                 <Title level={isMobile ? 4 : 3} style={{ margin: 0 }}>
                   {t("settings.header.title")}
                 </Title>
@@ -404,82 +650,35 @@ export default function SettingsPage() {
           </Card>
         ) : null}
 
+        {/* Mobile: segmented control for sections (friendly) */}
+        {isMobile ? (
+          <Card style={{ borderRadius: 16 }}>
+            <Segmented
+              block
+              value={active}
+              onChange={(val) => setActive(val)}
+              options={mobileSegments}
+            />
+          </Card>
+        ) : null}
+
         <Row gutter={[12, 12]}>
-          {/* LEFT */}
-          <Col xs={24} lg={12}>
-            <ProfileCard
-              sessionUser={sessionUser}
-              profile={profile}
-              onSaveProfile={onSaveProfile}
-              onUploadAvatar={onUploadAvatar}
-              isMobile={isMobile}
-            />
+          {/* Sidebar (desktop) */}
+          {!isMobile ? (
+            <Col xs={24} md={7} lg={6}>
+              <Card style={{ borderRadius: 16 }}>{sidebar}</Card>
+            </Col>
+          ) : null}
 
-            {isAdmin && resolvedOrgId ? (
-              <GoogleSheetsIntegrationCard
-                orgId={resolvedOrgId}
-                queues={queues}
-                returnTo={`/${locale}/settings`}
-                isMobile={isMobile}
-              />
-            ) : null}
-            {isAdmin && resolvedOrgId ? (
-              <AnnouncementsManager
-              orgId={resolvedOrgId}
-              isAdmin={isAdmin}
-              isMobile={isMobile}
-              />
-            ) : null}
-            <SecurityCard
-              isAdmin={isAdmin}
-              orgId={resolvedOrgId}
-              diag={diag}
-              diagLoading={diagLoading}
-              onRunDiagnostics={() => runDiagnostics(resolvedOrgId)}
-              isMobile={isMobile}
-            />
-          </Col>
-
-          {/* RIGHT */}
-          <Col xs={24} lg={12}>
-            <WorkspaceCard
-              workspace={workspace}
-              isAdmin={isAdmin}
-              isOwner={isOwner}
-              isMobile={isMobile}
-              onManageUsers={() => router.push(`/${locale}/settings/users`)}
-              onRequestAccess={() =>
-                message.info(t("settings.messages.adminsOnlyManage"))
-              }
-            />
-
-            {isAdmin && resolvedOrgId ? (
-              <OrgSettingsCard
-                workspace={workspace}
-                orgLogoUrl={orgLogoUrl}
-                savingOrg={savingOrg}
-                onUploadLogo={onUploadOrgLogo}
-                isMobile={isMobile}
-                onSaveOrg={onSaveOrg}
-                isOwner={isOwner}
-                logoBust={logoBust}
-              />
-            ) : null}
-
-
-            {isOwner && resolvedOrgId ? (
-              <DeleteOrganizationCard
-                orgId={resolvedOrgId}
-                orgName={workspace?.orgName || ""}
-                isMobile={isMobile}
-              />
-            ) : null}
+          {/* Main content */}
+          <Col xs={24} md={17} lg={18}>
+            <Card style={{ borderRadius: 16 }}>{renderSection()}</Card>
           </Col>
         </Row>
 
         {/* Roadmap */}
         <Card style={{ borderRadius: 16 }}>
-          <Space orientation="vertical" size={6}>
+          <Space direction="vertical" size={6}>
             <Text strong>{t("settings.nextUpgrades.title")}</Text>
             <Text type="secondary" style={{ fontSize: 12 }}>
               {t("settings.nextUpgrades.items")}
