@@ -690,6 +690,10 @@
     }
   },
   "settings": {
+    "mobile": {
+      "sectionLabel": "סקשן",
+      "sectionHint": "בחר/י סקשן כדי לנהל את הגדרות החשבון והארגון."
+    },
     "header": {
       "title": "הגדרות",
       "configuration": "הגדרות",
@@ -865,6 +869,7 @@
       "editing": "עריכת הודעה",
       "noItemsHint": "אין עדיין הודעות. הוסף הודעה ולאחר מכן תוכל לנהל או לערוך אותן."
     },
+
     "dangerZone": {
       "title": "אזור מסוכן",
       "deleteOrgTitle": "מחיקת ארגון",

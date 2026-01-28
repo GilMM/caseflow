@@ -2,11 +2,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter, usePathname, useSearchParams } from "next/navigation";
+import {
+  useParams,
+  useRouter,
+  usePathname,
+  useSearchParams,
+} from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import { supabase } from "@/lib/supabase/client";
-import { diagnosticsOrgAccess, upsertMyProfile, updateOrgSettings } from "@/lib/db";
+import {
+  diagnosticsOrgAccess,
+  upsertMyProfile,
+  updateOrgSettings,
+} from "@/lib/db";
 import { useUser, useWorkspace } from "@/contexts";
 
 import {
@@ -24,6 +33,7 @@ import {
   Tag,
   Tooltip,
   Typography,
+  Dropdown 
 } from "antd";
 
 import {
@@ -36,6 +46,7 @@ import {
   ApiOutlined,
   SafetyOutlined,
   DeleteOutlined,
+  DownOutlined 
 } from "@ant-design/icons";
 
 import ProfileCard from "./_components/ProfileCard";
@@ -293,7 +304,9 @@ export default function SettingsPage() {
 
       if (upErr) throw upErr;
 
-      const { data: pub } = supabase.storage.from("org-logos").getPublicUrl(path);
+      const { data: pub } = supabase.storage
+        .from("org-logos")
+        .getPublicUrl(path);
       const url = pub?.publicUrl || null;
 
       const name = (workspace?.orgName || "").trim();
@@ -384,14 +397,34 @@ export default function SettingsPage() {
   // Mobile control: friendly segmented tabs instead of hamburger
   const mobileSegments = useMemo(() => {
     const base = [
-      { label: t("settings.header.profile") ?? "Profile", value: SECTION.PROFILE, icon: <UserOutlined /> },
-      { label: t("settings.header.organization") ?? "Org", value: SECTION.ORG, icon: <AppstoreOutlined /> },
-      { label: t("settings.header.integrations") ?? "Integrations", value: SECTION.INTEGRATIONS, icon: <ApiOutlined /> },
-      { label: t("settings.header.security") ?? "Security", value: SECTION.SECURITY, icon: <SafetyOutlined /> },
+      {
+        label: t("settings.header.profile") ?? "Profile",
+        value: SECTION.PROFILE,
+        icon: <UserOutlined />,
+      },
+      {
+        label: t("settings.header.organization") ?? "Org",
+        value: SECTION.ORG,
+        icon: <AppstoreOutlined />,
+      },
+      {
+        label: t("settings.header.integrations") ?? "Integrations",
+        value: SECTION.INTEGRATIONS,
+        icon: <ApiOutlined />,
+      },
+      {
+        label: t("settings.header.security") ?? "Security",
+        value: SECTION.SECURITY,
+        icon: <SafetyOutlined />,
+      },
     ];
 
     if (isOwner) {
-      base.push({ label: t("settings.header.dangerZone") ?? "Danger", value: SECTION.DANGER, icon: <DeleteOutlined /> });
+      base.push({
+        label: t("settings.header.dangerZone") ?? "Danger",
+        value: SECTION.DANGER,
+        icon: <DeleteOutlined />,
+      });
     }
 
     return base;
@@ -545,7 +578,9 @@ export default function SettingsPage() {
               {t("settings.header.role", { role: workspace.role })}
             </Tag>
           ) : null}
-          {isOwner ? <Tag color="gold">{t("settings.header.owner")}</Tag> : null}
+          {isOwner ? (
+            <Tag color="gold">{t("settings.header.owner")}</Tag>
+          ) : null}
         </Space>
       </Space>
 
@@ -653,12 +688,49 @@ export default function SettingsPage() {
         {/* Mobile: segmented control for sections (friendly) */}
         {isMobile ? (
           <Card style={{ borderRadius: 16 }}>
-            <Segmented
-              block
-              value={active}
-              onChange={(val) => setActive(val)}
-              options={mobileSegments}
-            />
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {t("settings.mobile.sectionLabel") ?? "Section"}
+              </Text>
+
+              <Dropdown
+                trigger={["click"]}
+                menu={{
+                  selectedKeys: [active],
+                  items: menuItems.map((it) => ({
+                    key: it.key,
+                    label: it.label,
+                    icon: it.icon,
+                    danger: !!it.danger,
+                  })),
+                  onClick: ({ key }) => setActive(key),
+                }}
+              >
+                <Button
+                  block
+                  size="large"
+                  style={{
+                    borderRadius: 14,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Space size={10}>
+                    {menuItems.find((x) => x.key === active)?.icon}
+                    <span>
+                      {menuItems.find((x) => x.key === active)?.label}
+                    </span>
+                  </Space>
+                  <DownOutlined />
+                </Button>
+              </Dropdown>
+
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {t("settings.mobile.sectionHint") ??
+                  "Choose a section to manage your account and organization settings."}
+              </Text>
+            </Space>
           </Card>
         ) : null}
 

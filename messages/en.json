@@ -684,6 +684,10 @@
   },
 
   "settings": {
+    "mobile": {
+      "sectionLabel": "Section",
+      "sectionHint": "Choose a section to manage your account and organization settings."
+    },
     "header": {
       "title": "Settings",
       "configuration": "Configuration",
@@ -878,6 +882,7 @@
     "close": "Close announcement",
     "title": "Announcements"
   },
+
   "time": {
     "secondsAgo": "{count} seconds ago",
     "minutesAgo": "{count} minutes ago",
