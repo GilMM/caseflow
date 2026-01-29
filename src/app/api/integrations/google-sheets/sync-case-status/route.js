@@ -23,8 +23,10 @@ async function googleJson(res) {
 export async function POST(req) {
   try {
     const { caseId, status } = await req.json().catch(() => ({}));
-    if (!caseId) return NextResponse.json({ error: "Missing caseId" }, { status: 400 });
-    if (!status) return NextResponse.json({ error: "Missing status" }, { status: 400 });
+    if (!caseId)
+      return NextResponse.json({ error: "Missing caseId" }, { status: 400 });
+    if (!status)
+      return NextResponse.json({ error: "Missing status" }, { status: 400 });
 
     const newStatus = String(status).toLowerCase().trim();
 
@@ -40,7 +42,10 @@ export async function POST(req) {
 
     if (cErr) throw cErr;
     if (!c?.org_id) {
-      return NextResponse.json({ error: "Case not found / no access" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Case not found / no access" },
+        { status: 404 },
+      );
     }
 
     const orgId = c.org_id;
@@ -57,11 +62,17 @@ export async function POST(req) {
     if (iErr) throw iErr;
 
     if (!integ || !integ.is_enabled) {
-      return NextResponse.json({ error: "Integration not found/disabled" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Integration not found/disabled" },
+        { status: 404 },
+      );
     }
 
     if (!integ.sheet_id) {
-      return NextResponse.json({ error: "Missing sheet_id. Run create." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing sheet_id. Run create." },
+        { status: 400 },
+      );
     }
 
     const sheetId = integ.sheet_id;
@@ -72,35 +83,46 @@ export async function POST(req) {
     // 1) Get the first sheet/tab title (since your Apps Script uses ss.getSheets()[0])
     const metaRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(sheetId)}?fields=sheets.properties.title`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+      { headers: { Authorization: `Bearer ${accessToken}` } },
     );
     const metaBody = await googleJson(metaRes);
 
     if (!metaRes.ok || metaBody?.error) {
       return NextResponse.json(
-        { error: "Sheets metadata fetch failed", details: metaBody, status: metaRes.status },
-        { status: 500 }
+        {
+          error: "Sheets metadata fetch failed",
+          details: metaBody,
+          status: metaRes.status,
+        },
+        { status: 500 },
       );
     }
 
     const tabTitle = metaBody?.sheets?.[0]?.properties?.title;
     if (!tabTitle) {
-      return NextResponse.json({ error: "Could not resolve sheet tab title" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Could not resolve sheet tab title" },
+        { status: 500 },
+      );
     }
 
     // 2) Read all case_id cells from column G (starting row 2): G2:G
     const caseIdsRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(sheetId)}/values/${encodeURIComponent(
-        `${tabTitle}!G2:G`
+        `${tabTitle}!G2:G`,
       )}`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+      { headers: { Authorization: `Bearer ${accessToken}` } },
     );
     const caseIdsBody = await googleJson(caseIdsRes);
 
     if (!caseIdsRes.ok || caseIdsBody?.error) {
       return NextResponse.json(
-        { error: "Sheets values read failed", details: caseIdsBody, status: caseIdsRes.status },
-        { status: 500 }
+        {
+          error: "Sheets values read failed",
+          details: caseIdsBody,
+          status: caseIdsRes.status,
+        },
+        { status: 500 },
       );
     }
 
@@ -120,7 +142,7 @@ export async function POST(req) {
       // Not found in sheet (maybe case created not from sheet)
       return NextResponse.json(
         { ok: false, reason: "case_id not found in sheet", sheetId, tabTitle },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -142,20 +164,24 @@ export async function POST(req) {
         body: JSON.stringify({
           valueInputOption: "USER_ENTERED",
           data: [
-            { range: `${tabTitle}!I${rowNumber}`, values: [["app"]] },
+            { range: `${tabTitle}!I${rowNumber}`, values: [[""]] }, // ✅ תמיד ריק
             { range: `${tabTitle}!F${rowNumber}`, values: [[newStatus]] },
             { range: `${tabTitle}!H${rowNumber}`, values: [[""]] },
           ],
         }),
-      }
+      },
     );
 
     const batchBody = await googleJson(batchRes);
 
     if (!batchRes.ok || batchBody?.error) {
       return NextResponse.json(
-        { error: "Sheets batchUpdate failed", details: batchBody, status: batchRes.status },
-        { status: 500 }
+        {
+          error: "Sheets batchUpdate failed",
+          details: batchBody,
+          status: batchRes.status,
+        },
+        { status: 500 },
       );
     }
 
@@ -171,7 +197,7 @@ export async function POST(req) {
     console.error("SYNC CASE STATUS (SHEETS API) ERROR:", e);
     return NextResponse.json(
       { error: e?.message || "Sync failed", details: e?.details || null },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

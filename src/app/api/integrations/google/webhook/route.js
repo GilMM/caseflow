@@ -1,138 +1,226 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 
-// Valid case statuses in the app
-const VALID_STATUSES = ["new", "in_progress", "waiting_customer", "resolved", "closed"];
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { requireSessionUserRoute } from "@/lib/auth/requireOrgAdminRoute";
+import { getValidAccessToken } from "@/lib/integrations/google/tokens";
 
+async function googleJson(res) {
+  const text = await res.text().catch(() => "");
+  try {
+    return text ? JSON.parse(text) : null;
+  } catch {
+    return { raw: text };
+  }
+}
+
+function safeTitle(title) {
+  // Sheet tab titles may contain quotes etc. Sheets API expects A1 notation strings.
+  // The safest is to wrap in single quotes and escape single quotes by doubling them.
+  const t = String(title || "Sheet1");
+  return `'${t.replace(/'/g, "''")}'`;
+}
+
+/**
+ * Site -> Sheet (FAST):
+ * 1) read case.external_row + case.external_spreadsheet_id
+ * 2) if present and matches integration.sheet_id -> direct update (1 request)
+ * 3) else fallback: scan column G to find row (slower)
+ *
+ * Columns:
+ * F = status, G = case_id, H = error_message, I = sync_source
+ * NOTE: we DO NOT set sync_source="app" because Sheets API updates don't trigger onEdit anyway,
+ * and leaving "app" there causes your onEdit to ignore the next human edit.
+ */
 export async function POST(req) {
   try {
-    const secret = (req.headers.get("x-webhook-secret") || "").trim();
-    if (!secret) {
-      return NextResponse.json({ error: "Missing x-webhook-secret" }, { status: 401 });
-    }
+    const { caseId, status } = await req.json().catch(() => ({}));
+    if (!caseId) return NextResponse.json({ error: "Missing caseId" }, { status: 400 });
+    if (!status) return NextResponse.json({ error: "Missing status" }, { status: 400 });
 
-    const body = await req.json().catch(() => null);
-    if (!body || typeof body !== "object") {
-      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-    }
+    const newStatus = String(status).toLowerCase().trim();
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+    // ✅ must be logged in (cookies) OR Bearer
+    const { supabase } = await requireSessionUserRoute(req);
 
-    const { data: integration, error: intErr } = await supabase
-      .from("org_google_sheets_integrations")
-      .select("org_id,is_enabled,default_queue_id,connected_by_user_id,create_rule")
-      .eq("webhook_secret", secret)
+    // ✅ ensure user can access the case (RLS)
+    const { data: c, error: cErr } = await supabase
+      .from("cases")
+      .select("id, org_id, external_row, external_spreadsheet_id")
+      .eq("id", caseId)
       .maybeSingle();
 
-    if (intErr) {
-      console.error("integration lookup error:", intErr);
-      return NextResponse.json({ error: "Integration lookup failed" }, { status: 500 });
-    }
-    if (!integration || !integration.is_enabled) {
+    if (cErr) throw cErr;
+    if (!c?.org_id) return NextResponse.json({ error: "Case not found / no access" }, { status: 404 });
+
+    const orgId = c.org_id;
+
+    const admin = supabaseAdmin();
+
+    // ✅ integration row: need sheet_id
+    const { data: integ, error: iErr } = await admin
+      .from("org_google_sheets_integrations")
+      .select("org_id,is_enabled,sheet_id")
+      .eq("org_id", orgId)
+      .maybeSingle();
+
+    if (iErr) throw iErr;
+    if (!integ || !integ.is_enabled) {
       return NextResponse.json({ error: "Integration not found/disabled" }, { status: 404 });
     }
-
-    const action = String(body.action ?? "create").trim().toLowerCase();
-    const externalRef = body.external_ref ? String(body.external_ref).trim() : null;
-
-    if (!externalRef) {
-      return NextResponse.json({ error: "Missing external_ref" }, { status: 400 });
+    if (!integ.sheet_id) {
+      return NextResponse.json({ error: "Missing sheet_id. Run create." }, { status: 400 });
     }
 
-    // Handle status UPDATE for existing case
-    if (action === "update") {
-      const caseId = body.case_id ? String(body.case_id).trim() : null;
-      const newStatus = String(body.status ?? "").trim().toLowerCase();
+    const sheetId = integ.sheet_id;
+    const accessToken = await getValidAccessToken(orgId);
 
-      if (!caseId) {
-        return NextResponse.json({ error: "Missing case_id for update" }, { status: 400 });
-      }
-      if (!newStatus || !VALID_STATUSES.includes(newStatus)) {
-        return NextResponse.json({
-          error: "Invalid status",
-          valid: VALID_STATUSES
-        }, { status: 400 });
+    // 1) Get tab title once (still one request, but we avoid scanning when external_row exists)
+    const metaRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(sheetId)}?fields=sheets.properties.title`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const metaBody = await googleJson(metaRes);
+    if (!metaRes.ok || metaBody?.error) {
+      return NextResponse.json(
+        { error: "Sheets metadata fetch failed", details: metaBody, status: metaRes.status },
+        { status: 500 }
+      );
+    }
+
+    const tabTitleRaw = metaBody?.sheets?.[0]?.properties?.title;
+    if (!tabTitleRaw) {
+      return NextResponse.json({ error: "Could not resolve sheet tab title" }, { status: 500 });
+    }
+    const tabTitle = safeTitle(tabTitleRaw);
+
+    // ✅ FAST PATH: external_row exists and sheet matches
+    const extRow = Number.isFinite(Number(c.external_row)) ? Number(c.external_row) : null;
+    const extSheet = c.external_spreadsheet_id ? String(c.external_spreadsheet_id).trim() : null;
+
+    if (extRow && extRow >= 2 && extSheet && extSheet === sheetId) {
+      const batchRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(sheetId)}/values:batchUpdate`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            valueInputOption: "USER_ENTERED",
+            data: [
+              { range: `${tabTitle}!I${extRow}`, values: [[""]] },        // clear sync_source
+              { range: `${tabTitle}!F${extRow}`, values: [[newStatus]] }, // status
+              { range: `${tabTitle}!H${extRow}`, values: [[""]] },        // clear error
+            ],
+          }),
+        }
+      );
+
+      const batchBody = await googleJson(batchRes);
+      if (!batchRes.ok || batchBody?.error) {
+        return NextResponse.json(
+          { error: "Sheets batchUpdate failed (fast path)", details: batchBody, status: batchRes.status },
+          { status: 500 }
+        );
       }
 
-      // Use RPC to update in a single transaction with user context
-      const { data: result, error: rpcErr } = await supabase.rpc("update_case_status_webhook", {
-        p_case_id: caseId,
-        p_new_status: newStatus,
-        p_user_id: integration.connected_by_user_id,
-        p_org_id: integration.org_id,
+      return NextResponse.json({
+        ok: true,
+        mode: "fast",
+        sheetId,
+        tabTitle: tabTitleRaw,
+        row: extRow,
+        status: newStatus,
       });
-
-      if (rpcErr) {
-        console.error("case update error:", rpcErr);
-        return NextResponse.json({ error: "Case update failed", details: rpcErr }, { status: 500 });
-      }
-
-      if (!result?.ok) {
-        return NextResponse.json({ error: result?.error || "Update failed" }, { status: 400 });
-      }
-
-      return NextResponse.json({ ok: true, action: result.action, caseId, status: newStatus }, { status: 200 });
     }
 
-    // Handle CREATE (original behavior)
-    const title = String(body.title ?? "").trim();
-    const description = String(body.description ?? "").trim();
+    // 2) FALLBACK: scan column G for caseId (slower, but works)
+    const caseIdsRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(sheetId)}/values/${encodeURIComponent(
+        `${tabTitleRaw}!G2:G`
+      )}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const caseIdsBody = await googleJson(caseIdsRes);
 
-    if (!title) return NextResponse.json({ error: "Missing title" }, { status: 400 });
-
-    const rawPriority = String(body.priority ?? "normal").trim().toLowerCase();
-    const priority = ["low", "normal", "high", "urgent"].includes(rawPriority) ? rawPriority : "normal";
-
-    // optional rule: statusEquals
-    const statusEquals = integration?.create_rule?.statusEquals ?? "new";
-    const incomingStatus = String(body.status ?? "").trim().toLowerCase();
-    if (statusEquals && incomingStatus && incomingStatus !== String(statusEquals).toLowerCase()) {
-      return NextResponse.json({ ok: true, skipped: true, reason: "Rule not matched" }, { status: 200 });
+    if (!caseIdsRes.ok || caseIdsBody?.error) {
+      return NextResponse.json(
+        { error: "Sheets values read failed (fallback)", details: caseIdsBody, status: caseIdsRes.status },
+        { status: 500 }
+      );
     }
 
-    const caseRow = {
-      org_id: integration.org_id,
-      queue_id: integration.default_queue_id,
-      created_by: integration.connected_by_user_id,
+    const rows = caseIdsBody?.values || [];
+    const target = String(caseId).trim();
 
-      title,
-      description: description || null,
-      status: "new",
-      priority,
-
-      source: "google_sheets",
-      external_ref: externalRef,
-    };
-
-    const { data: inserted, error: insErr } = await supabase
-      .from("cases")
-      .insert(caseRow)
-      .select("id")
-      .single();
-
-    if (insErr) {
-      // Dedupe (unique org_id + external_ref)
-      if (insErr.code === "23505") {
-        const { data: existing } = await supabase
-          .from("cases")
-          .select("id")
-          .eq("org_id", integration.org_id)
-          .eq("external_ref", externalRef)
-          .maybeSingle();
-
-        return NextResponse.json({ ok: true, deduped: true, caseId: existing?.id || null }, { status: 200 });
+    let idx = -1;
+    for (let i = 0; i < rows.length; i++) {
+      const v = rows[i]?.[0] == null ? "" : String(rows[i][0]).trim();
+      if (v === target) {
+        idx = i;
+        break;
       }
-
-      console.error("case insert error:", insErr);
-      return NextResponse.json({ error: "Case insert failed", details: insErr }, { status: 500 });
     }
 
-    return NextResponse.json({ ok: true, action: "created", caseId: inserted.id }, { status: 200 });
+    if (idx === -1) {
+      return NextResponse.json(
+        { ok: false, mode: "fallback", reason: "case_id not found in sheet", sheetId, tabTitle: tabTitleRaw },
+        { status: 200 }
+      );
+    }
+
+    const rowNumber = idx + 2;
+
+    const batchRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(sheetId)}/values:batchUpdate`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          valueInputOption: "USER_ENTERED",
+          data: [
+            { range: `${tabTitle}!I${rowNumber}`, values: [[""]] },        // clear sync_source
+            { range: `${tabTitle}!F${rowNumber}`, values: [[newStatus]] }, // status
+            { range: `${tabTitle}!H${rowNumber}`, values: [[""]] },        // clear error
+          ],
+        }),
+      }
+    );
+
+    const batchBody = await googleJson(batchRes);
+    if (!batchRes.ok || batchBody?.error) {
+      return NextResponse.json(
+        { error: "Sheets batchUpdate failed (fallback)", details: batchBody, status: batchRes.status },
+        { status: 500 }
+      );
+    }
+
+    // ✅ optional: persist external_row for next time (best effort)
+    try {
+      await admin
+        .from("cases")
+        .update({ external_row: rowNumber, external_spreadsheet_id: sheetId })
+        .eq("id", caseId)
+        .eq("org_id", orgId);
+    } catch (_) {}
+
+    return NextResponse.json({
+      ok: true,
+      mode: "fallback",
+      sheetId,
+      tabTitle: tabTitleRaw,
+      row: rowNumber,
+      status: newStatus,
+    });
   } catch (e) {
-    console.error("webhook fatal:", e);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.error("SYNC CASE STATUS (FAST SHEETS API) ERROR:", e);
+    return NextResponse.json(
+      { error: e?.message || "Sync failed", details: e?.details || null },
+      { status: 500 }
+    );
   }
 }
