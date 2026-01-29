@@ -171,7 +171,7 @@ function setup() {
   // 2) dropdown validations - using app statuses + draft for new rows
   const statusRange = sheet.getRange(2, 6, sheet.getMaxRows() - 1, 1);
   const statusRule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(["draft","new","in_progress","waiting_customer","resolved","closed"], true)
+    .requireValueInList(["draft","new","sent","in_progress","waiting_customer","resolved","closed"], true)
     .setAllowInvalid(false)
     .build();
   statusRange.setDataValidation(statusRule);
@@ -202,6 +202,8 @@ function setup() {
 
   addRule("draft",            "#f5f5f5", "#666666", false);
   addRule("new",              "#e6f2ff", "#0d59d8", true);
+  addRule("sent",             "#edffed", "#2a8a2a", true);
+  addRule("error",            "#ffeded", "#cc1a1a", true);
   addRule("in_progress",      "#fff7e6", "#d48806", true);
   addRule("waiting_customer", "#f9f0ff", "#722ed1", true);
   addRule("resolved",         "#f6ffed", "#389e0d", true);
@@ -364,10 +366,17 @@ function onEditInstalled(e) {
       if (code >= 200 && code < 300 && data && data.ok) {
         const caseId = data.caseId || "";
         if (caseId) caseIdCell.setValue(caseId);
+
+        // ✅ new -> sent אחרי יצירה מוצלחת
+        statusCell.setValue("sent");
+
         errCell.setValue("");
       } else {
+        // ✅ לסמן שגיאה כדי שהמשתמש יבין שזה לא נשלח
+        statusCell.setValue("error");
         errCell.setValue(("Create failed (" + code + "): " + text).slice(0, 500));
       }
+
       return;
     }
 
