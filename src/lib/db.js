@@ -300,7 +300,7 @@ export async function updateCaseStatus({ caseId, status }) {
 
   // 🔁 Push back to Sheet (best-effort)
   try {
-    await fetch("/api/integrations/google-sheets/sync-case-status", {
+    fetch("/api/integrations/google-sheets/sync-case-status", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -313,7 +313,6 @@ export async function updateCaseStatus({ caseId, status }) {
     console.warn("Sheet sync failed:", e);
   }
 }
-
 
 /**
  * Active workspace for current user.
