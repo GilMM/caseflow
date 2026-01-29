@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import { supabase } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/app/[locale]/providers";
 import { Button, Card, Form, Input, Space, Typography, message } from "antd";
-import { LockOutlined, MailOutlined, UserAddOutlined } from "@ant-design/icons";
+import { LockOutlined, MailOutlined, UserAddOutlined, UserOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 
@@ -46,11 +46,15 @@ export default function RegisterPage() {
     try {
       const email = values.email.trim();
       const password = values.password;
+      const fullName = values.fullName.trim();
 
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          data: {
+            full_name: fullName,
+          },
           emailRedirectTo:
             typeof window !== "undefined"
               ? `${window.location.origin}${linkPrefix}/login?next=${encodeURIComponent(nextParam)}`
@@ -59,6 +63,13 @@ export default function RegisterPage() {
       });
 
       if (error) throw error;
+
+      // Save full_name to profiles table
+      if (data?.user?.id) {
+        await supabase
+          .from("profiles")
+          .upsert({ id: data.user.id, full_name: fullName }, { onConflict: "id" });
+      }
 
       // If email confirmation is ON, session might be null
       if (data?.session) {
@@ -90,6 +101,14 @@ export default function RegisterPage() {
       }}
     >
       <div style={{ width: "100%", maxWidth: 420 }}>
+        <div style={{ marginBottom: 12 }}>
+          <Link href={linkPrefix}>
+            <Button type="text" icon={<ArrowLeftOutlined />} style={{ padding: "4px 8px" }}>
+              {t("backToHome")}
+            </Button>
+          </Link>
+        </div>
+
         <Card
           style={{
             borderRadius: 16,
@@ -104,6 +123,17 @@ export default function RegisterPage() {
           </Space>
 
           <Form layout="vertical" onFinish={onFinish} requiredMark={false}>
+            <Form.Item
+              label={t("fullName")}
+              name="fullName"
+              rules={[
+                { required: true, message: t("fullNameRequired") },
+                { min: 2, message: t("fullNameTooShort") },
+              ]}
+            >
+              <Input prefix={<UserOutlined />} placeholder={t("fullNamePlaceholder")} autoComplete="name" />
+            </Form.Item>
+
             <Form.Item
               label={t("email")}
               name="email"

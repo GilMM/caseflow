@@ -68,8 +68,9 @@ export default function AppShell({ children }) {
   const { menuItems: languageMenuItems } = useLanguageSwitcher();
 
   // Use context for user data
-  const { user } = useUser();
+  const { user, profile } = useUser();
   const userEmail = user?.email || "";
+  const displayName = profile?.full_name || userEmail;
 
   // Drawer state (Mobile)
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -262,7 +263,7 @@ export default function AppShell({ children }) {
     </div>
   );
 
-  const effectiveEmail = userEmail || tUserMenu("account");
+  const effectiveDisplayName = displayName || tUserMenu("account");
 
   return (
     <div
@@ -430,7 +431,7 @@ export default function AppShell({ children }) {
                           textOverflow: "ellipsis",
                         }}
                       >
-                        {effectiveEmail}
+                        {effectiveDisplayName}
                       </Text>
                     </Space>
                   </Button>

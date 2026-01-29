@@ -28,11 +28,18 @@ export async function middleware(req) {
   const pathnameWithoutLocale =
     pathname.replace(/^\/(en|he)(?=\/|$)/, "") || "/";
 
+  // Skip middleware for auth callback route
+  if (pathname.startsWith("/auth/callback")) {
+    return NextResponse.next();
+  }
+
   // Public paths that don't require auth
   const isPublic =
     pathnameWithoutLocale === "/" ||
     pathnameWithoutLocale === "/login" ||
     pathnameWithoutLocale === "/register" ||
+    pathnameWithoutLocale === "/forgot-password" ||
+    pathnameWithoutLocale === "/reset-password" ||
     pathnameWithoutLocale === "/onboarding" ||
     pathnameWithoutLocale.startsWith("/onboarding/") ||
     pathnameWithoutLocale.startsWith("/i/") ||

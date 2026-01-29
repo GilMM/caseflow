@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import { supabase } from "@/lib/supabase/client";
 import { useLocaleContext } from "@/app/[locale]/providers";
 import { Button, Card, Form, Input, Space, Typography, message } from "antd";
-import { LockOutlined, MailOutlined, LoginOutlined } from "@ant-design/icons";
+import { LockOutlined, MailOutlined, LoginOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 
@@ -73,6 +73,14 @@ export default function LoginPage() {
       }}
     >
       <div style={{ width: "100%", maxWidth: 420 }}>
+        <div style={{ marginBottom: 12 }}>
+          <Link href={linkPrefix}>
+            <Button type="text" icon={<ArrowLeftOutlined />} style={{ padding: "4px 8px" }}>
+              {t("backToHome")}
+            </Button>
+          </Link>
+        </div>
+
         <Card
           style={{
             borderRadius: 16,
@@ -110,6 +118,12 @@ export default function LoginPage() {
               />
             </Form.Item>
 
+            <div style={{ textAlign: "end", marginTop: -8, marginBottom: 16 }}>
+              <Link href={`${linkPrefix}/forgot-password`} style={{ fontSize: 13, color: "inherit", opacity: 0.65 }}>
+                {t("forgotPassword")}
+              </Link>
+            </div>
+
             <Button
               type="primary"
               htmlType="submit"
@@ -122,7 +136,7 @@ export default function LoginPage() {
             </Button>
           </Form>
 
-          <div style={{ marginTop: 14, display: "flex", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ marginTop: 14, textAlign: "center" }}>
             <Text type="secondary">
               {t("noAccount")}{" "}
               <Link href={`${linkPrefix}/register`} style={{ fontWeight: 600 }}>

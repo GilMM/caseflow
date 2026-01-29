@@ -27,7 +27,6 @@ import {
   KeyOutlined,
   PlusOutlined,
   ArrowRightOutlined,
-  UserOutlined,
   CheckCircleOutlined,
   RocketOutlined,
 } from "@ant-design/icons";
@@ -173,19 +172,9 @@ export default function OnboardingPage() {
       const orgName = values.name?.trim();
       if (!orgName) throw new Error("Enter organization name");
 
-      const firstName = (values.first_name || "").trim();
-      if (!firstName) throw new Error("Enter your first name");
-
       const { data: sessionData } = await supabase.auth.getSession();
       const userId = sessionData?.session?.user?.id;
       if (!userId) throw new Error("Not authenticated");
-
-      {
-        const { error: metaErr } = await supabase.auth.updateUser({
-          data: { first_name: firstName },
-        });
-        if (metaErr) throw metaErr;
-      }
 
       const { data: org, error: orgErr } = await supabase
         .from("organizations")
@@ -348,23 +337,6 @@ export default function OnboardingPage() {
                   onFinish={createOrg}
                   requiredMark={false}
                 >
-                  <Form.Item
-                    name="first_name"
-                    label="Your first name"
-                    rules={[
-                      { required: true, message: "Enter your first name" },
-                      { min: 2, message: "Too short" },
-                    ]}
-                  >
-                    <Input
-                      prefix={<UserOutlined />}
-                      placeholder="e.g., Gil"
-                      disabled={busy}
-                      autoComplete="given-name"
-                      size="large"
-                    />
-                  </Form.Item>
-
                   <Form.Item
                     name="name"
                     label="Organization name"

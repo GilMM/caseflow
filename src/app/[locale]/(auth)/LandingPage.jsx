@@ -22,7 +22,8 @@ import {
   UserAddOutlined,
   CheckCircleOutlined,
   CloudOutlined,
-  GlobalOutlined,
+  RocketOutlined,
+  ArrowRightOutlined,
 } from "@ant-design/icons";
 
 const { Title, Text, Paragraph } = Typography;
@@ -221,7 +222,7 @@ export default function LandingPage() {
               lg={12}
               style={{
                 padding: 32,
-                background: token.colorBgContainer,
+                background: `linear-gradient(180deg, ${token.colorBgContainer} 0%, ${token.colorBgLayout} 100%)`,
                 borderInlineStart: `1px solid ${token.colorBorder}`,
                 display: "flex",
                 flexDirection: "column",
@@ -229,76 +230,141 @@ export default function LandingPage() {
                 alignItems: "center",
               }}
             >
-              <div style={{ width: "100%", maxWidth: 400 }}>
-                <Card
+              <div style={{ width: "100%", maxWidth: 380 }}>
+                {/* Icon Header */}
+                <div style={{ textAlign: "center", marginBottom: 24 }}>
+                  <div
+                    style={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: 16,
+                      background: `linear-gradient(135deg, ${token.colorPrimary} 0%, ${token.colorPrimaryActive} 100%)`,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: 16,
+                      boxShadow: `0 8px 24px ${token.colorPrimary}40`,
+                    }}
+                  >
+                    <RocketOutlined style={{ fontSize: 28, color: "#fff" }} />
+                  </div>
+                  <Title level={3} style={{ margin: 0, marginBottom: 8 }}>
+                    {isHebrew ? "התחילו עכשיו" : "Get Started"}
+                  </Title>
+                  <Text type="secondary" style={{ fontSize: 14 }}>
+                    {isHebrew
+                      ? "התחילו לנהל את התיקים שלכם בצורה חכמה יותר"
+                      : "Start managing your cases the smart way"}
+                  </Text>
+                </div>
+
+                {/* Buttons */}
+                <Space orientation="vertical" size={12} style={{ width: "100%" }}>
+                  <Link href={`${linkPrefix}/register`} style={{ display: "block" }}>
+                    <Button
+                      type="primary"
+                      icon={<UserAddOutlined />}
+                      size="large"
+                      block
+                      style={{
+                        height: 52,
+                        borderRadius: 12,
+                        fontSize: 16,
+                        fontWeight: 600,
+                        boxShadow: `0 4px 12px ${token.colorPrimary}30`,
+                      }}
+                    >
+                      {isHebrew ? "צור חשבון חינם" : "Create Free Account"}
+                      <ArrowRightOutlined style={{ marginInlineStart: 8 }} />
+                    </Button>
+                  </Link>
+
+                  <Link href={`${linkPrefix}/login`} style={{ display: "block" }}>
+                    <Button
+                      icon={<LoginOutlined />}
+                      size="large"
+                      block
+                      style={{
+                        height: 52,
+                        borderRadius: 12,
+                        fontSize: 16,
+                        fontWeight: 500,
+                        background: token.colorBgElevated,
+                        borderColor: token.colorBorder,
+                      }}
+                    >
+                      {isHebrew ? "יש לי חשבון - התחברות" : "I have an account - Sign In"}
+                    </Button>
+                  </Link>
+                </Space>
+
+                {/* Benefits */}
+                <div
                   style={{
-                    borderRadius: 16,
-                    border: `1px solid ${token.colorBorderSecondary}`,
+                    marginTop: 24,
+                    padding: 16,
+                    borderRadius: 12,
                     background: token.colorBgElevated,
+                    border: `1px solid ${token.colorBorderSecondary}`,
                   }}
-                  styles={{ body: { padding: 28 } }}
                 >
-                  <Space orientation="vertical" size={20} style={{ width: "100%" }}>
-                    <div style={{ textAlign: "center" }}>
-                      <Title level={3} style={{ margin: 0, marginBottom: 6 }}>
-                        {isHebrew ? "כניסה למערכת" : "Access Your Account"}
-                      </Title>
-                      <Text type="secondary" style={{ fontSize: 14 }}>
-                        {isHebrew
-                          ? "התחברו לחשבון קיים או צרו חשבון חדש"
-                          : "Sign in to your account or create a new one"}
+                  <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 6,
+                          background: `${token.colorSuccess}15`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <CheckCircleOutlined style={{ color: token.colorSuccess, fontSize: 14 }} />
+                      </div>
+                      <Text style={{ fontSize: 13 }}>
+                        {isHebrew ? "הקמה מהירה בפחות מדקה" : "Quick setup in under a minute"}
                       </Text>
                     </div>
-
-                    <Space orientation="vertical" size={12} style={{ width: "100%" }}>
-                      <Link href={`${linkPrefix}/login`} style={{ display: "block" }}>
-                        <Button
-                          type="primary"
-                          icon={<LoginOutlined />}
-                          size="large"
-                          block
-                          style={{ height: 48, borderRadius: 10, fontSize: 15 }}
-                        >
-                          {isHebrew ? "התחברות" : "Sign In"}
-                        </Button>
-                      </Link>
-
-                      <Link href={`${linkPrefix}/register`} style={{ display: "block" }}>
-                        <Button
-                          icon={<UserAddOutlined />}
-                          size="large"
-                          block
-                          style={{ height: 48, borderRadius: 10, fontSize: 15 }}
-                        >
-                          {isHebrew ? "יצירת חשבון" : "Create Account"}
-                        </Button>
-                      </Link>
-                    </Space>
-
-                    <Divider style={{ margin: "4px 0" }} />
-
-                    <Space orientation="vertical" size={6} style={{ width: "100%" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 6,
+                          background: `${token.colorSuccess}15`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
                         <CheckCircleOutlined style={{ color: token.colorSuccess, fontSize: 14 }} />
-                        <Text style={{ fontSize: 13 }}>
-                          {isHebrew ? "הקמה מהירה בפחות מדקה" : "Quick setup in under a minute"}
-                        </Text>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <Text style={{ fontSize: 13 }}>
+                        {isHebrew ? "ללא צורך בכרטיס אשראי" : "No credit card required"}
+                      </Text>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 6,
+                          background: `${token.colorSuccess}15`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
                         <CheckCircleOutlined style={{ color: token.colorSuccess, fontSize: 14 }} />
-                        <Text style={{ fontSize: 13 }}>
-                          {isHebrew ? "ללא צורך בכרטיס אשראי" : "No credit card required"}
-                        </Text>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <CheckCircleOutlined style={{ color: token.colorSuccess, fontSize: 14 }} />
-                        <Text style={{ fontSize: 13 }}>
-                          {isHebrew ? "תמיכה בעברית ואנגלית" : "Hebrew & English support"}
-                        </Text>
-                      </div>
-                    </Space>
+                      <Text style={{ fontSize: 13 }}>
+                        {isHebrew ? "תמיכה בעברית ואנגלית" : "Hebrew & English support"}
+                      </Text>
+                    </div>
                   </Space>
-                </Card>
+                </div>
               </div>
             </Col>
           </Row>
