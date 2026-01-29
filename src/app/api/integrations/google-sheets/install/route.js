@@ -332,18 +332,12 @@ function onEditInstalled(e) {
     if (row < 2) return;
     if (col !== COL_STATUS) return;
 
-    // ✅ Anti-loop: if this change was made by the app, ignore once
-    const syncCell = sheet.getRange(row, COL_SYNC);
-    const syncSource = String(syncCell.getValue() || "").toLowerCase().trim();
-    if (syncSource === "app") {
-      syncCell.setValue(""); // clear marker
-      return;
-    }
-
     const statusCell = sheet.getRange(row, COL_STATUS);
     const status = String(statusCell.getValue() || "").toLowerCase().trim();
-
     if (status === "draft") return;
+
+    // ✅ log only (no anti-loop)
+    sheet.getRange(row, COL_SYNC).setValue("sheet");
 
     const caseIdCell = sheet.getRange(row, COL_CASE_ID);
     const errCell = sheet.getRange(row, COL_ERROR);
@@ -442,7 +436,6 @@ function onEditInstalled(e) {
 }
 `;
 }
-
 
 function buildManifest() {
   // This is the Apps Script manifest (scopes for the script runtime).

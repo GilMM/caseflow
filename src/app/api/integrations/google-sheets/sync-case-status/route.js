@@ -164,7 +164,7 @@ export async function POST(req) {
         body: JSON.stringify({
           valueInputOption: "USER_ENTERED",
           data: [
-            { range: `${tabTitle}!I${rowNumber}`, values: [[""]] }, // ✅ תמיד ריק
+            { range: `${tabTitle}!I${rowNumber}`, values: [["app"]] },
             { range: `${tabTitle}!F${rowNumber}`, values: [[newStatus]] },
             { range: `${tabTitle}!H${rowNumber}`, values: [[""]] },
           ],
