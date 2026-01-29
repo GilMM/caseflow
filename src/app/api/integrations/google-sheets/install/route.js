@@ -155,105 +155,127 @@ function setup() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheets()[0];
 
-  // 1) headers (include sync_source)
-  const headers = ["Title","Description","Priority","Reporter","Email","Status","case_id","error_message","sync_source"];
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-
-  sheet.getRange(1,1,1,9)
-    .setFontWeight("bold")
-    .setHorizontalAlignment("center")
-    .setBackground("#ededed");
-
-  // 2) dropdown validations
-  const statusRange = sheet.getRange(2, COL_STATUS, sheet.getMaxRows() - 1, 1);
-  const statusRule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(["draft","new","sent","error","in_progress","waiting_customer","resolved","closed"], true)
-    .setAllowInvalid(false)
-    .build();
-  statusRange.setDataValidation(statusRule);
-
-  const prioRange = sheet.getRange(2, 3, sheet.getMaxRows() - 1, 1);
-  const prioRule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(["low","normal","high","urgent"], true)
-    .setAllowInvalid(false)
-    .build();
-  prioRange.setDataValidation(prioRule);
-
-  // 3) conditional formatting
-  const rules = [];
-  const statusCol = sheet.getRange(2, COL_STATUS, sheet.getMaxRows() - 1, 1);
-
-  function addRule(text, bg, fg, bold) {
-    const r = SpreadsheetApp.newConditionalFormatRule()
-      .whenTextEqualTo(text)
-      .setRanges([statusCol])
-      .setBackground(bg)
-      .setFontColor(fg);
-    if (bold) r.setBold(true);
-    rules.push(r.build());
+  function safe(label, fn) {
+    try { return fn(); }
+    catch (e) {
+      Logger.log("setup skip (" + label + "): " + e);
+      return null;
+    }
   }
 
-  addRule("draft",            "#f5f5f5", "#666666", false);
-  addRule("new",              "#e6f2ff", "#0d59d8", true);
-  addRule("sent",             "#edffed", "#2a8a2a", true);
-  addRule("error",            "#ffeded", "#cc1a1a", true);
-  addRule("in_progress",      "#fff7e6", "#d48806", true);
-  addRule("waiting_customer", "#f9f0ff", "#722ed1", true);
-  addRule("resolved",         "#f6ffed", "#389e0d", true);
-  addRule("closed",           "#f2f2f2", "#777777", true);
+  // 1) headers
+  safe("headers", () => {
+    const headers = ["Title","Description","Priority","Reporter","Email","Status","case_id","error_message","sync_source"];
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
 
-  const fullRow = sheet.getRange(2,1,sheet.getMaxRows()-1,9);
-  rules.push(
-    SpreadsheetApp.newConditionalFormatRule()
-      .whenFormulaSatisfied('=$F2="closed"')
-      .setRanges([fullRow])
-      .setFontColor("#8c8c8c")
-      .setStrikethrough(true)
-      .build()
-  );
+    sheet.getRange(1,1,1,9)
+      .setFontWeight("bold")
+      .setHorizontalAlignment("center")
+      .setBackground("#ededed");
+  });
 
-  sheet.setConditionalFormatRules(rules);
+  // 2) dropdown validations (THIS is commonly blocked by Data Types)
+  safe("status validation", () => {
+    const statusRange = sheet.getRange(2, COL_STATUS, sheet.getMaxRows() - 1, 1);
+    const statusRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(["draft","new","sent","error","in_progress","waiting_customer","resolved","closed"], true)
+      .setAllowInvalid(false)
+      .build();
+    statusRange.setDataValidation(statusRule);
+  });
 
-  // 4) protect sheet but allow A,B,F
-  try {
-    const protections = sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET);
-    protections.forEach(p => p.remove());
-  } catch (e) {}
+  safe("priority validation", () => {
+    const prioRange = sheet.getRange(2, 3, sheet.getMaxRows() - 1, 1);
+    const prioRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(["low","normal","high","urgent"], true)
+      .setAllowInvalid(false)
+      .build();
+    prioRange.setDataValidation(prioRule);
+  });
 
-  const protection = sheet.protect().setDescription("Protected by CaseFlow");
-  protection.setWarningOnly(false);
+  // 3) conditional formatting (can also be blocked)
+  safe("conditional formatting", () => {
+    const rules = [];
+    const statusCol = sheet.getRange(2, COL_STATUS, sheet.getMaxRows() - 1, 1);
 
-  protection.setUnprotectedRanges([
-    sheet.getRange(2,1,sheet.getMaxRows()-1,1),
-    sheet.getRange(2,2,sheet.getMaxRows()-1,1),
-    sheet.getRange(2,COL_STATUS,sheet.getMaxRows()-1,1),
-  ]);
+    function addRule(text, bg, fg, bold) {
+      const r = SpreadsheetApp.newConditionalFormatRule()
+        .whenTextEqualTo(text)
+        .setRanges([statusCol])
+        .setBackground(bg)
+        .setFontColor(fg);
+      if (bold) r.setBold(true);
+      rules.push(r.build());
+    }
+
+    addRule("draft",            "#f5f5f5", "#666666", false);
+    addRule("new",              "#e6f2ff", "#0d59d8", true);
+    addRule("sent",             "#edffed", "#2a8a2a", true);
+    addRule("error",            "#ffeded", "#cc1a1a", true);
+    addRule("in_progress",      "#fff7e6", "#d48806", true);
+    addRule("waiting_customer", "#f9f0ff", "#722ed1", true);
+    addRule("resolved",         "#f6ffed", "#389e0d", true);
+    addRule("closed",           "#f2f2f2", "#777777", true);
+
+    const fullRow = sheet.getRange(2,1,sheet.getMaxRows()-1,9);
+    rules.push(
+      SpreadsheetApp.newConditionalFormatRule()
+        .whenFormulaSatisfied('=$F2="closed"')
+        .setRanges([fullRow])
+        .setFontColor("#8c8c8c")
+        .setStrikethrough(true)
+        .build()
+    );
+
+    sheet.setConditionalFormatRules(rules);
+  });
+
+  // 4) protection (can also be blocked)
+  safe("protection", () => {
+    try {
+      const protections = sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET);
+      protections.forEach(p => p.remove());
+    } catch (e) {}
+
+    const protection = sheet.protect().setDescription("Protected by CaseFlow");
+    protection.setWarningOnly(false);
+
+    protection.setUnprotectedRanges([
+      sheet.getRange(2,1,sheet.getMaxRows()-1,1),
+      sheet.getRange(2,2,sheet.getMaxRows()-1,1),
+      sheet.getRange(2,COL_STATUS,sheet.getMaxRows()-1,1),
+    ]);
+  });
 
   // 5) widths
-  sheet.setColumnWidth(1, 260);
-  sheet.setColumnWidth(2, 420);
-  sheet.setColumnWidth(3, 130);
-  sheet.setColumnWidth(4, 170);
-  sheet.setColumnWidth(5, 240);
-  sheet.setColumnWidth(6, 140);
-  sheet.setColumnWidth(7, 160);
-  sheet.setColumnWidth(8, 260);
-  sheet.setColumnWidth(9, 140);
+  safe("widths", () => {
+    sheet.setColumnWidth(1, 260);
+    sheet.setColumnWidth(2, 420);
+    sheet.setColumnWidth(3, 130);
+    sheet.setColumnWidth(4, 170);
+    sheet.setColumnWidth(5, 240);
+    sheet.setColumnWidth(6, 140);
+    sheet.setColumnWidth(7, 160);
+    sheet.setColumnWidth(8, 260);
+    sheet.setColumnWidth(9, 140);
+  });
 
-  // 6) sample
-  sheet.getRange(2,1,1,9).setValues([[
-    "Sample issue title",
-    "Describe the issue here",
-    "normal",
-    "",
-    "",
-    "draft",
-    "",
-    "",
-    ""
-  ]]);
+  // 6) sample row (can be blocked)
+  safe("sample row", () => {
+    sheet.getRange(2,1,1,9).setValues([[
+      "Sample issue title",
+      "Describe the issue here",
+      "normal",
+      "",
+      "",
+      "draft",
+      "",
+      "",
+      ""
+    ]]);
+  });
 
-  // 7) installable trigger
+  // 7) installable trigger (THIS must work)
   const triggers = ScriptApp.getProjectTriggers();
   triggers.forEach(t => {
     if (t.getHandlerFunction() === "onEditInstalled") ScriptApp.deleteTrigger(t);
@@ -262,6 +284,7 @@ function setup() {
 
   SpreadsheetApp.getActive().toast(t("setupDone"), t("menu"), 5);
 }
+
 
 function testWebhook() {
   SpreadsheetApp.getActive().toast(t("testSending"), t("menu"), 3);
