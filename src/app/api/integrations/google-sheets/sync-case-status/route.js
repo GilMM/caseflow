@@ -1,65 +1,16 @@
 import { NextResponse } from "next/server";
+
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { requireSessionUserRoute } from "@/lib/auth/requireOrgAdminRoute"; // יש לך כבר בפנים
+import { requireSessionUserRoute } from "@/lib/auth/requireOrgAdminRoute"; // יש אצלך בקובץ הזה export
 import { getValidAccessToken } from "@/lib/integrations/google/tokens";
 
-function parseExternalRef(externalRef) {
-  const [sheetId, rowStr] = String(externalRef || "").split(":");
-  const row = Number(rowStr);
-  if (!sheetId || !row) return null;
-  return { sheetId, row };
-}
-
-// בדיקת חברות בארגון (לא רק admin)
-async function requireOrgMemberRoute(req, orgId) {
-  const { supabase, user } = await requireSessionUserRoute(req);
-
-  const { data: m, error } = await supabase
-    .from("org_memberships")
-    .select("role,is_active")
-    .eq("org_id", orgId)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (error) throw error;
-  if (!m || m.is_active === false) {
-    const e = new Error("No org access");
-    e.status = 403;
-    throw e;
-  }
-
-  return { user };
-}
-
-async function googleBatchUpdateValues({ accessToken, sheetId, updates }) {
-  const res = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(sheetId)}/values:batchUpdate`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        valueInputOption: "RAW",
-        data: updates,
-      }),
-    }
-  );
-
+async function googleJson(res) {
   const text = await res.text().catch(() => "");
-  let body = null;
-  try { body = text ? JSON.parse(text) : null; } catch { body = { raw: text }; }
-
-  if (!res.ok) {
-    const msg = body?.error?.message || "Sheets batchUpdate failed";
-    const e = new Error(msg);
-    e.status = res.status;
-    e.details = body;
-    throw e;
+  try {
+    return text ? JSON.parse(text) : null;
+  } catch {
+    return { raw: text };
   }
-
-  return body;
 }
 
 export async function POST(req) {
@@ -68,68 +19,75 @@ export async function POST(req) {
     if (!caseId) return NextResponse.json({ error: "Missing caseId" }, { status: 400 });
     if (!status) return NextResponse.json({ error: "Missing status" }, { status: 400 });
 
-    const admin = supabaseAdmin();
+    // ✅ must be logged in (cookies) OR Bearer
+    const { supabase } = await requireSessionUserRoute(req);
 
-    // 1) להביא את הקייס כדי לדעת org_id + external_ref
-    const { data: c, error: cErr } = await admin
+    // ✅ get case (RLS will ensure user can see it)
+    const { data: c, error: cErr } = await supabase
       .from("cases")
-      .select("id, org_id, external_ref")
+      .select("id, org_id")
       .eq("id", caseId)
       .maybeSingle();
 
     if (cErr) throw cErr;
-    if (!c) return NextResponse.json({ error: "Case not found" }, { status: 404 });
+    if (!c?.org_id) return NextResponse.json({ error: "Case not found / no access" }, { status: 404 });
 
     const orgId = c.org_id;
 
-    // 2) לוודא שהיוזר מחובר ויש לו גישה לארגון
-    await requireOrgMemberRoute(req, orgId);
+    const admin = supabaseAdmin();
 
-    // 3) לוודא שיש integration פעיל
+    // ✅ integration row
     const { data: integ, error: iErr } = await admin
       .from("org_google_sheets_integrations")
-      .select("org_id,is_enabled,worksheet_name")
+      .select("org_id,is_enabled,script_id")
       .eq("org_id", orgId)
       .maybeSingle();
 
     if (iErr) throw iErr;
-
-    if (!integ || integ.is_enabled === false) {
+    if (!integ || !integ.is_enabled) {
       return NextResponse.json({ error: "Integration not found/disabled" }, { status: 404 });
     }
-
-    if (!c.external_ref) {
-      return NextResponse.json({ ok: true, skipped: true, reason: "No external_ref" });
+    if (!integ.script_id) {
+      return NextResponse.json({ error: "Missing script_id. Run install." }, { status: 400 });
     }
 
-    const parsed = parseExternalRef(c.external_ref);
-    if (!parsed) {
-      return NextResponse.json({ ok: true, skipped: true, reason: "Bad external_ref format" });
-    }
-
-    const { sheetId, row } = parsed;
-    const sheetName = integ.worksheet_name || "Sheet1";
-
-    // 4) עדכון לשיט (Status + sync_source marker)
     const accessToken = await getValidAccessToken(orgId);
 
-    const statusRange = `${sheetName}!F${row}`;
-    const syncRange = `${sheetName}!I${row}`;
+    // ✅ Call Apps Script function
+    const runRes = await fetch(
+      `https://script.googleapis.com/v1/scripts/${encodeURIComponent(integ.script_id)}:run`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          function: "syncStatusFromApp",
+          parameters: [caseId, String(status).toLowerCase()],
+          devMode: true,
+        }),
+      }
+    );
 
-    await googleBatchUpdateValues({
-      accessToken,
-      sheetId,
-      updates: [
-        { range: statusRange, values: [[String(status).toLowerCase()]] },
-        { range: syncRange, values: [["caseflow"]] },
-      ],
-    });
+    const runBody = await googleJson(runRes);
 
-    return NextResponse.json({ ok: true });
+    if (!runRes.ok || runBody?.error) {
+      return NextResponse.json(
+        { error: "Apps Script run failed", details: runBody },
+        { status: 500 }
+      );
+    }
+
+    // Apps Script returns response.result
+    const result = runBody?.response?.result || null;
+
+    return NextResponse.json({ ok: true, result });
   } catch (e) {
+    console.error("SYNC CASE STATUS ERROR:", e);
     return NextResponse.json(
-      { error: e?.message || "Sync failed", details: e?.details || null },
-      { status: e?.status || 500 }
+      { error: e?.message || "Sync failed" },
+      { status: 500 }
     );
   }
 }

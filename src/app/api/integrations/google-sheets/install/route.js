@@ -96,9 +96,9 @@ const WEBHOOK_SECRET = "${webhookSecret}";
 const COL_STATUS = 6;
 const COL_CASE_ID = 7;
 const COL_ERROR = 8;
-const COL_SYNC = 9; // column I
+const COL_SYNC = 9;
 
-// App statuses that can be synced (updates from Sheet -> App)
+// App statuses that can be synced (real app statuses)
 const APP_STATUSES = ["new", "in_progress", "waiting_customer", "resolved", "closed"];
 
 function getLang() {
@@ -149,27 +149,22 @@ function onOpen(e) {
 }
 
 /**
- * ✅ One-shot setup:
- * - Creates headers
- * - Adds validations, conditional formatting
- * - Protects sheet with editable ranges
- * - Creates installable onEdit trigger (idempotent)
+ * ✅ One-shot setup
  */
 function setup() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheets()[0];
 
-  // 1) headers (including sync_source in col I)
+  // 1) headers (include sync_source)
   const headers = ["Title","Description","Priority","Reporter","Email","Status","case_id","error_message","sync_source"];
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
 
-  // header style (A..I)
-  sheet.getRange(1, 1, 1, 9)
+  sheet.getRange(1,1,1,9)
     .setFontWeight("bold")
     .setHorizontalAlignment("center")
     .setBackground("#ededed");
 
-  // 2) dropdown validations - using app statuses + draft/sent/error for UX
+  // 2) dropdown validations
   const statusRange = sheet.getRange(2, COL_STATUS, sheet.getMaxRows() - 1, 1);
   const statusRule = SpreadsheetApp.newDataValidation()
     .requireValueInList(["draft","new","sent","error","in_progress","waiting_customer","resolved","closed"], true)
@@ -184,7 +179,7 @@ function setup() {
     .build();
   prioRange.setDataValidation(prioRule);
 
-  // 3) conditional formatting (status)
+  // 3) conditional formatting
   const rules = [];
   const statusCol = sheet.getRange(2, COL_STATUS, sheet.getMaxRows() - 1, 1);
 
@@ -198,9 +193,6 @@ function setup() {
     rules.push(r.build());
   }
 
-  // wipe old rules, then set ours
-  sheet.setConditionalFormatRules([]);
-
   addRule("draft",            "#f5f5f5", "#666666", false);
   addRule("new",              "#e6f2ff", "#0d59d8", true);
   addRule("sent",             "#edffed", "#2a8a2a", true);
@@ -210,19 +202,19 @@ function setup() {
   addRule("resolved",         "#f6ffed", "#389e0d", true);
   addRule("closed",           "#f2f2f2", "#777777", true);
 
-  // strike-through row when closed (A..I)
-  const fullRow = sheet.getRange(2, 1, sheet.getMaxRows() - 1, 9);
-  const strike = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=$F2="closed"')
-    .setRanges([fullRow])
-    .setFontColor("#8c8c8c")
-    .setStrikethrough(true)
-    .build();
-  rules.push(strike);
+  const fullRow = sheet.getRange(2,1,sheet.getMaxRows()-1,9);
+  rules.push(
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied('=$F2="closed"')
+      .setRanges([fullRow])
+      .setFontColor("#8c8c8c")
+      .setStrikethrough(true)
+      .build()
+  );
 
   sheet.setConditionalFormatRules(rules);
 
-  // 4) protect whole sheet but allow A,B,F (and keep sync_source protected)
+  // 4) protect sheet but allow A,B,F
   try {
     const protections = sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET);
     protections.forEach(p => p.remove());
@@ -231,14 +223,13 @@ function setup() {
   const protection = sheet.protect().setDescription("Protected by CaseFlow");
   protection.setWarningOnly(false);
 
-  // allow editing A,B,F from row 2 down
   protection.setUnprotectedRanges([
-    sheet.getRange(2, 1, sheet.getMaxRows() - 1, 1), // A
-    sheet.getRange(2, 2, sheet.getMaxRows() - 1, 1), // B
-    sheet.getRange(2, COL_STATUS, sheet.getMaxRows() - 1, 1), // F
+    sheet.getRange(2,1,sheet.getMaxRows()-1,1),
+    sheet.getRange(2,2,sheet.getMaxRows()-1,1),
+    sheet.getRange(2,COL_STATUS,sheet.getMaxRows()-1,1),
   ]);
 
-  // 5) column widths (A..I)
+  // 5) widths
   sheet.setColumnWidth(1, 260);
   sheet.setColumnWidth(2, 420);
   sheet.setColumnWidth(3, 130);
@@ -247,10 +238,10 @@ function setup() {
   sheet.setColumnWidth(6, 140);
   sheet.setColumnWidth(7, 160);
   sheet.setColumnWidth(8, 260);
-  sheet.setColumnWidth(9, 140); // sync_source
+  sheet.setColumnWidth(9, 140);
 
-  // 6) sample row (A..I)
-  sheet.getRange(2, 1, 1, 9).setValues([[
+  // 6) sample
+  sheet.getRange(2,1,1,9).setValues([[
     "Sample issue title",
     "Describe the issue here",
     "normal",
@@ -262,25 +253,20 @@ function setup() {
     ""
   ]]);
 
-  // 7) installable trigger - delete old, create fresh
+  // 7) installable trigger
   const triggers = ScriptApp.getProjectTriggers();
   triggers.forEach(t => {
-    if (t.getHandlerFunction() === "onEditInstalled") {
-      ScriptApp.deleteTrigger(t);
-    }
+    if (t.getHandlerFunction() === "onEditInstalled") ScriptApp.deleteTrigger(t);
   });
-
   ScriptApp.newTrigger("onEditInstalled").forSpreadsheet(ss).onEdit().create();
-  SpreadsheetApp.getActive().toast(t("enabledToast"), t("menu"), 5);
+
   SpreadsheetApp.getActive().toast(t("setupDone"), t("menu"), 5);
 }
 
 function testWebhook() {
   SpreadsheetApp.getActive().toast(t("testSending"), t("menu"), 3);
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-
   const payload = {
-    action: "create",
     title: "Test case from Sheet",
     description: "This is a test webhook call",
     priority: "normal",
@@ -300,11 +286,37 @@ function testWebhook() {
     muteHttpExceptions: true
   });
 
-  SpreadsheetApp.getActive().toast(
-    t("testDone") + resp.getResponseCode(),
-    t("menu"),
-    5
-  );
+  SpreadsheetApp.getActive().toast(t("testDone") + resp.getResponseCode(), t("menu"), 5);
+}
+
+/**
+ * ✅ Called from your server (scripts.run) when status changed in the app.
+ * Prevents loop by marking sync_source="app", then writing status.
+ */
+function syncStatusFromApp(caseId, newStatus) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheets()[0];
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { ok: false, error: "No data rows" };
+
+  const caseIds = sheet.getRange(2, COL_CASE_ID, lastRow - 1, 1).getValues().map(r => String(r[0] || "").trim());
+  const idx = caseIds.indexOf(String(caseId || "").trim());
+
+  if (idx === -1) {
+    return { ok: false, error: "case_id not found in sheet" };
+  }
+
+  const row = idx + 2;
+
+  // mark as app-driven update (anti-loop)
+  sheet.getRange(row, COL_SYNC).setValue("app");
+
+  // write status + clear error
+  sheet.getRange(row, COL_STATUS).setValue(String(newStatus || "").toLowerCase());
+  sheet.getRange(row, COL_ERROR).setValue("");
+
+  return { ok: true, row };
 }
 
 function onEditInstalled(e) {
@@ -317,23 +329,21 @@ function onEditInstalled(e) {
     const sheet = e.range.getSheet();
     const row = e.range.getRow();
     const col = e.range.getColumn();
-
     if (row < 2) return;
     if (col !== COL_STATUS) return;
+
+    // ✅ Anti-loop: if this change was made by the app, ignore once
+    const syncCell = sheet.getRange(row, COL_SYNC);
+    const syncSource = String(syncCell.getValue() || "").toLowerCase().trim();
+    if (syncSource === "app") {
+      syncCell.setValue(""); // clear marker
+      return;
+    }
 
     const statusCell = sheet.getRange(row, COL_STATUS);
     const status = String(statusCell.getValue() || "").toLowerCase().trim();
 
-    // Skip draft - no action needed
     if (status === "draft") return;
-
-    // ✅ Loop guard: if status was set by CaseFlow sync, skip webhook
-    const syncCell = sheet.getRange(row, COL_SYNC);
-    const syncSource = String(syncCell.getValue() || "").toLowerCase().trim();
-    if (syncSource === "caseflow") {
-      syncCell.setValue(""); // clear marker
-      return;
-    }
 
     const caseIdCell = sheet.getRange(row, COL_CASE_ID);
     const errCell = sheet.getRange(row, COL_ERROR);
@@ -342,7 +352,7 @@ function onEditInstalled(e) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const externalRef = ss.getId() + ":" + row;
 
-    // Case 1: status = "new" and no case_id → CREATE new case
+    // Create
     if (status === "new" && !existingCaseId) {
       errCell.setValue("");
 
@@ -378,19 +388,16 @@ function onEditInstalled(e) {
         const caseId = data.caseId || "";
         if (caseId) caseIdCell.setValue(caseId);
 
-        // ✅ new -> sent אחרי יצירה מוצלחת
-        statusCell.setValue("sent");
-
+        statusCell.setValue("sent"); // ✅ UI-only marker
         errCell.setValue("");
       } else {
-        // ✅ לסמן שגיאה כדי שהמשתמש יבין שזה לא נשלח
         statusCell.setValue("error");
         errCell.setValue(("Create failed (" + code + "): " + text).slice(0, 500));
       }
       return;
     }
 
-    // Case 2: case_id exists and status is a valid app status → UPDATE case status
+    // Update (only real statuses)
     if (existingCaseId && APP_STATUSES.includes(status)) {
       errCell.setValue("");
 
@@ -427,9 +434,7 @@ function onEditInstalled(e) {
     try {
       const sheet = e?.range?.getSheet();
       const row = e?.range?.getRow();
-      if (sheet && row >= 2) {
-        sheet.getRange(row, COL_ERROR).setValue(String(err).slice(0, 500));
-      }
+      if (sheet && row >= 2) sheet.getRange(row, COL_ERROR).setValue(String(err).slice(0, 500));
     } catch (_) {}
   } finally {
     lock.releaseLock();
@@ -437,6 +442,7 @@ function onEditInstalled(e) {
 }
 `;
 }
+
 
 function buildManifest() {
   // This is the Apps Script manifest (scopes for the script runtime).
