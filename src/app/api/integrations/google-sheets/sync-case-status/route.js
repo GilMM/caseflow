@@ -150,9 +150,9 @@ export async function POST(req) {
     const rowNumber = idx + 2;
 
     // 3) Batch update:
-    // - I{row} sync_source = "app"   (anti-loop)
+    // - I{row} sync_source = "app" (anti-loop)
     // - F{row} status = newStatus
-    // - H{row} error_message = ""   (clear)
+    // - H{row} error_message = "" (clear)
     const batchRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(sheetId)}/values:batchUpdate`,
       {
