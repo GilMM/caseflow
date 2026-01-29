@@ -272,7 +272,6 @@ export async function updateCaseStatus({ caseId, status }) {
 
   const toStatus = String(status || "").toLowerCase();
 
-  // get previous
   const { data: before, error: bErr } = await supabase
     .from("cases")
     .select("id, org_id, status")
@@ -280,13 +279,15 @@ export async function updateCaseStatus({ caseId, status }) {
     .maybeSingle();
   if (bErr) throw bErr;
 
+  const fromStatus = String(before?.status || "").toLowerCase();
+  if (fromStatus === toStatus) return; // ✅ no-op
+
   const { data: after, error: upErr } = await supabase
     .from("cases")
     .update({ status: toStatus })
     .eq("id", caseId)
     .select("id, org_id, status")
     .single();
-
   if (upErr) throw upErr;
 
   logAuditClient({
@@ -296,7 +297,23 @@ export async function updateCaseStatus({ caseId, status }) {
     action: "case_status_changed",
     changes: { from: before?.status || null, to: after.status },
   });
+
+  // 🔁 Push back to Sheet (best-effort)
+  try {
+    await fetch("/api/integrations/google-sheets/sync-case-status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        orgId: after.org_id,
+        caseId,
+        status: toStatus,
+      }),
+    });
+  } catch (e) {
+    console.warn("Sheet sync failed:", e);
+  }
 }
+
 
 /**
  * Active workspace for current user.

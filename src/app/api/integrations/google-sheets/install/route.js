@@ -92,12 +92,13 @@ function buildCodeGsBound({ webhookUrl, webhookSecret }) {
   return `const WEBHOOK_URL = "${webhookUrl}";
 const WEBHOOK_SECRET = "${webhookSecret}";
 
-// columns: A title, B desc, C priority, D reporter, E email, F status, G case_id, H error_message
+// columns: A title, B desc, C priority, D reporter, E email, F status, G case_id, H error_message, I sync_source
 const COL_STATUS = 6;
 const COL_CASE_ID = 7;
 const COL_ERROR = 8;
+const COL_SYNC = 9; // column I
 
-// App statuses that can be synced
+// App statuses that can be synced (updates from Sheet -> App)
 const APP_STATUSES = ["new", "in_progress", "waiting_customer", "resolved", "closed"];
 
 function getLang() {
@@ -158,20 +159,20 @@ function setup() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheets()[0];
 
-  // 1) headers
-  const headers = ["Title","Description","Priority","Reporter","Email","Status","case_id","error_message"];
+  // 1) headers (including sync_source in col I)
+  const headers = ["Title","Description","Priority","Reporter","Email","Status","case_id","error_message","sync_source"];
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
 
-  // header style
-  sheet.getRange(1,1,1,8)
+  // header style (A..I)
+  sheet.getRange(1, 1, 1, 9)
     .setFontWeight("bold")
     .setHorizontalAlignment("center")
     .setBackground("#ededed");
 
-  // 2) dropdown validations - using app statuses + draft for new rows
-  const statusRange = sheet.getRange(2, 6, sheet.getMaxRows() - 1, 1);
+  // 2) dropdown validations - using app statuses + draft/sent/error for UX
+  const statusRange = sheet.getRange(2, COL_STATUS, sheet.getMaxRows() - 1, 1);
   const statusRule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(["draft","new","sent","in_progress","waiting_customer","resolved","closed"], true)
+    .requireValueInList(["draft","new","sent","error","in_progress","waiting_customer","resolved","closed"], true)
     .setAllowInvalid(false)
     .build();
   statusRange.setDataValidation(statusRule);
@@ -184,8 +185,8 @@ function setup() {
   prioRange.setDataValidation(prioRule);
 
   // 3) conditional formatting (status)
-  const rules = sheet.getConditionalFormatRules() || [];
-  const statusCol = sheet.getRange(2, 6, sheet.getMaxRows() - 1, 1);
+  const rules = [];
+  const statusCol = sheet.getRange(2, COL_STATUS, sheet.getMaxRows() - 1, 1);
 
   function addRule(text, bg, fg, bold) {
     const r = SpreadsheetApp.newConditionalFormatRule()
@@ -197,7 +198,7 @@ function setup() {
     rules.push(r.build());
   }
 
-  // wipe old status-only rules (simple approach)
+  // wipe old rules, then set ours
   sheet.setConditionalFormatRules([]);
 
   addRule("draft",            "#f5f5f5", "#666666", false);
@@ -209,8 +210,8 @@ function setup() {
   addRule("resolved",         "#f6ffed", "#389e0d", true);
   addRule("closed",           "#f2f2f2", "#777777", true);
 
-  // strike-through row when closed
-  const fullRow = sheet.getRange(2,1,sheet.getMaxRows()-1,8);
+  // strike-through row when closed (A..I)
+  const fullRow = sheet.getRange(2, 1, sheet.getMaxRows() - 1, 9);
   const strike = SpreadsheetApp.newConditionalFormatRule()
     .whenFormulaSatisfied('=$F2="closed"')
     .setRanges([fullRow])
@@ -221,7 +222,7 @@ function setup() {
 
   sheet.setConditionalFormatRules(rules);
 
-  // 4) protect whole sheet but allow A,B,F
+  // 4) protect whole sheet but allow A,B,F (and keep sync_source protected)
   try {
     const protections = sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET);
     protections.forEach(p => p.remove());
@@ -232,12 +233,12 @@ function setup() {
 
   // allow editing A,B,F from row 2 down
   protection.setUnprotectedRanges([
-    sheet.getRange(2,1,sheet.getMaxRows()-1,1), // A
-    sheet.getRange(2,2,sheet.getMaxRows()-1,1), // B
-    sheet.getRange(2,6,sheet.getMaxRows()-1,1), // F
+    sheet.getRange(2, 1, sheet.getMaxRows() - 1, 1), // A
+    sheet.getRange(2, 2, sheet.getMaxRows() - 1, 1), // B
+    sheet.getRange(2, COL_STATUS, sheet.getMaxRows() - 1, 1), // F
   ]);
 
-  // 5) column widths
+  // 5) column widths (A..I)
   sheet.setColumnWidth(1, 260);
   sheet.setColumnWidth(2, 420);
   sheet.setColumnWidth(3, 130);
@@ -246,9 +247,10 @@ function setup() {
   sheet.setColumnWidth(6, 140);
   sheet.setColumnWidth(7, 160);
   sheet.setColumnWidth(8, 260);
+  sheet.setColumnWidth(9, 140); // sync_source
 
-  // 6) sample row
-  sheet.getRange(2,1,1,8).setValues([[
+  // 6) sample row (A..I)
+  sheet.getRange(2, 1, 1, 9).setValues([[
     "Sample issue title",
     "Describe the issue here",
     "normal",
@@ -256,10 +258,11 @@ function setup() {
     "",
     "draft",
     "",
+    "",
     ""
   ]]);
 
-  // 7) installable trigger - delete ALL old triggers first, then create fresh
+  // 7) installable trigger - delete old, create fresh
   const triggers = ScriptApp.getProjectTriggers();
   triggers.forEach(t => {
     if (t.getHandlerFunction() === "onEditInstalled") {
@@ -267,17 +270,17 @@ function setup() {
     }
   });
 
-  // Create new trigger
   ScriptApp.newTrigger("onEditInstalled").forSpreadsheet(ss).onEdit().create();
   SpreadsheetApp.getActive().toast(t("enabledToast"), t("menu"), 5);
-
   SpreadsheetApp.getActive().toast(t("setupDone"), t("menu"), 5);
 }
 
 function testWebhook() {
   SpreadsheetApp.getActive().toast(t("testSending"), t("menu"), 3);
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+
   const payload = {
+    action: "create",
     title: "Test case from Sheet",
     description: "This is a test webhook call",
     priority: "normal",
@@ -324,6 +327,14 @@ function onEditInstalled(e) {
     // Skip draft - no action needed
     if (status === "draft") return;
 
+    // ✅ Loop guard: if status was set by CaseFlow sync, skip webhook
+    const syncCell = sheet.getRange(row, COL_SYNC);
+    const syncSource = String(syncCell.getValue() || "").toLowerCase().trim();
+    if (syncSource === "caseflow") {
+      syncCell.setValue(""); // clear marker
+      return;
+    }
+
     const caseIdCell = sheet.getRange(row, COL_CASE_ID);
     const errCell = sheet.getRange(row, COL_ERROR);
     const existingCaseId = String(caseIdCell.getValue() || "").trim();
@@ -335,7 +346,7 @@ function onEditInstalled(e) {
     if (status === "new" && !existingCaseId) {
       errCell.setValue("");
 
-      const values = sheet.getRange(row, 1, 1, 8).getValues()[0];
+      const values = sheet.getRange(row, 1, 1, 9).getValues()[0];
       const payload = {
         action: "create",
         title: values[0] || null,
@@ -343,7 +354,7 @@ function onEditInstalled(e) {
         priority: values[2] || null,
         reporter: values[3] || null,
         email: values[4] || null,
-        status: values[5] || null,
+        status: "new",
         external_row: row,
         spreadsheet_id: ss.getId(),
         external_ref: externalRef
@@ -376,7 +387,6 @@ function onEditInstalled(e) {
         statusCell.setValue("error");
         errCell.setValue(("Create failed (" + code + "): " + text).slice(0, 500));
       }
-
       return;
     }
 
