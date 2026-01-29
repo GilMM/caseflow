@@ -344,9 +344,13 @@
       "searchPlaceholder": "Search by title or ID…",
       "allQueues": "All departments",
       "allStatuses": "All statuses",
+      "openStatuses": "All open cases",
       "allPriorities": "All priorities",
       "defaultQueue": "{name} (Default)",
-      "tip": "Tip: click a case card to open details"
+      "tip": "Tip: click a case card to open details",
+      "sortByPriority": "Sort by priority",
+      "sortByNewest": "Sort by newest",
+      "sortByOldest": "Sort by oldest"
     },
     "kpis": {
       "total": "Total",

@@ -36,8 +36,9 @@ export default function CasesPage() {
   const [hasMore, setHasMore] = useState(true);
 
   const [q, setQ] = useState("");
-  const [status, setStatus] = useState("all");
+  const [status, setStatus] = useState("open");
   const [priority, setPriority] = useState("all");
+  const [sortBy, setSortBy] = useState("priority");
 
   const lastToastRef = useRef(0);
   const workspaceRef = useRef(null);
@@ -183,8 +184,17 @@ export default function CasesPage() {
 
   const filtered = useMemo(() => {
     const qq = q.trim().toLowerCase();
-    return (rows || []).filter((c) => {
-      if (status !== "all" && c.status !== status) return false;
+
+    // Priority order for sorting (lower = more urgent)
+    const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
+
+    const result = (rows || []).filter((c) => {
+      // Handle "open" filter (exclude closed and resolved)
+      if (status === "open") {
+        if (c.status === "closed" || c.status === "resolved") return false;
+      } else if (status !== "all" && c.status !== status) {
+        return false;
+      }
       if (priority !== "all" && c.priority !== priority) return false;
       if (!qq) return true;
       return (
@@ -194,12 +204,27 @@ export default function CasesPage() {
           .includes(qq)
       );
     });
-  }, [rows, q, status, priority]);
+
+    // Sort the results
+    return result.sort((a, b) => {
+      if (sortBy === "priority") {
+        const aPriority = priorityOrder[a.priority] ?? 99;
+        const bPriority = priorityOrder[b.priority] ?? 99;
+        if (aPriority !== bPriority) return aPriority - bPriority;
+        // Secondary sort by created_at (newest first) when same priority
+        return new Date(b.created_at) - new Date(a.created_at);
+      } else if (sortBy === "oldest") {
+        return new Date(a.created_at) - new Date(b.created_at);
+      }
+      // Default: newest first
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+  }, [rows, q, status, priority, sortBy]);
 
   const total = rows.length;
-  const openCount = rows.filter((r) => r.status !== "closed").length;
+  const openCount = rows.filter((r) => r.status !== "closed" && r.status !== "resolved").length;
   const urgentOpen = rows.filter(
-    (r) => r.status !== "closed" && r.priority === "urgent",
+    (r) => r.status !== "closed" && r.status !== "resolved" && r.priority === "urgent",
   ).length;
 
   function setQueueFilter(nextQueueId) {
@@ -250,13 +275,16 @@ export default function CasesPage() {
             onChangeStatus={setStatus}
             priority={priority}
             onChangePriority={setPriority}
+            sortBy={sortBy}
+            onChangeSortBy={setSortBy}
             queueId={queueId}
             queues={queues}
             onChangeQueue={setQueueFilter}
             onClear={() => {
               setQ("");
-              setStatus("all");
+              setStatus("open");
               setPriority("all");
+              setSortBy("priority");
               setQueueFilter("all");
             }}
           />

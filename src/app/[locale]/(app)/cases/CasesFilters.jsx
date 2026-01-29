@@ -17,6 +17,8 @@ export default function CasesFilters({
   onChangeStatus,
   priority,
   onChangePriority,
+  sortBy,
+  onChangeSortBy,
   onClear,
 }) {
   const t = useTranslations();
@@ -55,13 +57,14 @@ export default function CasesFilters({
             onChange={onChangeStatus}
             style={{ width: "100%" }}
             options={[
+              { value: "open", label: t("cases.filters.openStatuses") },
               { value: "all", label: t("cases.filters.allStatuses") },
               ...CASE_STATUSES,
             ]}
           />
         </Col>
 
-        <Col xs={12} md={6}>
+        <Col xs={12} md={4}>
           <Select
             value={priority}
             onChange={onChangePriority}
@@ -72,6 +75,21 @@ export default function CasesFilters({
               { value: "high", label: t("cases.priority.high") },
               { value: "normal", label: t("cases.priority.normal") },
               { value: "low", label: t("cases.priority.low") },
+            ]}
+          />
+        </Col>
+
+        <Col xs={12} md={4}>
+          <Select
+            value={sortBy}
+            onChange={onChangeSortBy}
+            style={{ width: "100%" }}
+            popupMatchSelectWidth={false}
+            dropdownStyle={{ minWidth: 160 }}
+            options={[
+              { value: "priority", label: t("cases.filters.sortByPriority") },
+              { value: "newest", label: t("cases.filters.sortByNewest") },
+              { value: "oldest", label: t("cases.filters.sortByOldest") },
             ]}
           />
         </Col>

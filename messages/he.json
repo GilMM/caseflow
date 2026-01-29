@@ -344,9 +344,13 @@
       "searchPlaceholder": "חפש לפי כותרת או מזהה…",
       "allQueues": "כל המחלקות",
       "allStatuses": "כל הסטטוסים",
+      "openStatuses": "כל הפניות הפתוחות",
       "allPriorities": "כל העדיפויות",
       "defaultQueue": "{name} (ברירת מחדל)",
-      "tip": "טיפ: לחץ על כרטיס פניה לפתיחת פרטים"
+      "tip": "טיפ: לחץ על כרטיס פניה לפתיחת פרטים",
+      "sortByPriority": "מיון לפי דחיפות",
+      "sortByNewest": "מיון לפי חדשים",
+      "sortByOldest": "מיון לפי ישנים"
     },
     "kpis": {
       "total": "סה\"כ",
