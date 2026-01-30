@@ -6,7 +6,8 @@ import { MailOutlined, PhoneOutlined, EnvironmentOutlined } from "@ant-design/ic
 import { useTranslations } from "next-intl";
 
 import ContactInlineActions from "./ContactInlineActions";
-import { initials, shortId, timeAgo } from "./contacts.utils";
+import { initials, timeAgo } from "./contacts.utils";
+import { caseKey } from "@/lib/ui/status";
 
 const { Text } = Typography;
 
@@ -110,7 +111,7 @@ export default function ContactsList({
 
                         <Space wrap size={12} style={{ width: "100%" }}>
                           <Text type="secondary" style={{ fontSize: 12 }}>
-                            {t("contacts.list.id", { id: shortId(c.id) })}
+                            {t("contacts.list.id", { id: caseKey(c.id, "CT") })}
                           </Text>
 
                           {c.email ? (
@@ -171,7 +172,7 @@ export default function ContactsList({
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     {t("contacts.list.nextHint")}
                   </Text>
-                  <Button type="link" style={{ padding: 0 }} onClick={onOpenFuture}>
+                  <Button type="link" style={{ padding: 0 }} onClick={() => onOpenFuture(c.id)}>
                     {t("contacts.list.open")}
                   </Button>
                 </Space>

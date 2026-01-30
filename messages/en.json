@@ -1116,6 +1116,33 @@
     }
   },
 
+  "contactDetails": {
+    "notFound": "Contact not found",
+    "notFoundSubtitle": "The contact does not exist or has been removed.",
+    "backToContacts": "Back to Contacts",
+    "info": "Contact Information",
+    "email": "Email",
+    "phone": "Phone",
+    "department": "Department",
+    "jobTitle": "Job title",
+    "location": "Location",
+    "notes": "Notes",
+    "relatedCases": "Related Cases",
+    "noCases": "No cases linked to this contact",
+    "toggleTooltip": "Toggle active / inactive",
+    "activated": "Contact activated",
+    "deactivated": "Contact deactivated",
+    "updated": "Contact updated",
+    "updateFailed": "Failed to update contact",
+    "loadFailed": "Failed to load contact",
+    "table": {
+      "title": "Title",
+      "status": "Status",
+      "priority": "Priority",
+      "created": "Created"
+    }
+  },
+
   "reports": {
     "title": "Reports",
     "subtitle": "Generate reports with filters, clean tables, and Excel export.",

@@ -1116,6 +1116,32 @@
       "save": "השמירה נכשלה"
     }
   },
+  "contactDetails": {
+    "notFound": "איש הקשר לא נמצא",
+    "notFoundSubtitle": "איש הקשר לא קיים או שהוסר.",
+    "backToContacts": "חזרה לאנשי קשר",
+    "info": "פרטי איש קשר",
+    "email": "אימייל",
+    "phone": "טלפון",
+    "department": "מחלקה",
+    "jobTitle": "תפקיד",
+    "location": "מיקום",
+    "notes": "הערות",
+    "relatedCases": "פניות קשורות",
+    "noCases": "אין פניות המקושרות לאיש קשר זה",
+    "toggleTooltip": "הפעל / השבת",
+    "activated": "איש הקשר הופעל",
+    "deactivated": "איש הקשר הושבת",
+    "updated": "איש הקשר עודכן",
+    "updateFailed": "עדכון איש הקשר נכשל",
+    "loadFailed": "טעינת איש הקשר נכשלה",
+    "table": {
+      "title": "כותרת",
+      "status": "סטטוס",
+      "priority": "דחיפות",
+      "created": "נוצר בתאריך"
+    }
+  },
   "reports": {
     "title": "דוחות",
     "subtitle": "הפק דוחות לפי פילטרים, טבלאות מסודרות וייצוא לאקסל.",

@@ -360,7 +360,7 @@ export default function ContactsPage() {
         onNewCase={(contactId) =>
           router.push(`/${locale}/cases/new?requester=${contactId}`)
         }
-                onOpenFuture={() => message.info("Next: /contacts/[id]")}
+        onOpenFuture={(contactId) => router.push(`/${locale}/contacts/${contactId}`)}
         onCreate={openCreate}
         hasMore={hasMore}
         loadingMore={loadingMore}

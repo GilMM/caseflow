@@ -7,9 +7,11 @@ export function initials(name) {
   return (a + b).toUpperCase() || "?";
 }
 
-export function shortId(id) {
-  if (!id) return "—";
-  return `${String(id).slice(0, 8)}…`;
+export function shortId(id, prefix = "CT") {
+  if (!id) return `${prefix}-—`;
+  const s = String(id).replace(/-/g, "");
+  const part = s.slice(-6).toUpperCase();
+  return `${prefix}-${part}`;
 }
 
 export function timeAgo(iso) {

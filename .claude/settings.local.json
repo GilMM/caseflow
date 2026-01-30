@@ -23,6 +23,9 @@
       "Bash(git -C \"c:\\\\Users\\\\GMesh\\\\caseflow\" log --oneline -20)",
       "Bash(dir /s /b \"c:\\\\Users\\\\GMesh\\\\caseflow\\\\src\\\\app\\\\*locale*\\\\*app*\\\\queues\")",
       "Bash(git mv:*)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\GMesh\\caseflow\\src\\app\\[locale]\\(app)\\contacts"
     ]
   }
 }
