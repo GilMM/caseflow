@@ -70,6 +70,15 @@
     "logout": "התנתק",
     "account": "חשבון"
   },
+  "notifications": {
+    "title": "התראות",
+    "empty": "אין התראות",
+    "markAllRead": "סמן הכל כנקרא",
+    "caseAssigned": "פניה הוקצתה אליך",
+    "caseUpdated": "פניה עודכנה",
+    "caseComment": "תגובה חדשה בפניה",
+    "caseStatusChanged": "סטטוס הפניה השתנה"
+  },
   "app": {
     "builtBy": "נבנה על ידי"
   },

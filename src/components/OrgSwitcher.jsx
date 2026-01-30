@@ -3,11 +3,12 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
-import { Dropdown, Button, Space, Typography, Avatar, Spin, App, theme } from "antd";
+import { Dropdown, Button, Space, Typography, Avatar, Spin, App, Grid, theme } from "antd";
 import { SwapOutlined, CheckOutlined, PlusOutlined } from "@ant-design/icons";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 const { Text } = Typography;
+const { useBreakpoint } = Grid;
 
 export default function OrgSwitcher() {
   const router = useRouter();
@@ -15,6 +16,8 @@ export default function OrgSwitcher() {
   const { token } = theme.useToken();
   const { message } = App.useApp();
   const t = useTranslations("orgSwitcher");
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   const { workspace, workspaces, switchWorkspace, loading } = useWorkspace();
   const [switching, setSwitching] = useState(false);
@@ -165,20 +168,22 @@ export default function OrgSwitcher() {
               </Avatar>
             )}
 
-            <Text
-              style={{
-                maxWidth: 110, // ✅ more mobile-friendly
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                fontSize: 13,
-                fontWeight: 600,
-              }}
-            >
-              {workspace.orgName}
-            </Text>
+            {!isMobile && (
+              <Text
+                style={{
+                  maxWidth: 110,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                {workspace.orgName}
+              </Text>
+            )}
 
-            <SwapOutlined style={{ fontSize: 10, opacity: 0.6, marginInlineStart: 2 }} />
+            <SwapOutlined style={{ fontSize: 10, opacity: 0.6, marginInlineStart: isMobile ? 0 : 2 }} />
           </Space>
         )}
       </Button>

@@ -40,6 +40,7 @@ import AnnouncementBanner from "@/app/[locale]/(app)/announcements/AnnouncementB
 import { useAnnouncements } from "@/app/[locale]/(app)/announcements/useAnnouncements";
 import { useLanguageSwitcher } from "@/components/LanguageSwitcher";
 import OrgSwitcher from "@/components/OrgSwitcher";
+import NotificationBell from "@/components/NotificationBell";
 import { locales } from "@/i18n/config";
 
 const { Header, Sider, Content } = Layout;
@@ -411,6 +412,7 @@ export default function AppShell({ children }) {
             </Space>
 
             <Space size={8}>
+              <NotificationBell />
               <OrgSwitcher />
 
               <Dropdown

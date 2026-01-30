@@ -70,6 +70,15 @@
     "logout": "Logout",
     "account": "Account"
   },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications",
+    "markAllRead": "Mark all as read",
+    "caseAssigned": "Case assigned to you",
+    "caseUpdated": "Case updated",
+    "caseComment": "New comment on case",
+    "caseStatusChanged": "Case status changed"
+  },
   "app": {
     "builtBy": "Built by"
   },

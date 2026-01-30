@@ -239,6 +239,13 @@ export async function addCaseNote({ caseId, orgId, body }) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
+  // Get case details for notification
+  const { data: caseData } = await supabase
+    .from("cases")
+    .select("title, assigned_to")
+    .eq("id", caseId)
+    .maybeSingle();
+
   const { data, error } = await supabase
     .from("case_activities")
     .insert({
@@ -263,6 +270,18 @@ export async function addCaseNote({ caseId, orgId, body }) {
       body_preview: String(body || "").slice(0, 200),
     },
   });
+
+  // Notify the assignee about the new comment
+  if (caseData?.assigned_to && caseData.assigned_to !== user.id) {
+    notifyCaseUpdated({
+      orgId,
+      caseId,
+      caseTitle: caseData.title,
+      assignedTo: caseData.assigned_to,
+      updatedBy: user.id,
+      updateType: "comment",
+    });
+  }
 }
 
 /** Update case status (activity is logged by DB trigger) */
@@ -274,7 +293,7 @@ export async function updateCaseStatus({ caseId, status }) {
 
   const { data: before, error: bErr } = await supabase
     .from("cases")
-    .select("id, org_id, status")
+    .select("id, org_id, status, title, assigned_to")
     .eq("id", caseId)
     .maybeSingle();
   if (bErr) throw bErr;
@@ -286,7 +305,7 @@ export async function updateCaseStatus({ caseId, status }) {
     .from("cases")
     .update({ status: toStatus })
     .eq("id", caseId)
-    .select("id, org_id, status")
+    .select("id, org_id, status, title, assigned_to")
     .single();
   if (upErr) throw upErr;
 
@@ -297,6 +316,18 @@ export async function updateCaseStatus({ caseId, status }) {
     action: "case_status_changed",
     changes: { from: before?.status || null, to: after.status },
   });
+
+  // Notify the assignee about the status change
+  if (after.assigned_to && after.assigned_to !== user.id) {
+    notifyCaseUpdated({
+      orgId: after.org_id,
+      caseId,
+      caseTitle: after.title,
+      assignedTo: after.assigned_to,
+      updatedBy: user.id,
+      updateType: "status",
+    });
+  }
 
   // 🔁 Push back to Sheet (best-effort)
   try {
@@ -533,7 +564,7 @@ export async function assignCase({ caseId, toUserId }) {
 
   const { data: before, error: bErr } = await supabase
     .from("cases")
-    .select("id, org_id, assigned_to")
+    .select("id, org_id, assigned_to, title")
     .eq("id", caseId)
     .maybeSingle();
   if (bErr) throw bErr;
@@ -542,7 +573,7 @@ export async function assignCase({ caseId, toUserId }) {
     .from("cases")
     .update({ assigned_to: toUserId || null })
     .eq("id", caseId)
-    .select("id, org_id, assigned_to")
+    .select("id, org_id, assigned_to, title")
     .single();
 
   if (upErr) throw upErr;
@@ -557,6 +588,17 @@ export async function assignCase({ caseId, toUserId }) {
       to: after.assigned_to || null,
     },
   });
+
+  // Notify the new assignee
+  if (toUserId && toUserId !== before?.assigned_to) {
+    notifyCaseAssigned({
+      orgId: after.org_id,
+      caseId,
+      caseTitle: after.title,
+      toUserId,
+      fromUserId: user.id,
+    });
+  }
 }
 
 export async function addOrgMember({ orgId, userId, role = "viewer" }) {
@@ -1520,4 +1562,78 @@ export async function getCasesByQueue(queueId, { limit = 50 } = {}) {
 
   if (error) throw error;
   return data || [];
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Notifications
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Create a notification for a user.
+ */
+export async function createNotification({
+  orgId,
+  userId,
+  type,
+  title,
+  body = null,
+  caseId = null,
+}) {
+  if (!orgId || !userId || !type || !title) return;
+
+  const user = await getCurrentUser();
+
+  try {
+    const { error } = await supabase.from("notifications").insert({
+      org_id: orgId,
+      user_id: userId,
+      type,
+      title,
+      body,
+      case_id: caseId,
+      created_by: user?.id || null,
+    });
+
+    if (error) console.error("Failed to create notification:", error);
+  } catch (err) {
+    console.error("Failed to create notification:", err);
+  }
+}
+
+/**
+ * Create notifications for case assignment.
+ */
+export async function notifyCaseAssigned({ orgId, caseId, caseTitle, toUserId, fromUserId }) {
+  if (!toUserId || toUserId === fromUserId) return;
+
+  await createNotification({
+    orgId,
+    userId: toUserId,
+    type: "case_assigned",
+    title: caseTitle || "New case assigned",
+    body: "A case has been assigned to you",
+    caseId,
+  });
+}
+
+/**
+ * Create notifications for case updates (to assignee).
+ */
+export async function notifyCaseUpdated({ orgId, caseId, caseTitle, assignedTo, updatedBy, updateType }) {
+  if (!assignedTo || assignedTo === updatedBy) return;
+
+  const typeMap = {
+    status: "case_status_changed",
+    comment: "case_comment",
+    default: "case_updated",
+  };
+
+  await createNotification({
+    orgId,
+    userId: assignedTo,
+    type: typeMap[updateType] || typeMap.default,
+    title: caseTitle || "Case updated",
+    body: updateType === "status" ? "Status was changed" : updateType === "comment" ? "New comment added" : "Case was updated",
+    caseId,
+  });
 }
