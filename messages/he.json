@@ -430,6 +430,7 @@
     "status": {
       "new": "חדש",
       "inProgress": "בטיפול",
+      "in_progress": "בטיפול",
       "waitingCustomer": "ממתין ללקוח",
       "waiting_customer": "ממתין ללקוח",
       "resolved": "נפתר",

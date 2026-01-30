@@ -431,6 +431,7 @@
     "status": {
       "new": "New",
       "inProgress": "In progress",
+      "in_progress": "In progress",
       "waitingCustomer": "Waiting for customer",
       "waiting_customer": "Waiting for customer",
       "resolved": "Resolved",
