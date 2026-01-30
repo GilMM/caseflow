@@ -364,7 +364,7 @@ export default function CaseAttachments({
           </Upload>
 
           <Text type="secondary" style={{ fontSize: 12, display: "block", marginTop: 6 }}>
-            {t("attachments.hint") || "Images and PDF up to 10MB. Max files:"} {maxFiles}
+            {t("attachments.hint", { max: maxFiles })}
           </Text>
         </div>
       ) : null}

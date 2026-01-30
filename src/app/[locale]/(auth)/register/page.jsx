@@ -131,7 +131,7 @@ export default function RegisterPage() {
                 { min: 2, message: t("fullNameTooShort") },
               ]}
             >
-              <Input prefix={<UserOutlined />} placeholder={t("fullNamePlaceholder")} autoComplete="name" />
+              <Input prefix={<UserOutlined />} placeholder={t("fullNamePlaceholder")} autoComplete="name" maxLength={15} />
             </Form.Item>
 
             <Form.Item

@@ -62,7 +62,7 @@ export default function ProfileCard({ sessionUser, profile, onSaveProfile, onUpl
 
       <Form form={profileForm} layout="vertical" onFinish={onSaveProfile} requiredMark={false}>
         <Form.Item label={t("settings.profile.displayName")} name="full_name" rules={[{ min: 2, message: t("settings.profile.tooShort") }]}>
-          <Input placeholder={t("settings.profile.placeholder")} />
+          <Input placeholder={t("settings.profile.placeholder")} maxLength={15} />
         </Form.Item>
 
         <Form.Item label={t("settings.profile.avatar")}>

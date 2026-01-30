@@ -254,6 +254,7 @@ export default function NewOrganizationPage() {
                 disabled={busy}
                 autoComplete="organization"
                 size="large"
+                maxLength={15}
               />
             </Form.Item>
 

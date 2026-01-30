@@ -100,7 +100,7 @@ export default function OrgSettingsCard({
             { min: 2, message: t("settings.org.tooShort") },
           ]}
         >
-          <Input placeholder={t("settings.org.placeholder")} />
+          <Input placeholder={t("settings.org.placeholder")} maxLength={15} />
         </Form.Item>
 
         <Form.Item label={t("settings.org.logo")}>

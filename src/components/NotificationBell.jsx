@@ -8,6 +8,7 @@ import {
   Button,
   Dropdown,
   Empty,
+  Grid,
   List,
   Spin,
   Typography,
@@ -43,6 +44,9 @@ export default function NotificationBell() {
   const { locale } = useLocaleContext();
   const { user } = useUser();
   const t = useTranslations("notifications");
+
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
 
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -147,8 +151,9 @@ export default function NotificationBell() {
   const dropdownContent = (
     <div
       style={{
-        width: 360,
-        maxHeight: 440,
+        width: isMobile ? "calc(100vw - 32px)" : 360,
+        maxWidth: 360,
+        maxHeight: isMobile ? "70vh" : 440,
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
@@ -292,10 +297,14 @@ export default function NotificationBell() {
   return (
     <Dropdown
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (nextOpen && unreadCount > 0) markAllAsRead();
+      }}
       trigger={["click"]}
       placement="bottomRight"
       dropdownRender={() => dropdownContent}
+      overlayStyle={isMobile ? { position: "fixed", left: 16, right: 16, width: "auto" } : undefined}
     >
       <Badge count={unreadCount} size="small" offset={[-4, 4]}>
         <Button
