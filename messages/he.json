@@ -1063,7 +1063,8 @@
         "connect": "התחבר ל-Google",
         "enable": "הפעל אינטגרציית Gmail",
         "disable": "כבה",
-        "refresh": "רענן"
+        "refresh": "רענן",
+        "checkNow": "בדוק עכשיו"
       },
       "state": {
         "connect": {

@@ -1057,7 +1057,8 @@
         "connect": "Connect Google",
         "enable": "Enable Gmail Integration",
         "disable": "Disable",
-        "refresh": "Refresh"
+        "refresh": "Refresh",
+        "checkNow": "Check Now"
       },
       "state": {
         "connect": {

@@ -216,6 +216,33 @@ export default function GmailIntegrationCard({
     }
   }
 
+  async function onCheckNow() {
+    setUiError(null);
+    setBusyAction("check");
+
+    try {
+      const data = await safeFetchJson(`/api/integrations/gmail/check-now`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId: safeOrgId }),
+      });
+
+      const parts = [];
+      if (data?.created > 0) parts.push(`${data.created} cases created`);
+      if (data?.skipped > 0) parts.push(`${data.skipped} skipped`);
+      if (data?.errors > 0) parts.push(`${data.errors} errors`);
+      if (parts.length === 0) parts.push("No new emails");
+
+      message.success(parts.join(", "));
+      await loadStatus();
+    } catch (e) {
+      setUiError(e?.message || "Check failed");
+      message.error(e?.message || "Check failed");
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
   async function onDisable() {
     setUiError(null);
     setBusyAction("disable");
@@ -456,6 +483,14 @@ export default function GmailIntegrationCard({
         </div>
 
         <Space wrap>
+          <Button
+            type="primary"
+            icon={<MailOutlined />}
+            loading={busyAction === "check"}
+            onClick={onCheckNow}
+          >
+            {tx("actions.checkNow", "Check Now")}
+          </Button>
           <Button
             icon={<ReloadOutlined />}
             onClick={() => loadStatus()}
