@@ -1,3 +1,4 @@
+// components/NotificationBell.jsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -38,7 +39,7 @@ const NOTIFICATION_ICONS = {
   default: <InboxOutlined />,
 };
 
-export default function NotificationBell() {
+export default function NotificationBell({ buttonStyle }) {
   const router = useRouter();
   const { token } = theme.useToken();
   const { locale } = useLocaleContext();
@@ -74,12 +75,10 @@ export default function NotificationBell() {
     }
   }, [user?.id]);
 
-  // Initial fetch
   useEffect(() => {
     fetchNotifications();
   }, [fetchNotifications]);
 
-  // Real-time subscription
   useEffect(() => {
     if (!user?.id) return;
 
@@ -87,34 +86,21 @@ export default function NotificationBell() {
       .channel("notifications-realtime")
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${user.id}`,
-        },
+        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
         (payload) => {
           setNotifications((prev) => [payload.new, ...prev].slice(0, 20));
         }
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => supabase.removeChannel(channel);
   }, [user?.id]);
 
   const markAsRead = async (notificationId) => {
     try {
-      await supabase
-        .from("notifications")
-        .update({ is_read: true })
-        .eq("id", notificationId);
-
+      await supabase.from("notifications").update({ is_read: true }).eq("id", notificationId);
       setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === notificationId ? { ...n, is_read: true } : n
-        )
+        prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
       );
     } catch (err) {
       console.error("Failed to mark as read:", err);
@@ -125,12 +111,7 @@ export default function NotificationBell() {
     if (!user?.id) return;
 
     try {
-      await supabase
-        .from("notifications")
-        .update({ is_read: true })
-        .eq("user_id", user.id)
-        .eq("is_read", false);
-
+      await supabase.from("notifications").update({ is_read: true }).eq("user_id", user.id).eq("is_read", false);
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     } catch (err) {
       console.error("Failed to mark all as read:", err);
@@ -138,10 +119,7 @@ export default function NotificationBell() {
   };
 
   const handleNotificationClick = (notification) => {
-    if (!notification.is_read) {
-      markAsRead(notification.id);
-    }
-
+    if (!notification.is_read) markAsRead(notification.id);
     if (notification.case_id) {
       router.push(`/${locale}/cases/${notification.case_id}`);
       setOpen(false);
@@ -162,7 +140,6 @@ export default function NotificationBell() {
         boxShadow: token.boxShadowSecondary,
       }}
     >
-      {/* Header */}
       <div
         style={{
           padding: "12px 16px",
@@ -182,18 +159,13 @@ export default function NotificationBell() {
         )}
       </div>
 
-      {/* List */}
       <div style={{ flex: 1, overflowY: "auto" }}>
         {loading ? (
           <div style={{ padding: 40, textAlign: "center" }}>
             <Spin />
           </div>
         ) : notifications.length === 0 ? (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={t("empty")}
-            style={{ padding: "40px 20px" }}
-          />
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("empty")} style={{ padding: "40px 20px" }} />
         ) : (
           <List
             dataSource={notifications}
@@ -203,19 +175,9 @@ export default function NotificationBell() {
                 style={{
                   padding: "12px 16px",
                   cursor: "pointer",
-                  background: item.is_read
-                    ? "transparent"
-                    : token.colorPrimaryBg,
+                  background: item.is_read ? "transparent" : token.colorPrimaryBg,
                   borderBottom: `1px solid ${token.colorBorderSecondary}`,
                   transition: "background 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = token.colorFillSecondary;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = item.is_read
-                    ? "transparent"
-                    : token.colorPrimaryBg;
                 }}
               >
                 <div style={{ display: "flex", gap: 12, width: "100%" }}>
@@ -224,9 +186,7 @@ export default function NotificationBell() {
                       width: 32,
                       height: 32,
                       borderRadius: 8,
-                      background: item.is_read
-                        ? token.colorFillSecondary
-                        : token.colorPrimary,
+                      background: item.is_read ? token.colorFillSecondary : token.colorPrimary,
                       color: item.is_read ? token.colorTextSecondary : "#fff",
                       display: "flex",
                       alignItems: "center",
@@ -234,9 +194,9 @@ export default function NotificationBell() {
                       flexShrink: 0,
                     }}
                   >
-                    {NOTIFICATION_ICONS[item.type] ||
-                      NOTIFICATION_ICONS.default}
+                    {NOTIFICATION_ICONS[item.type] || NOTIFICATION_ICONS.default}
                   </div>
+
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                       style={{
@@ -263,16 +223,11 @@ export default function NotificationBell() {
                         {item.body}
                       </div>
                     )}
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: token.colorTextTertiary,
-                        marginTop: 4,
-                      }}
-                    >
+                    <div style={{ fontSize: 11, color: token.colorTextTertiary, marginTop: 4 }}>
                       {timeAgo(item.created_at)}
                     </div>
                   </div>
+
                   {!item.is_read && (
                     <div
                       style={{
@@ -303,21 +258,19 @@ export default function NotificationBell() {
       }}
       trigger={["click"]}
       placement="bottomRight"
-      dropdownRender={() => dropdownContent}
+      popupRender ={() => dropdownContent}
       overlayStyle={isMobile ? { position: "fixed", left: 16, right: 16, width: "auto" } : undefined}
     >
       <Badge count={unreadCount} size="small" offset={[-4, 4]}>
         <Button
           icon={<BellOutlined style={{ fontSize: 16 }} />}
           style={{
-            height: 32,
-            borderRadius: 10,
-            border: `1px solid ${token.colorBorder}`,
-            display: "flex",
-            alignItems: "center",
+            buttonStyle, // ✅ unified style
             justifyContent: "center",
-            padding: "4px 10px",
+            width: 40, // bell is icon-only → consistent width
+            paddingInline: 0,
           }}
+          aria-label={t("title")}
         />
       </Badge>
     </Dropdown>

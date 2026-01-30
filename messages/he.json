@@ -765,7 +765,8 @@
       "organization": "ארגון",
       "integrations": "אינטגרציות",
       "security": "אבטחה",
-      "dangerZone": "אזור מסוכן"
+      "dangerZone": "אזור מסוכן",
+      "announcements": "הודעות מערכת"
     },
     "profile": {
       "title": "פרופיל",
@@ -797,8 +798,12 @@
       "placeholder": "הזן שם ארגון",
       "nameRequired": "שם הארגון הוא חובה",
       "tooShort": "קצר מדי (לפחות 2 תווים)",
-      "updateHint": "עדכן את שם הארגון והלוגו",
+      "updateHint": "עדכן את שם הארגון, מייל ולוגו",
       "saveOrganization": "שמור ארגון",
+      "email": "מייל החברה",
+      "emailPlaceholder": "לדוגמה: support@company.com",
+      "emailInvalid": "יש להזין כתובת מייל תקינה",
+      "emailHint": "מיילים שיגיעו לכתובת הזו ייפתחו כפניות באופן אוטומטי.",
       "logo": "לוגו",
       "uploadLogo": "העלה לוגו",
       "storedIn": "מאוחסן ב-Supabase Storage"
@@ -1041,6 +1046,64 @@
         "installFailed": "ההתקנה נכשלה",
         "installEndpointMissing": "ה-API של התקנת הסקריפט עדיין לא קיים. צור את ה-endpoint ונסה שוב.",
         "disconnectFailed": "הניתוק נכשל"
+      }
+    },
+    "gmail": {
+      "card": {
+        "title": "אינטגרציית Gmail",
+        "subtitle": "צור פניות אוטומטית ממיילים נכנסים"
+      },
+      "tags": {
+        "notConnected": "לא מחובר",
+        "connected": "מחובר",
+        "enabled": "פעיל",
+        "disabled": "כבוי"
+      },
+      "actions": {
+        "connect": "התחבר ל-Google",
+        "enable": "הפעל אינטגרציית Gmail",
+        "disable": "כבה",
+        "refresh": "רענן"
+      },
+      "state": {
+        "connect": {
+          "title": "Google לא מחובר",
+          "desc": "חבר חשבון Google עם גישה ל-Gmail כדי ליצור פניות אוטומטית ממיילים נכנסים."
+        },
+        "setup": {
+          "title": "Gmail מוכן להפעלה",
+          "desc": "בחר מחלקת ברירת מחדל לפניות מדוא\"ל, ואז הפעל את האינטגרציה."
+        },
+        "active": {
+          "title": "אינטגרציית Gmail פעילה",
+          "desc": "מיילים חדשים מומרים לפניות אוטומטית."
+        }
+      },
+      "fields": {
+        "defaultQueue": {
+          "label": "מחלקת ברירת מחדל",
+          "placeholder": "בחר מחלקת ברירת מחדל",
+          "help": "מיילים נכנסים ייצרו פניות במחלקה זו."
+        }
+      },
+      "labels": {
+        "lastPolled": "בדיקה אחרונה",
+        "emailsProcessed": "מיילים שעובדו",
+        "status": "סטטוס",
+        "never": "אף פעם",
+        "justNow": "ממש עכשיו"
+      },
+      "messages": {
+        "pickDefaultQueue": "בחר מחלקה לפני ההפעלה.",
+        "enabled": "אינטגרציית Gmail הופעלה. מיילים ייבדקו כל 2 דקות.",
+        "disabled": "אינטגרציית Gmail כובתה.",
+        "refreshed": "הסטטוס רוענן."
+      },
+      "errors": {
+        "uiTitle": "שגיאה",
+        "loadStatus": "נכשל בטעינת סטטוס Gmail",
+        "enableFailed": "הפעלת אינטגרציית Gmail נכשלה",
+        "disableFailed": "כיבוי אינטגרציית Gmail נכשל"
       }
     }
   },

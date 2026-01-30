@@ -27,13 +27,12 @@ import {
   Grid,
   Menu,
   Row,
-  Segmented,
   Space,
   Spin,
   Tag,
   Tooltip,
   Typography,
-  Dropdown 
+  Dropdown,
 } from "antd";
 
 import {
@@ -46,7 +45,8 @@ import {
   ApiOutlined,
   SafetyOutlined,
   DeleteOutlined,
-  DownOutlined 
+  DownOutlined,
+  NotificationOutlined,
 } from "@ant-design/icons";
 
 import ProfileCard from "./_components/ProfileCard";
@@ -56,6 +56,7 @@ import SecurityCard from "./_components/SecurityCard";
 import { getExt } from "./_components/helpers";
 import AnnouncementsManager from "./_components/AnnouncementsManager";
 import GoogleSheetsIntegrationCard from "./_components/GoogleSheetsIntegrationCard";
+import GmailIntegrationCard from "./_components/GmailIntegrationCard";
 import DeleteOrganizationCard from "./_components/DeleteOrganizationCard";
 
 const { Title, Text } = Typography;
@@ -64,6 +65,7 @@ const { useBreakpoint } = Grid;
 const SECTION = {
   PROFILE: "profile",
   ORG: "org",
+  ANNOUNCEMENTS: "announcements",
   INTEGRATIONS: "integrations",
   SECURITY: "security",
   DANGER: "danger",
@@ -371,6 +373,11 @@ export default function SettingsPage() {
         label: t("settings.header.organization") ?? "Organization",
       },
       {
+        key: SECTION.ANNOUNCEMENTS,
+        icon: <NotificationOutlined />,
+        label: t("settings.header.announcements") ?? "Announcements",
+      },
+      {
         key: SECTION.INTEGRATIONS,
         icon: <ApiOutlined />,
         label: t("settings.header.integrations") ?? "Integrations",
@@ -392,42 +399,6 @@ export default function SettingsPage() {
     }
 
     return items;
-  }, [t, isOwner]);
-
-  // Mobile control: friendly segmented tabs instead of hamburger
-  const mobileSegments = useMemo(() => {
-    const base = [
-      {
-        label: t("settings.header.profile") ?? "Profile",
-        value: SECTION.PROFILE,
-        icon: <UserOutlined />,
-      },
-      {
-        label: t("settings.header.organization") ?? "Org",
-        value: SECTION.ORG,
-        icon: <AppstoreOutlined />,
-      },
-      {
-        label: t("settings.header.integrations") ?? "Integrations",
-        value: SECTION.INTEGRATIONS,
-        icon: <ApiOutlined />,
-      },
-      {
-        label: t("settings.header.security") ?? "Security",
-        value: SECTION.SECURITY,
-        icon: <SafetyOutlined />,
-      },
-    ];
-
-    if (isOwner) {
-      base.push({
-        label: t("settings.header.dangerZone") ?? "Danger",
-        value: SECTION.DANGER,
-        icon: <DeleteOutlined />,
-      });
-    }
-
-    return base;
   }, [t, isOwner]);
 
   function renderSection() {
@@ -468,15 +439,6 @@ export default function SettingsPage() {
               }
             />
 
-            {/* ✅ Announcements belong here (org communication), not integrations */}
-            {isAdmin && hasOrg ? (
-              <AnnouncementsManager
-                orgId={resolvedOrgId}
-                isAdmin={isAdmin}
-                isMobile={isMobile}
-              />
-            ) : null}
-
             {isAdmin && hasOrg ? (
               <OrgSettingsCard
                 workspace={workspace}
@@ -492,6 +454,33 @@ export default function SettingsPage() {
           </Space>
         );
 
+      case SECTION.ANNOUNCEMENTS:
+        return (
+          <Space direction="vertical" size={12} style={{ width: "100%" }}>
+            <Title level={5} style={{ margin: 0 }}>
+              {t("settings.header.announcements") ?? "Announcements"}
+            </Title>
+
+            {isAdmin && hasOrg ? (
+              <AnnouncementsManager
+                orgId={resolvedOrgId}
+                isAdmin={isAdmin}
+                isMobile={isMobile}
+              />
+            ) : (
+              <Alert
+                type="info"
+                showIcon
+                message={t("settings.users.adminsOnly") ?? "Admins only"}
+                description={
+                  t("settings.messages.adminsOnlyManage") ??
+                  "Only admins can manage announcements."
+                }
+              />
+            )}
+          </Space>
+        );
+
       case SECTION.INTEGRATIONS:
         return (
           <Space direction="vertical" size={12} style={{ width: "100%" }}>
@@ -500,12 +489,20 @@ export default function SettingsPage() {
             </Title>
 
             {isAdmin && hasOrg ? (
-              <GoogleSheetsIntegrationCard
-                orgId={resolvedOrgId}
-                queues={queues}
-                returnTo={`/${locale}/settings`}
-                isMobile={isMobile}
-              />
+              <>
+                <GoogleSheetsIntegrationCard
+                  orgId={resolvedOrgId}
+                  queues={queues}
+                  returnTo={`/${locale}/settings`}
+                  isMobile={isMobile}
+                />
+                <GmailIntegrationCard
+                  orgId={resolvedOrgId}
+                  queues={queues}
+                  returnTo={`/${locale}/settings`}
+                  isMobile={isMobile}
+                />
+              </>
             ) : (
               <Alert
                 type="info"
@@ -593,6 +590,8 @@ export default function SettingsPage() {
       />
     </Space>
   );
+
+  const activeItem = menuItems.find((x) => x.key === active);
 
   return (
     <Spin spinning={loading} size="large">
@@ -685,7 +684,7 @@ export default function SettingsPage() {
           </Card>
         ) : null}
 
-        {/* Mobile: segmented control for sections (friendly) */}
+        {/* Mobile: dropdown for sections */}
         {isMobile ? (
           <Card style={{ borderRadius: 16 }}>
             <Space direction="vertical" size={8} style={{ width: "100%" }}>
@@ -717,10 +716,8 @@ export default function SettingsPage() {
                   }}
                 >
                   <Space size={10}>
-                    {menuItems.find((x) => x.key === active)?.icon}
-                    <span>
-                      {menuItems.find((x) => x.key === active)?.label}
-                    </span>
+                    {activeItem?.icon}
+                    <span>{activeItem?.label}</span>
                   </Space>
                   <DownOutlined />
                 </Button>

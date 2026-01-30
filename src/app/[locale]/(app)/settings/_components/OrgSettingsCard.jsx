@@ -1,7 +1,7 @@
 // src/app/(app)/settings/_components/OrgSettingsCard.jsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Avatar,
   Button,
@@ -19,6 +19,7 @@ import {
 } from "antd";
 import { EditOutlined, UploadOutlined } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
+import { supabase } from "@/lib/supabase/client";
 import { initials, safeSrc } from "./helpers";
 
 const { Text } = Typography;
@@ -37,12 +38,25 @@ export default function OrgSettingsCard({
   const { token } = theme.useToken();
   const [orgForm] = Form.useForm();
 
+  const [orgEmail, setOrgEmail] = useState("");
+
   useEffect(() => {
     if (!workspace?.orgId) return;
 
-    orgForm.setFieldsValue({
-      name: workspace?.orgName || "",
-    });
+    orgForm.setFieldsValue({ name: workspace?.orgName || "" });
+
+    // fetch email separately (column may not exist yet)
+    supabase
+      .from("organizations")
+      .select("email")
+      .eq("id", workspace.orgId)
+      .maybeSingle()
+      .then(({ data }) => {
+        const email = data?.email || "";
+        setOrgEmail(email);
+        orgForm.setFieldsValue({ email });
+      })
+      .catch(() => {});
   }, [orgForm, workspace?.orgId, workspace?.orgName]);
 
   const logoSrc = safeSrc(orgLogoUrl, logoBust);
@@ -101,6 +115,17 @@ export default function OrgSettingsCard({
           ]}
         >
           <Input placeholder={t("settings.org.placeholder")} maxLength={15} />
+        </Form.Item>
+
+        <Form.Item
+          name="email"
+          label={t("settings.org.email")}
+          rules={[
+            { type: "email", message: t("settings.org.emailInvalid") },
+          ]}
+          extra={<Text type="secondary" style={{ fontSize: 12 }}>{t("settings.org.emailHint")}</Text>}
+        >
+          <Input type="email" placeholder={t("settings.org.emailPlaceholder")} />
         </Form.Item>
 
         <Form.Item label={t("settings.org.logo")}>

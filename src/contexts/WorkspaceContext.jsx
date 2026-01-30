@@ -84,21 +84,22 @@ export function WorkspaceProvider({ children }) {
       if (uwErr) throw uwErr;
       if (uw?.active_org_id) activeOrgId = uw.active_org_id;
 
-      // helper: fetch a valid membership (active + org not deleted)
+      // helper: fetch a valid membership FOR THIS USER (active + org not deleted)
       async function fetchMembershipForOrg(orgId) {
         const { data, error } = await supabase
           .from("org_memberships")
           .select(
-            "org_id, role, is_active, created_at, organizations:org_id ( id, name, logo_url, owner_user_id, deleted_at )"
+            "org_id, user_id, role, is_active, created_at, organizations:org_id ( id, name, logo_url, owner_user_id, deleted_at )"
           )
-          .eq("is_active", true)
           .eq("org_id", orgId)
+          .eq("user_id", currentUserId) // ✅ CRITICAL FIX
+          .eq("is_active", true)
           .order("created_at", { ascending: false })
-          .limit(1);
+          .maybeSingle();
 
         if (error) throw error;
 
-        const m = data?.[0] || null;
+        const m = data || null;
         if (!m) return null;
 
         // ✅ org deleted? ignore
@@ -113,21 +114,21 @@ export function WorkspaceProvider({ children }) {
         m = await fetchMembershipForOrg(activeOrgId);
       }
 
-      // 4) Fallback: pick latest active membership with org not deleted
+      // 4) Fallback: pick latest active membership for THIS USER with org not deleted
       if (!m) {
         const { data, error } = await supabase
           .from("org_memberships")
           .select(
-            "org_id, role, is_active, created_at, organizations:org_id ( id, name, logo_url, owner_user_id, deleted_at )"
+            "org_id, user_id, role, is_active, created_at, organizations:org_id ( id, name, logo_url, owner_user_id, deleted_at )"
           )
+          .eq("user_id", currentUserId) // ✅ CRITICAL FIX
           .eq("is_active", true)
           .order("created_at", { ascending: false })
           .limit(10);
 
         if (error) throw error;
 
-        m =
-          (data || []).find((row) => !row.organizations?.deleted_at) || null;
+        m = (data || []).find((row) => !row.organizations?.deleted_at) || null;
 
         // persist fallback as active
         if (m?.org_id) {
@@ -155,7 +156,7 @@ export function WorkspaceProvider({ children }) {
         orgLogoUrl: m.organizations?.logo_url || null,
         role: m.role,
         ownerUserId: m.organizations?.owner_user_id || null,
-        orgDeletedAt: m.organizations?.deleted_at || null, // useful for UI if needed
+        orgDeletedAt: m.organizations?.deleted_at || null,
       };
 
       setCachedWorkspace(result);
@@ -180,10 +181,9 @@ export function WorkspaceProvider({ children }) {
           role: m.role,
           isActive: m.is_active,
           ownerUserId: m.organizations?.owner_user_id || null,
-          // ✅ if your getMyWorkspaces includes deleted_at it will land here; if not, stays null
           deletedAt: m.organizations?.deleted_at || null,
         }))
-        .filter((ws) => !ws.deletedAt); // ✅ hide deleted orgs from switcher list
+        .filter((ws) => !ws.deletedAt);
 
       setWorkspaces(transformed);
       return transformed;
@@ -243,7 +243,6 @@ export function WorkspaceProvider({ children }) {
           throw new Error(data?.error || "Failed to switch org");
         }
 
-        // Clear caches and refetch
         invalidateWorkspaceCache();
         membersCache = { data: null, orgId: null, timestamp: 0 };
 
@@ -252,9 +251,7 @@ export function WorkspaceProvider({ children }) {
           await fetchMembers(ws.orgId);
         }
 
-        // refresh list too (so deleted orgs disappear immediately)
         fetchAllWorkspaces();
-
         return ws;
       } catch (e) {
         console.error("Failed to switch workspace:", e);
@@ -339,10 +336,16 @@ export function WorkspaceProvider({ children }) {
   }, [fetchWorkspace, fetchMembers, fetchAllWorkspaces]);
 
   const isOwner = useMemo(() => {
-    return !!userId && !!workspace?.ownerUserId && userId === workspace.ownerUserId;
+    return (
+      !!userId &&
+      !!workspace?.ownerUserId &&
+      userId === workspace.ownerUserId
+    );
   }, [userId, workspace?.ownerUserId]);
 
   const isAdmin = useMemo(() => {
+    // אם אצלך supervisor נחשב admin בפועל, תוסיף כאן:
+    // return workspace?.role === "admin" || workspace?.role === "supervisor" || isOwner;
     return workspace?.role === "admin" || isOwner;
   }, [workspace?.role, isOwner]);
 

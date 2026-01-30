@@ -756,6 +756,7 @@ export async function removeOrgMember({ orgId, userId }) {
 export async function updateOrgSettings({
   orgId,
   name,
+  email = undefined,
   logoUrl = null,
   dashboardUpdate = null,
 }) {
@@ -772,6 +773,10 @@ export async function updateOrgSettings({
     .maybeSingle();
 
   const payload = { name, logo_url: logoUrl };
+
+  if (email !== undefined) {
+    payload.email = email || null;
+  }
 
   if (dashboardUpdate !== null && dashboardUpdate !== undefined) {
     payload.dashboard_update = dashboardUpdate;

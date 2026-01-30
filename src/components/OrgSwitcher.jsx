@@ -1,3 +1,4 @@
+// components/OrgSwitcher.jsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -10,7 +11,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
-export default function OrgSwitcher() {
+export default function OrgSwitcher({ buttonStyle }) {
   const router = useRouter();
   const locale = useLocale();
   const { token } = theme.useToken();
@@ -22,12 +23,11 @@ export default function OrgSwitcher() {
   const { workspace, workspaces, switchWorkspace, loading } = useWorkspace();
   const [switching, setSwitching] = useState(false);
 
-  // ✅ Defensive: filter deleted orgs if the context provides a deleted flag
   const visibleWorkspaces = useMemo(() => {
     const list = Array.isArray(workspaces) ? workspaces : [];
     return list.filter((ws) => {
-      // support multiple possible names, without breaking if none exist
-      const deletedAt = ws?.orgDeletedAt || ws?.deletedAt || ws?.organizations?.deleted_at || null;
+      const deletedAt =
+        ws?.orgDeletedAt || ws?.deletedAt || ws?.organizations?.deleted_at || null;
       return !deletedAt;
     });
   }, [workspaces]);
@@ -39,7 +39,6 @@ export default function OrgSwitcher() {
     try {
       await switchWorkspace(orgId);
       message.success(t("switched"));
-      // safest refresh for multi-tenant context changes
       window.location.reload();
     } catch (e) {
       message.error(e?.message || t("switchFailed"));
@@ -102,16 +101,8 @@ export default function OrgSwitcher() {
         ),
       })),
       { type: "divider" },
-      {
-        key: "create",
-        icon: <PlusOutlined />,
-        label: t("createNew"),
-      },
-      {
-        key: "join",
-        icon: <SwapOutlined />,
-        label: t("joinExisting"),
-      },
+      { key: "create", icon: <PlusOutlined />, label: t("createNew") },
+      { key: "join", icon: <SwapOutlined />, label: t("joinExisting") },
     ];
 
     return items;
@@ -122,7 +113,6 @@ export default function OrgSwitcher() {
     if (key === "join") return handleJoinOrg();
     if (key === "header") return;
 
-    // ignore divider clicks etc.
     const isOrg = visibleWorkspaces.some((ws) => ws.orgId === key);
     if (isOrg) handleSwitch(key);
   };
@@ -139,13 +129,8 @@ export default function OrgSwitcher() {
     >
       <Button
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "4px 10px",
-          height: 32,
-          borderRadius: 10,
-          border: `1px solid ${token.colorBorder}`,
+          ...buttonStyle, // ✅ unified style from AppShell
+          justifyContent: "space-between",
         }}
       >
         {switching ? (
@@ -171,7 +156,7 @@ export default function OrgSwitcher() {
             {!isMobile && (
               <Text
                 style={{
-                  maxWidth: 110,
+                  maxWidth: 120,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -183,7 +168,7 @@ export default function OrgSwitcher() {
               </Text>
             )}
 
-            <SwapOutlined style={{ fontSize: 10, opacity: 0.6, marginInlineStart: isMobile ? 0 : 2 }} />
+            <SwapOutlined style={{ fontSize: 10, opacity: 0.6 }} />
           </Space>
         )}
       </Button>

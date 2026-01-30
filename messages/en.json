@@ -759,7 +759,8 @@
       "organization": "Organization",
       "integrations": "Integrations",
       "security": "Security",
-      "dangerZone": "Danger Zone"
+      "dangerZone": "Danger Zone",
+      "announcements": "Announcements"
     },
     "profile": {
       "title": "Profile",
@@ -791,8 +792,12 @@
       "placeholder": "Enter organization name",
       "nameRequired": "Organization name is required",
       "tooShort": "Too short (min 2 characters)",
-      "updateHint": "Update organization name and logo",
+      "updateHint": "Update organization name, email and logo",
       "saveOrganization": "Save organization",
+      "email": "Company email",
+      "emailPlaceholder": "e.g., support@company.com",
+      "emailInvalid": "Please enter a valid email address",
+      "emailHint": "Incoming emails to this address will create cases automatically.",
       "logo": "Logo",
       "uploadLogo": "Upload logo",
       "storedIn": "Stored in Supabase Storage"
@@ -1035,6 +1040,64 @@
         "installFailed": "Install failed",
         "installEndpointMissing": "The Install Script API doesn't exist yet. Create the endpoint and try again.",
         "disconnectFailed": "Disconnect failed"
+      }
+    },
+    "gmail": {
+      "card": {
+        "title": "Gmail Integration",
+        "subtitle": "Automatically create cases from incoming emails"
+      },
+      "tags": {
+        "notConnected": "Not connected",
+        "connected": "Connected",
+        "enabled": "Enabled",
+        "disabled": "Disabled"
+      },
+      "actions": {
+        "connect": "Connect Google",
+        "enable": "Enable Gmail Integration",
+        "disable": "Disable",
+        "refresh": "Refresh"
+      },
+      "state": {
+        "connect": {
+          "title": "Google not connected",
+          "desc": "Connect a Google account with Gmail access to automatically create cases from incoming emails."
+        },
+        "setup": {
+          "title": "Gmail ready to enable",
+          "desc": "Select a default department for incoming email cases, then enable the integration."
+        },
+        "active": {
+          "title": "Gmail integration active",
+          "desc": "New emails are automatically converted to cases."
+        }
+      },
+      "fields": {
+        "defaultQueue": {
+          "label": "Default Department",
+          "placeholder": "Select default department",
+          "help": "Incoming emails will create cases in this department."
+        }
+      },
+      "labels": {
+        "lastPolled": "Last checked",
+        "emailsProcessed": "Emails processed",
+        "status": "Status",
+        "never": "Never",
+        "justNow": "Just now"
+      },
+      "messages": {
+        "pickDefaultQueue": "Select a department before enabling.",
+        "enabled": "Gmail integration enabled. Emails will be checked every 2 minutes.",
+        "disabled": "Gmail integration disabled.",
+        "refreshed": "Status refreshed."
+      },
+      "errors": {
+        "uiTitle": "Error",
+        "loadStatus": "Failed to load Gmail status",
+        "enableFailed": "Failed to enable Gmail integration",
+        "disableFailed": "Failed to disable Gmail integration"
       }
     }
   },
