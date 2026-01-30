@@ -250,7 +250,6 @@ async function upsertContactFromEmail(admin, { orgId, email, name }) {
       org_id: orgId,
       email: cleanEmail,
       full_name: cleanName || null,
-      source: "gmail",
     })
     .select("id")
     .single();

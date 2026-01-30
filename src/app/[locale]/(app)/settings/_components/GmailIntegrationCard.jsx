@@ -233,7 +233,12 @@ export default function GmailIntegrationCard({
       if (data?.errors > 0) parts.push(`${data.errors} errors`);
       if (parts.length === 0) parts.push("No new emails");
 
-      message.success(parts.join(", "));
+      if (data?.errorDetails?.length > 0) {
+        setUiError(data.errorDetails.join("\n"));
+        message.error(parts.join(", "));
+      } else {
+        message.success(parts.join(", "));
+      }
       await loadStatus();
     } catch (e) {
       setUiError(e?.message || "Check failed");

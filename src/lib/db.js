@@ -177,6 +177,7 @@ export async function getCaseById(caseId) {
       description,
       status,
       priority,
+      source,
       assigned_to,
       requester_contact_id,
       eligible_user_ids,

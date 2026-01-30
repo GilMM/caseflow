@@ -41,6 +41,7 @@ import { useAnnouncements } from "@/app/[locale]/(app)/announcements/useAnnounce
 import { useLanguageSwitcher } from "@/components/LanguageSwitcher";
 import OrgSwitcher from "@/components/OrgSwitcher";
 import NotificationBell from "@/components/NotificationBell";
+import GmailAutoPoller from "@/components/GmailAutoPoller";
 import { locales } from "@/i18n/config";
 
 const { Header, Sider, Content } = Layout;
@@ -276,6 +277,7 @@ export default function AppShell({ children }) {
       }}
     >
       <AnnouncementBanner items={announcements} />
+      <GmailAutoPoller />
 
       <Layout
         style={{ flex: 1, overflow: "hidden", background: token.colorBgLayout }}

@@ -443,6 +443,9 @@
       "high": "High",
       "urgent": "Urgent"
     },
+    "source": {
+      "gmail": "Email"
+    },
     "messages": {
       "refreshed": "Cases refreshed",
       "failedLoad": "Failed to load cases",

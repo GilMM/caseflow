@@ -13,7 +13,7 @@ import {
   Tag,
   Typography,
 } from "antd";
-import { ArrowRightOutlined, AppstoreOutlined, PaperClipOutlined } from "@ant-design/icons";
+import { ArrowRightOutlined, AppstoreOutlined, MailOutlined, PaperClipOutlined } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
 import { queueColor } from "@/lib/ui/queue";
 
@@ -79,13 +79,19 @@ export default function CasesList({
           const isOpen = ["new", "in_progress", "waiting_customer"].includes(
             c.status
           );
-          const accentColor = isOpen
-            ? "var(--ant-color-primary, #1677ff)"
-            : "transparent";
+          const isEmail = c.source === "gmail";
 
-          const cardBg = isOpen
-            ? "linear-gradient(90deg, rgba(22,119,255,0.06), rgba(22,119,255,0.00) 40%)"
-            : "rgba(255,255,255,0.015)";
+          const accentColor = isEmail
+            ? "#722ed1"
+            : isOpen
+              ? "var(--ant-color-primary, #1677ff)"
+              : "transparent";
+
+          const cardBg = isEmail
+            ? "linear-gradient(90deg, rgba(114,46,209,0.06), rgba(114,46,209,0.00) 40%)"
+            : isOpen
+              ? "linear-gradient(90deg, rgba(22,119,255,0.06), rgba(22,119,255,0.00) 40%)"
+              : "rgba(255,255,255,0.015)";
 
           const tagBaseStyle = {
             margin: 0,
@@ -123,7 +129,7 @@ export default function CasesList({
                   background: accentColor,
                   borderTopLeftRadius: 14,
                   borderBottomLeftRadius: 14,
-                  opacity: isOpen ? 1 : 0,
+                  opacity: isOpen || isEmail ? 1 : 0,
                   pointerEvents: "none",
                 }}
               />
@@ -214,6 +220,24 @@ export default function CasesList({
                         </span>
                         {queueName}
                       </Tag>
+
+                      {isEmail && (
+                        <Tag
+                          color="purple"
+                          style={tagBaseStyle}
+                        >
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              lineHeight: 0,
+                            }}
+                          >
+                            <MailOutlined style={{ fontSize: 12 }} />
+                          </span>
+                          {t("cases.source.gmail")}
+                        </Tag>
+                      )}
                     </Space>
                   </Space>
                 </Col>

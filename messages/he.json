@@ -442,6 +442,9 @@
       "high": "גבוהה",
       "urgent": "דחופה"
     },
+    "source": {
+      "gmail": "דוא״ל"
+    },
     "messages": {
       "refreshed": "הפניות רועננו",
       "failedLoad": "נכשל בטעינת פניות",

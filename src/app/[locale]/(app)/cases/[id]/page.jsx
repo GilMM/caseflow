@@ -26,6 +26,7 @@ import {
   CheckOutlined,
   UserOutlined,
   CopyOutlined,
+  MailOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
 
@@ -495,6 +496,16 @@ export default function CaseDetailsPage() {
                 row.priority || "normal",
               )}
             </Tag>
+
+            {row.source === "gmail" && (
+              <Tag
+                color="purple"
+                icon={<MailOutlined />}
+                style={{ borderRadius: 999, paddingInline: 12, margin: 0 }}
+              >
+                {safeT("cases.source.gmail", "Email")}
+              </Tag>
+            )}
 
             <Tag style={{ borderRadius: 999, paddingInline: 12, margin: 0 }}>
               {safeTCase("meta.participants", "Participants")}:{" "}

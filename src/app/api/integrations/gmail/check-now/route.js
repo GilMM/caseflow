@@ -92,6 +92,7 @@ export async function POST(req) {
     let created = 0;
     let skipped = 0;
     let errors = 0;
+    const errorDetails = [];
 
     for (const msgId of newMessageIds) {
       try {
@@ -145,6 +146,7 @@ export async function POST(req) {
               insErr,
             );
             errors++;
+            errorDetails.push(`${parsed.subject}: ${insErr.message}`);
           }
         } else {
           created++;
@@ -152,6 +154,7 @@ export async function POST(req) {
       } catch (msgErr) {
         console.error(`Error processing message ${msgId}:`, msgErr);
         errors++;
+        errorDetails.push(msgErr?.message || String(msgErr));
       }
     }
 
@@ -172,6 +175,7 @@ export async function POST(req) {
       created,
       skipped,
       errors,
+      errorDetails: errorDetails.length > 0 ? errorDetails : undefined,
     });
   } catch (e) {
     console.error("GMAIL CHECK-NOW ERROR:", e);
@@ -232,7 +236,6 @@ async function upsertContactFromEmail(admin, { orgId, email, name }) {
       org_id: orgId,
       email: cleanEmail,
       full_name: cleanName || null,
-      source: "gmail",
     })
     .select("id")
     .single();
