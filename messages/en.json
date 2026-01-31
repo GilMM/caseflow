@@ -444,7 +444,8 @@
       "urgent": "Urgent"
     },
     "source": {
-      "gmail": "Email"
+      "gmail": "Email",
+      "email": "Email"
     },
     "messages": {
       "refreshed": "Cases refreshed",
@@ -1045,36 +1046,35 @@
         "disconnectFailed": "Disconnect failed"
       }
     },
-    "gmail": {
+    "inboundEmail": {
       "card": {
-        "title": "Gmail Integration",
-        "subtitle": "Automatically create cases from incoming emails"
+        "title": "Inbound Email",
+        "subtitle": "Automatically create cases from incoming emails via forwarding"
       },
       "tags": {
-        "notConnected": "Not connected",
-        "connected": "Connected",
-        "enabled": "Enabled",
+        "notConfigured": "Not configured",
+        "active": "Active",
         "disabled": "Disabled"
       },
       "actions": {
-        "connect": "Connect Google",
-        "enable": "Enable Gmail Integration",
+        "enable": "Enable Inbound Email",
         "disable": "Disable",
         "refresh": "Refresh",
-        "checkNow": "Check Now"
+        "copy": "Copy Address",
+        "copied": "Copied!"
       },
       "state": {
-        "connect": {
-          "title": "Google not connected",
-          "desc": "Connect a Google account with Gmail access to automatically create cases from incoming emails."
-        },
         "setup": {
-          "title": "Gmail ready to enable",
-          "desc": "Select a default department for incoming email cases, then enable the integration."
+          "title": "Set up inbound email",
+          "desc": "Select a default department, then enable inbound email to get your unique forwarding address."
         },
         "active": {
-          "title": "Gmail integration active",
-          "desc": "New emails are automatically converted to cases."
+          "title": "Inbound email active",
+          "desc": "Emails forwarded to your inbound address are automatically converted to cases."
+        },
+        "disabled": {
+          "title": "Inbound email disabled",
+          "desc": "Re-enable to resume receiving emails."
         }
       },
       "fields": {
@@ -1082,26 +1082,36 @@
           "label": "Default Department",
           "placeholder": "Select default department",
           "help": "Incoming emails will create cases in this department."
+        },
+        "inboundAddress": {
+          "label": "Your Inbound Address",
+          "help": "Forward emails from Gmail, Outlook, or any email client to this address."
         }
       },
       "labels": {
-        "lastPolled": "Last checked",
+        "lastReceived": "Last received",
         "emailsProcessed": "Emails processed",
         "status": "Status",
         "never": "Never",
         "justNow": "Just now"
       },
+      "forwarding": {
+        "title": "Forwarding Instructions",
+        "gmail": "In Gmail: Settings > Forwarding > Add a forwarding address",
+        "outlook": "In Outlook: Settings > Mail > Forwarding > Enable forwarding",
+        "generic": "Set up auto-forwarding in your email client to the address above."
+      },
       "messages": {
         "pickDefaultQueue": "Select a department before enabling.",
-        "enabled": "Gmail integration enabled. Emails will be checked every 2 minutes.",
-        "disabled": "Gmail integration disabled.",
+        "enabled": "Inbound email enabled. Forward emails to your new address.",
+        "disabled": "Inbound email disabled.",
         "refreshed": "Status refreshed."
       },
       "errors": {
         "uiTitle": "Error",
-        "loadStatus": "Failed to load Gmail status",
-        "enableFailed": "Failed to enable Gmail integration",
-        "disableFailed": "Failed to disable Gmail integration"
+        "loadStatus": "Failed to load inbound email status",
+        "enableFailed": "Failed to enable inbound email",
+        "disableFailed": "Failed to disable inbound email"
       }
     }
   },

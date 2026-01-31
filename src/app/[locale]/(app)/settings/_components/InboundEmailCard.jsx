@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { supabase } from "@/lib/supabase/client";
 
 import {
   Alert,
   Button,
   Card,
-  Divider,
   Space,
   Spin,
   Typography,
@@ -19,28 +18,26 @@ import {
 } from "antd";
 
 import {
-  GoogleOutlined,
   MailOutlined,
   ReloadOutlined,
   CheckCircleOutlined,
   WarningOutlined,
   PoweroffOutlined,
+  CopyOutlined,
 } from "@ant-design/icons";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
-export default function GmailIntegrationCard({
+export default function InboundEmailCard({
   orgId,
-  returnTo = "/settings",
   queues = [],
   isMobile: isMobileProp,
 }) {
   const safeOrgId = (orgId || "").trim();
   const hasOrgId = !!safeOrgId;
 
-  const locale = useLocale();
-  const tNs = useTranslations("integrations.gmail");
+  const tNs = useTranslations("integrations.inboundEmail");
   const screens = useBreakpoint();
   const isMobile =
     typeof isMobileProp === "boolean" ? isMobileProp : !screens.md;
@@ -57,15 +54,13 @@ export default function GmailIntegrationCard({
 
   const [loading, setLoading] = useState(true);
 
-  // OAuth connection
-  const [connected, setConnected] = useState(false);
-  const [googleEmail, setGoogleEmail] = useState(null);
-
-  // Gmail integration status
-  const [gmailEnabled, setGmailEnabled] = useState(false);
+  // Integration status
+  const [exists, setExists] = useState(false);
+  const [isEnabled, setIsEnabled] = useState(false);
+  const [inboundAddress, setInboundAddress] = useState(null);
   const [defaultQueueId, setDefaultQueueId] = useState(null);
-  const [lastPolledAt, setLastPolledAt] = useState(null);
   const [emailsProcessed, setEmailsProcessed] = useState(0);
+  const [lastReceivedAt, setLastReceivedAt] = useState(null);
   const [lastError, setLastError] = useState(null);
 
   // UI state
@@ -116,14 +111,6 @@ export default function GmailIntegrationCard({
     return data;
   }
 
-  function buildAuthStartUrl() {
-    const qs = new URLSearchParams();
-    qs.set("orgId", safeOrgId);
-    qs.set("returnTo", returnTo);
-    qs.set("locale", locale);
-    return `/api/integrations/google/auth/start?${qs.toString()}`;
-  }
-
   async function loadStatus() {
     if (!hasOrgId) {
       setLoading(false);
@@ -134,30 +121,20 @@ export default function GmailIntegrationCard({
     setUiError(null);
 
     try {
-      // Check Google connection
-      const conn = await safeFetchJson(
-        `/api/integrations/google/connection?orgId=${encodeURIComponent(safeOrgId)}`,
+      const st = await safeFetchJson(
+        `/api/integrations/inbound-email/status?orgId=${encodeURIComponent(safeOrgId)}`,
       );
-      setConnected(!!conn?.connected);
-      setGoogleEmail(conn?.email || null);
-
-      // Check Gmail integration status
-      try {
-        const st = await safeFetchJson(
-          `/api/integrations/gmail/status?orgId=${encodeURIComponent(safeOrgId)}`,
-        );
-        setGmailEnabled(st?.is_enabled ?? false);
-        setDefaultQueueId(st?.default_queue_id || null);
-        setLastPolledAt(st?.last_polled_at || null);
-        setEmailsProcessed(st?.emails_processed_count ?? 0);
-        setLastError(st?.last_error || null);
-      } catch {
-        // Table may not exist yet — treat as disabled
-        setGmailEnabled(false);
-      }
+      setExists(st?.exists ?? false);
+      setIsEnabled(st?.is_enabled ?? false);
+      setInboundAddress(st?.inbound_address ?? null);
+      setDefaultQueueId(st?.default_queue_id ?? null);
+      setEmailsProcessed(st?.emails_processed_count ?? 0);
+      setLastReceivedAt(st?.last_received_at ?? null);
+      setLastError(st?.last_error ?? null);
     } catch (e) {
       setUiError(
-        e?.message || tx("errors.loadStatus", "Failed to load Gmail status"),
+        e?.message ||
+          tx("errors.loadStatus", "Failed to load inbound email status"),
       );
     } finally {
       setLoading(false);
@@ -185,64 +162,34 @@ export default function GmailIntegrationCard({
 
     setBusyAction("enable");
     try {
-      await safeFetchJson(`/api/integrations/gmail/enable`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orgId: safeOrgId,
-          enabled: true,
-          defaultQueueId,
-        }),
-      });
+      const data = await safeFetchJson(
+        `/api/integrations/inbound-email/setup`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orgId: safeOrgId,
+            defaultQueueId,
+          }),
+        },
+      );
 
       message.success(
         tx(
           "messages.enabled",
-          "Gmail integration enabled. Emails will be checked every 2 minutes.",
+          "Inbound email enabled. Forward emails to your new address.",
         ),
       );
       await loadStatus();
     } catch (e) {
       setUiError(
         e?.message ||
-          tx("errors.enableFailed", "Failed to enable Gmail integration"),
+          tx("errors.enableFailed", "Failed to enable inbound email"),
       );
       message.error(
         e?.message ||
-          tx("errors.enableFailed", "Failed to enable Gmail integration"),
+          tx("errors.enableFailed", "Failed to enable inbound email"),
       );
-    } finally {
-      setBusyAction(null);
-    }
-  }
-
-  async function onCheckNow() {
-    setUiError(null);
-    setBusyAction("check");
-
-    try {
-      const data = await safeFetchJson(`/api/integrations/gmail/check-now`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orgId: safeOrgId }),
-      });
-
-      const parts = [];
-      if (data?.created > 0) parts.push(`${data.created} cases created`);
-      if (data?.skipped > 0) parts.push(`${data.skipped} skipped`);
-      if (data?.errors > 0) parts.push(`${data.errors} errors`);
-      if (parts.length === 0) parts.push("No new emails");
-
-      if (data?.errorDetails?.length > 0) {
-        setUiError(data.errorDetails.join("\n"));
-        message.error(parts.join(", "));
-      } else {
-        message.success(parts.join(", "));
-      }
-      await loadStatus();
-    } catch (e) {
-      setUiError(e?.message || "Check failed");
-      message.error(e?.message || "Check failed");
     } finally {
       setBusyAction(null);
     }
@@ -253,50 +200,73 @@ export default function GmailIntegrationCard({
     setBusyAction("disable");
 
     try {
-      await safeFetchJson(`/api/integrations/gmail/enable`, {
+      await safeFetchJson(`/api/integrations/inbound-email/disable`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orgId: safeOrgId,
-          enabled: false,
-        }),
+        body: JSON.stringify({ orgId: safeOrgId }),
       });
 
-      message.success(
-        tx("messages.disabled", "Gmail integration disabled."),
-      );
+      message.success(tx("messages.disabled", "Inbound email disabled."));
       await loadStatus();
     } catch (e) {
       setUiError(
         e?.message ||
-          tx("errors.disableFailed", "Failed to disable Gmail integration"),
+          tx("errors.disableFailed", "Failed to disable inbound email"),
       );
       message.error(
         e?.message ||
-          tx("errors.disableFailed", "Failed to disable Gmail integration"),
+          tx("errors.disableFailed", "Failed to disable inbound email"),
       );
     } finally {
       setBusyAction(null);
     }
   }
 
+  async function onCopyAddress() {
+    if (!inboundAddress) return;
+    try {
+      await navigator.clipboard.writeText(inboundAddress);
+      message.success(tx("actions.copied", "Copied!"));
+    } catch {
+      message.error("Copy failed");
+    }
+  }
+
+  async function onQueueChange(val) {
+    setDefaultQueueId(val);
+    try {
+      await safeFetchJson(`/api/integrations/inbound-email/setup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orgId: safeOrgId,
+          defaultQueueId: val,
+        }),
+      });
+      message.success(tx("messages.refreshed", "Status refreshed."));
+    } catch {
+      /* non-blocking */
+    }
+  }
+
   /* ---- Render helpers ---- */
 
-  const headerTitle = tx("card.title", "Gmail Integration");
+  const headerTitle = tx("card.title", "Inbound Email");
   const headerSubtitle = tx(
     "card.subtitle",
-    "Automatically create cases from incoming emails",
+    "Automatically create cases from incoming emails via forwarding",
   );
 
-  const statusTag = !connected ? (
-    <Tag>{tx("tags.notConnected", "Not connected")}</Tag>
-  ) : gmailEnabled ? (
-    <Tag color="green">{tx("tags.enabled", "Enabled")}</Tag>
-  ) : (
-    <Tag color="blue">{tx("tags.connected", "Connected")}</Tag>
-  );
+  const statusTag =
+    !exists ? (
+      <Tag>{tx("tags.notConfigured", "Not configured")}</Tag>
+    ) : isEnabled ? (
+      <Tag color="green">{tx("tags.active", "Active")}</Tag>
+    ) : (
+      <Tag color="orange">{tx("tags.disabled", "Disabled")}</Tag>
+    );
 
-  function formatPolledAt(iso) {
+  function formatReceivedAt(iso) {
     if (!iso) return tx("labels.never", "Never");
     const d = new Date(iso);
     const diff = Date.now() - d.getTime();
@@ -308,50 +278,19 @@ export default function GmailIntegrationCard({
     return `${Math.floor(hr / 24)}d ago`;
   }
 
-  function renderConnect() {
+  function renderSetup() {
     return (
       <Space direction="vertical" size={12} style={{ width: "100%" }}>
         <Alert
           type="info"
           showIcon
-          icon={<GoogleOutlined />}
-          message={tx("state.connect.title", "Google not connected")}
-          description={tx(
-            "state.connect.desc",
-            "Connect a Google account with Gmail access to automatically create cases from incoming emails.",
-          )}
-        />
-        <Button
-          type="primary"
-          icon={<GoogleOutlined />}
-          href={buildAuthStartUrl()}
-          block={isMobile}
-        >
-          {tx("actions.connect", "Connect Google")}
-        </Button>
-      </Space>
-    );
-  }
-
-  function renderSetup() {
-    return (
-      <Space direction="vertical" size={12} style={{ width: "100%" }}>
-        <Alert
-          type="success"
-          showIcon
-          icon={<CheckCircleOutlined />}
-          message={tx("state.setup.title", "Gmail ready to enable")}
+          icon={<MailOutlined />}
+          message={tx("state.setup.title", "Set up inbound email")}
           description={tx(
             "state.setup.desc",
-            "Select a default department for incoming email cases, then enable the integration.",
+            "Select a default department, then enable inbound email to get your unique forwarding address.",
           )}
         />
-
-        {googleEmail && (
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {googleEmail}
-          </Text>
-        )}
 
         <div>
           <Text
@@ -387,7 +326,7 @@ export default function GmailIntegrationCard({
           onClick={onEnable}
           block={isMobile}
         >
-          {tx("actions.enable", "Enable Gmail Integration")}
+          {tx("actions.enable", "Enable Inbound Email")}
         </Button>
       </Space>
     );
@@ -400,20 +339,81 @@ export default function GmailIntegrationCard({
           type="success"
           showIcon
           icon={<CheckCircleOutlined />}
-          message={tx("state.active.title", "Gmail integration active")}
+          message={tx("state.active.title", "Inbound email active")}
           description={tx(
             "state.active.desc",
-            "New emails are automatically converted to cases.",
+            "Emails forwarded to your inbound address are automatically converted to cases.",
           )}
         />
 
-        {googleEmail && (
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {googleEmail}
-          </Text>
+        {/* Inbound address */}
+        {inboundAddress && (
+          <div>
+            <Text
+              strong
+              style={{ display: "block", marginBottom: 4, fontSize: 13 }}
+            >
+              {tx("fields.inboundAddress.label", "Your Inbound Address")}
+            </Text>
+            <Space>
+              <Text
+                code
+                copyable={false}
+                style={{ fontSize: 14, padding: "4px 8px" }}
+              >
+                {inboundAddress}
+              </Text>
+              <Button
+                size="small"
+                icon={<CopyOutlined />}
+                onClick={onCopyAddress}
+              >
+                {tx("actions.copy", "Copy Address")}
+              </Button>
+            </Space>
+            <div style={{ marginTop: 4 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {tx(
+                  "fields.inboundAddress.help",
+                  "Forward emails from Gmail, Outlook, or any email client to this address.",
+                )}
+              </Text>
+            </div>
+          </div>
         )}
 
-        {/* Status info */}
+        {/* Forwarding instructions */}
+        <div
+          style={{
+            background: "var(--ant-color-fill-alter, #fafafa)",
+            borderRadius: 8,
+            padding: 12,
+          }}
+        >
+          <Text strong style={{ display: "block", marginBottom: 4, fontSize: 13 }}>
+            {tx("forwarding.title", "Forwarding Instructions")}
+          </Text>
+          <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
+            {tx(
+              "forwarding.gmail",
+              "In Gmail: Settings > Forwarding > Add a forwarding address",
+            )}
+          </Text>
+          <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
+            {tx(
+              "forwarding.outlook",
+              "In Outlook: Settings > Mail > Forwarding > Enable forwarding",
+            )}
+          </Text>
+          <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
+            {tx(
+              "forwarding.generic",
+              "Set up auto-forwarding in your email client to the address above.",
+            )}
+          </Text>
+        </div>
+
+        {/* Stats */}
         <div
           style={{
             display: "flex",
@@ -424,10 +424,10 @@ export default function GmailIntegrationCard({
         >
           <div>
             <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
-              {tx("labels.lastPolled", "Last checked")}
+              {tx("labels.lastReceived", "Last received")}
             </Text>
             <Text style={{ fontSize: 13 }}>
-              {formatPolledAt(lastPolledAt)}
+              {formatReceivedAt(lastReceivedAt)}
             </Text>
           </div>
           <div>
@@ -446,8 +446,7 @@ export default function GmailIntegrationCard({
               </Text>
             ) : (
               <Text type="success" style={{ fontSize: 13 }}>
-                <CheckCircleOutlined />{" "}
-                {tx("tags.enabled", "Enabled")}
+                <CheckCircleOutlined /> {tx("tags.active", "Active")}
               </Text>
             )}
           </div>
@@ -465,37 +464,11 @@ export default function GmailIntegrationCard({
             style={{ width: isMobile ? "100%" : 280 }}
             options={queueOptions}
             value={defaultQueueId}
-            onChange={async (val) => {
-              setDefaultQueueId(val);
-              try {
-                await safeFetchJson(`/api/integrations/gmail/enable`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    orgId: safeOrgId,
-                    enabled: true,
-                    defaultQueueId: val,
-                  }),
-                });
-                message.success(
-                  tx("messages.refreshed", "Status refreshed."),
-                );
-              } catch {
-                /* non-blocking */
-              }
-            }}
+            onChange={onQueueChange}
           />
         </div>
 
         <Space wrap>
-          <Button
-            type="primary"
-            icon={<MailOutlined />}
-            loading={busyAction === "check"}
-            onClick={onCheckNow}
-          >
-            {tx("actions.checkNow", "Check Now")}
-          </Button>
           <Button
             icon={<ReloadOutlined />}
             onClick={() => loadStatus()}
@@ -516,16 +489,62 @@ export default function GmailIntegrationCard({
     );
   }
 
+  function renderDisabled() {
+    return (
+      <Space direction="vertical" size={12} style={{ width: "100%" }}>
+        <Alert
+          type="warning"
+          showIcon
+          icon={<WarningOutlined />}
+          message={tx("state.disabled.title", "Inbound email disabled")}
+          description={tx(
+            "state.disabled.desc",
+            "Re-enable to resume receiving emails.",
+          )}
+        />
+
+        <div>
+          <Text
+            strong
+            style={{ display: "block", marginBottom: 4, fontSize: 13 }}
+          >
+            {tx("fields.defaultQueue.label", "Default Department")}
+          </Text>
+          <Select
+            style={{ width: isMobile ? "100%" : 280 }}
+            placeholder={tx(
+              "fields.defaultQueue.placeholder",
+              "Select default department",
+            )}
+            options={queueOptions}
+            value={defaultQueueId}
+            onChange={setDefaultQueueId}
+          />
+        </div>
+
+        <Button
+          type="primary"
+          icon={<MailOutlined />}
+          loading={busyAction === "enable"}
+          onClick={onEnable}
+          block={isMobile}
+        >
+          {tx("actions.enable", "Enable Inbound Email")}
+        </Button>
+      </Space>
+    );
+  }
+
   /* ---- Main render ---- */
 
   const cardContent = loading ? (
     <div style={{ padding: 40, textAlign: "center" }}>
       <Spin />
     </div>
-  ) : !connected ? (
-    renderConnect()
-  ) : gmailEnabled ? (
+  ) : exists && isEnabled ? (
     renderActive()
+  ) : exists && !isEnabled ? (
+    renderDisabled()
   ) : (
     renderSetup()
   );
@@ -541,7 +560,10 @@ export default function GmailIntegrationCard({
       }
       extra={statusTag}
     >
-      <Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 12 }}>
+      <Text
+        type="secondary"
+        style={{ fontSize: 12, display: "block", marginBottom: 12 }}
+      >
         {headerSubtitle}
       </Text>
 

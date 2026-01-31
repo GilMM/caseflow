@@ -40,18 +40,6 @@ export async function POST(req) {
       return NextResponse.json({ error: updErr.message }, { status: 500 });
     }
 
-    // Also disable Gmail integration on disconnect (best effort)
-    await admin
-      .from("org_gmail_integrations")
-      .update({
-        is_enabled: false,
-        last_error: "Google disconnected",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("org_id", orgId)
-      .then(() => {})
-      .catch(() => {});
-
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json(

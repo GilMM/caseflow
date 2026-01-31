@@ -24,7 +24,8 @@
       "Bash(dir /s /b \"c:\\\\Users\\\\GMesh\\\\caseflow\\\\src\\\\app\\\\*locale*\\\\*app*\\\\queues\")",
       "Bash(git mv:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(grep:*)"
     ],
     "additionalDirectories": [
       "c:\\Users\\GMesh\\caseflow\\src\\app\\[locale]\\(app)\\contacts"

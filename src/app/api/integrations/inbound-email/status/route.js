@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { requireOrgAdminRoute } from "@/lib/auth/requireOrgAdminRoute";
 
+/**
+ * GET /api/integrations/inbound-email/status?orgId=...
+ * Returns the current inbound email configuration and stats.
+ */
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
@@ -12,20 +16,18 @@ export async function GET(req) {
     }
 
     await requireOrgAdminRoute(req, orgId);
-
     const admin = supabaseAdmin();
 
     const { data: integ, error } = await admin
-      .from("org_gmail_integrations")
+      .from("org_inbound_email")
       .select(
-        "org_id, is_enabled, default_queue_id, last_polled_at, emails_processed_count, last_error, created_at, updated_at",
+        "org_id, inbound_address, is_enabled, default_queue_id, emails_processed_count, last_received_at, last_error, created_at, updated_at",
       )
       .eq("org_id", orgId)
       .maybeSingle();
 
     if (error) {
       const msg = String(error.message || "").toLowerCase();
-      // Table may not exist yet — treat as "no integration"
       if (msg.includes("does not exist") || msg.includes("relation")) {
         return NextResponse.json({
           ok: true,
@@ -40,9 +42,10 @@ export async function GET(req) {
       ok: true,
       exists: !!integ,
       is_enabled: integ?.is_enabled ?? false,
+      inbound_address: integ?.inbound_address ?? null,
       default_queue_id: integ?.default_queue_id ?? null,
-      last_polled_at: integ?.last_polled_at ?? null,
       emails_processed_count: integ?.emails_processed_count ?? 0,
+      last_received_at: integ?.last_received_at ?? null,
       last_error: integ?.last_error ?? null,
     });
   } catch (e) {

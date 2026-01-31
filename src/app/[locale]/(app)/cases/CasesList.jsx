@@ -79,7 +79,7 @@ export default function CasesList({
           const isOpen = ["new", "in_progress", "waiting_customer"].includes(
             c.status
           );
-          const isEmail = c.source === "gmail";
+          const isEmail = c.source === "gmail" || c.source === "email";
 
           const accentColor = isEmail
             ? "#722ed1"
@@ -235,7 +235,7 @@ export default function CasesList({
                           >
                             <MailOutlined style={{ fontSize: 12 }} />
                           </span>
-                          {t("cases.source.gmail")}
+                          {t("cases.source.email")}
                         </Tag>
                       )}
                     </Space>

@@ -497,13 +497,13 @@ export default function CaseDetailsPage() {
               )}
             </Tag>
 
-            {row.source === "gmail" && (
+            {(row.source === "gmail" || row.source === "email") && (
               <Tag
                 color="purple"
                 icon={<MailOutlined />}
                 style={{ borderRadius: 999, paddingInline: 12, margin: 0 }}
               >
-                {safeT("cases.source.gmail", "Email")}
+                {safeT("cases.source.email", "Email")}
               </Tag>
             )}
 

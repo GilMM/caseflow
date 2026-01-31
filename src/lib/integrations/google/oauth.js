@@ -16,7 +16,6 @@ export const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/script.deployments",
   "https://www.googleapis.com/auth/script.scriptapp",
   "https://www.googleapis.com/auth/script.external_request",
-  "https://www.googleapis.com/auth/gmail.readonly",
 ].join(" ");
 
 function mustEnv(name) {

@@ -56,7 +56,7 @@ import SecurityCard from "./_components/SecurityCard";
 import { getExt } from "./_components/helpers";
 import AnnouncementsManager from "./_components/AnnouncementsManager";
 import GoogleSheetsIntegrationCard from "./_components/GoogleSheetsIntegrationCard";
-import GmailIntegrationCard from "./_components/GmailIntegrationCard";
+import InboundEmailCard from "./_components/InboundEmailCard";
 import DeleteOrganizationCard from "./_components/DeleteOrganizationCard";
 
 const { Title, Text } = Typography;
@@ -496,10 +496,9 @@ export default function SettingsPage() {
                   returnTo={`/${locale}/settings`}
                   isMobile={isMobile}
                 />
-                <GmailIntegrationCard
+                <InboundEmailCard
                   orgId={resolvedOrgId}
                   queues={queues}
-                  returnTo={`/${locale}/settings`}
                   isMobile={isMobile}
                 />
               </>

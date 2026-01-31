@@ -33,7 +33,7 @@ export async function getValidAccessToken(orgId) {
 
   if (!refreshToken) throw new Error("Token expired and no refresh token");
 
-  const refreshed = await refreshAccessToken(refreshToken);
+  const refreshed = await refreshAccessToken({ refreshToken });
   const newAccess = refreshed.access_token;
   const expiresIn = refreshed.expires_in || 3600;
   const newExpiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
