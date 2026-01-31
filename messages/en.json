@@ -445,7 +445,8 @@
     },
     "source": {
       "gmail": "Email",
-      "email": "Email"
+      "email": "Email",
+      "new": "New"
     },
     "messages": {
       "refreshed": "Cases refreshed",

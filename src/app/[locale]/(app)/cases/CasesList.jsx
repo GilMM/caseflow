@@ -80,18 +80,23 @@ export default function CasesList({
             c.status
           );
           const isEmail = c.source === "gmail" || c.source === "email";
+          const isUnseen = isEmail && !c.first_seen_at;
 
-          const accentColor = isEmail
+          const accentColor = isUnseen
             ? "#722ed1"
-            : isOpen
-              ? "var(--ant-color-primary, #1677ff)"
-              : "transparent";
+            : isEmail
+              ? "#722ed1"
+              : isOpen
+                ? "var(--ant-color-primary, #1677ff)"
+                : "transparent";
 
-          const cardBg = isEmail
-            ? "linear-gradient(90deg, rgba(114,46,209,0.06), rgba(114,46,209,0.00) 40%)"
-            : isOpen
-              ? "linear-gradient(90deg, rgba(22,119,255,0.06), rgba(22,119,255,0.00) 40%)"
-              : "rgba(255,255,255,0.015)";
+          const cardBg = isUnseen
+            ? "linear-gradient(90deg, rgba(114,46,209,0.14), rgba(114,46,209,0.03) 60%)"
+            : isEmail
+              ? "linear-gradient(90deg, rgba(114,46,209,0.06), rgba(114,46,209,0.00) 40%)"
+              : isOpen
+                ? "linear-gradient(90deg, rgba(22,119,255,0.06), rgba(22,119,255,0.00) 40%)"
+                : "rgba(255,255,255,0.015)";
 
           const tagBaseStyle = {
             margin: 0,
@@ -123,9 +128,9 @@ export default function CasesList({
               <div
                 style={{
                   position: "absolute",
-                  insetBlock: 0, // top/bottom = 0
-                  insetInlineStart: 0, // left = 0
-                  width: 3,
+                  insetBlock: 0,
+                  insetInlineStart: 0,
+                  width: isUnseen ? 4 : 3,
                   background: accentColor,
                   borderTopLeftRadius: 14,
                   borderBottomLeftRadius: 14,
@@ -237,6 +242,18 @@ export default function CasesList({
                           </span>
                           {t("cases.source.email")}
                         </Tag>
+                      )}
+
+                      {isUnseen && (
+                        <Badge
+                          status="processing"
+                          color="#722ed1"
+                          text={
+                            <Text style={{ fontSize: 12, color: "#722ed1", fontWeight: 600 }}>
+                              {t("cases.source.new")}
+                            </Text>
+                          }
+                        />
                       )}
                     </Space>
                   </Space>

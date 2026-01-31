@@ -40,6 +40,7 @@ import {
   addCaseNote,
   getCaseActivities,
   getCaseById,
+  markCaseAsSeen,
   updateCaseStatus,
   getOrgMembers,
   getCaseAttachments,
@@ -204,6 +205,14 @@ export default function CaseDetailsPage() {
       setRow(c);
       setItems(acts || []);
       setAttachments(atts || []);
+
+      // Mark email cases as seen (non-blocking)
+      if (
+        (c?.source === "email" || c?.source === "gmail") &&
+        !c?.first_seen_at
+      ) {
+        markCaseAsSeen(c.id).catch(() => {});
+      }
 
       // profiles map for timeline + side UI
       if (c?.org_id) {

@@ -81,7 +81,7 @@ export default function CasesPage() {
       let query = supabase
         .from("cases")
         .select(
-          "id,org_id,title,status,priority,source,created_at,queue_id,assigned_to, queues(name)",
+          "id,org_id,title,status,priority,source,first_seen_at,created_at,queue_id,assigned_to, queues(name)",
         )
         .eq("org_id", ws.orgId)
         .order("created_at", { ascending: false })
@@ -132,7 +132,7 @@ export default function CasesPage() {
       let query = supabase
         .from("cases")
         .select(
-          "id,org_id,title,status,priority,source,created_at,queue_id,assigned_to, queues(name)",
+          "id,org_id,title,status,priority,source,first_seen_at,created_at,queue_id,assigned_to, queues(name)",
         )
         .eq("org_id", ws.orgId)
         .order("created_at", { ascending: false })

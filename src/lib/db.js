@@ -181,6 +181,7 @@ export async function getCaseById(caseId) {
       assigned_to,
       requester_contact_id,
       eligible_user_ids,
+      first_seen_at,
       created_at,
       updated_at,
       queue:queues (
@@ -221,6 +222,14 @@ export async function getCaseById(caseId) {
   }
 
   return data;
+}
+
+export async function markCaseAsSeen(caseId) {
+  await supabase
+    .from("cases")
+    .update({ first_seen_at: new Date().toISOString() })
+    .eq("id", caseId)
+    .is("first_seen_at", null);
 }
 
 /** Load timeline */
