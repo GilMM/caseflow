@@ -129,11 +129,23 @@ export async function POST(req) {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+console.log("MAILGUN recipient raw:", recipient);
 
 function parseOrgIdFromRecipient(recipient) {
-  const match = String(recipient || "").match(/^org_([a-f0-9-]+)@/i);
-  return match?.[1] || null;
+  const raw = String(recipient || "").trim();
+
+  // אם יש כמה נמענים – קח את הראשון
+  const first = raw.split(",")[0].trim();
+
+  // חלץ כתובת מייל מתוך <...> אם קיים
+  const emailMatch = first.match(/<([^>]+)>/);
+  const email = (emailMatch ? emailMatch[1] : first).trim().toLowerCase();
+
+  // עכשיו תחפש את org_ בתחילת ה-local-part
+  const m = email.match(/^org_([a-f0-9-]{36})@/i);
+  return m?.[1] || null;
 }
+
 
 function parseFromField(fromStr) {
   const raw = String(fromStr || "");
