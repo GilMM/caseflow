@@ -1,42 +1,37 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { verifyMailgunSignature } from "@/lib/integrations/mailgun/verify";
 
-/**
- * POST /api/webhooks/mailgun/inbound
- * Receives inbound emails from Mailgun (multipart/form-data).
- * Creates cases and contacts automatically.
- */
 export async function POST(req) {
   try {
     const formData = await req.formData();
 
-    // --- Verify Mailgun signature ---
-    const timestamp = formData.get("timestamp") || "";
-    const token = formData.get("token") || "";
-    const signature = formData.get("signature") || "";
+    const timestamp = String(formData.get("timestamp") || "");
+    const token = String(formData.get("token") || "");
+    const signature = String(formData.get("signature") || "");
 
     if (!verifyMailgunSignature({ timestamp, token, signature })) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 406 });
     }
 
-    // --- Extract email fields ---
-    const recipient = formData.get("recipient") || "";
-    const from = formData.get("from") || "";
-    const sender = formData.get("sender") || "";
-    const subject = formData.get("subject") || "";
-    const bodyPlain = formData.get("body-plain") || "";
-    const messageId = formData.get("Message-Id") || "";
+    const recipient = String(formData.get("recipient") || "");
+    const from = String(formData.get("from") || "");
+    const sender = String(formData.get("sender") || "");
+    const subject = String(formData.get("subject") || "");
+    const bodyPlain = String(formData.get("body-plain") || "");
+    const messageId = String(formData.get("Message-Id") || "");
 
-    // --- Resolve org from recipient address ---
+    console.log("MAILGUN recipient raw:", recipient);
+
     const orgId = parseOrgIdFromRecipient(recipient);
     if (!orgId) {
-      return NextResponse.json({ error: "Invalid recipient" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid recipient", recipient }, { status: 400 });
     }
 
     const admin = supabaseAdmin();
 
-    // --- Check integration is enabled ---
     const { data: integ, error: intErr } = await admin
       .from("org_inbound_email")
       .select("*")
@@ -44,17 +39,9 @@ export async function POST(req) {
       .eq("is_enabled", true)
       .maybeSingle();
 
-    if (intErr) {
-      return NextResponse.json({ error: intErr.message }, { status: 500 });
-    }
-    if (!integ) {
-      return NextResponse.json(
-        { error: "Integration not found or disabled" },
-        { status: 404 },
-      );
-    }
+    if (intErr) return NextResponse.json({ error: intErr.message }, { status: 500 });
+    if (!integ) return NextResponse.json({ error: "Integration not found or disabled" }, { status: 404 });
 
-    // --- Deduplicate by external_ref ---
     const externalRef = `mailgun:${messageId || token}`;
 
     const { data: existing } = await admin
@@ -64,23 +51,16 @@ export async function POST(req) {
       .eq("external_ref", externalRef)
       .maybeSingle();
 
-    if (existing) {
-      return NextResponse.json({ ok: true, deduped: true, caseId: existing.id });
-    }
+    if (existing) return NextResponse.json({ ok: true, deduped: true, caseId: existing.id });
 
-    // --- Parse sender info ---
-    const { email: senderEmail, name: senderName } = parseFromField(
-      from || sender,
-    );
+    const { email: senderEmail, name: senderName } = parseFromField(from || sender);
 
-    // --- Upsert contact ---
     const requesterContactId = await upsertContactFromEmail(admin, {
       orgId,
       email: senderEmail,
       name: senderName,
     });
 
-    // --- Create case ---
     const caseRow = {
       org_id: orgId,
       queue_id: integ.default_queue_id,
@@ -101,14 +81,11 @@ export async function POST(req) {
       .single();
 
     if (insErr) {
-      if (insErr.code === "23505") {
-        return NextResponse.json({ ok: true, deduped: true });
-      }
+      if (insErr.code === "23505") return NextResponse.json({ ok: true, deduped: true });
       console.error("MAILGUN INBOUND — case insert error:", insErr);
       return NextResponse.json({ error: insErr.message }, { status: 500 });
     }
 
-    // --- Update stats ---
     await admin
       .from("org_inbound_email")
       .update({
@@ -126,43 +103,25 @@ export async function POST(req) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-console.log("MAILGUN recipient raw:", recipient);
-
 function parseOrgIdFromRecipient(recipient) {
   const raw = String(recipient || "").trim();
-
-  // אם יש כמה נמענים – קח את הראשון
   const first = raw.split(",")[0].trim();
-
-  // חלץ כתובת מייל מתוך <...> אם קיים
   const emailMatch = first.match(/<([^>]+)>/);
   const email = (emailMatch ? emailMatch[1] : first).trim().toLowerCase();
-
-  // עכשיו תחפש את org_ בתחילת ה-local-part
   const m = email.match(/^org_([a-f0-9-]{36})@/i);
   return m?.[1] || null;
 }
 
-
 function parseFromField(fromStr) {
   const raw = String(fromStr || "");
   const emailMatch = raw.match(/<([^>]+)>/);
-  const email = emailMatch
-    ? emailMatch[1].trim().toLowerCase()
-    : raw.trim().toLowerCase();
-  const name = emailMatch
-    ? raw.replace(/<[^>]+>/, "").replace(/"/g, "").trim()
-    : "";
+  const email = emailMatch ? emailMatch[1].trim().toLowerCase() : raw.trim().toLowerCase();
+  const name = emailMatch ? raw.replace(/<[^>]+>/, "").replace(/"/g, "").trim() : "";
   return { email, name };
 }
 
 async function upsertContactFromEmail(admin, { orgId, email, name }) {
-  const cleanEmail = String(email || "")
-    .trim()
-    .toLowerCase();
+  const cleanEmail = String(email || "").trim().toLowerCase();
   const cleanName = String(name || "").trim();
   if (!cleanEmail) return null;
 
@@ -177,22 +136,14 @@ async function upsertContactFromEmail(admin, { orgId, email, name }) {
 
   if (existing?.id) {
     if (cleanName && (!existing.full_name || !existing.full_name.trim())) {
-      await admin
-        .from("contacts")
-        .update({ full_name: cleanName })
-        .eq("id", existing.id)
-        .eq("org_id", orgId);
+      await admin.from("contacts").update({ full_name: cleanName }).eq("id", existing.id).eq("org_id", orgId);
     }
     return existing.id;
   }
 
   const { data: created, error: cErr } = await admin
     .from("contacts")
-    .insert({
-      org_id: orgId,
-      email: cleanEmail,
-      full_name: cleanName || null,
-    })
+    .insert({ org_id: orgId, email: cleanEmail, full_name: cleanName || null })
     .select("id")
     .single();
 
