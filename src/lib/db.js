@@ -182,6 +182,7 @@ export async function getCaseById(caseId) {
       requester_contact_id,
       eligible_user_ids,
       first_seen_at,
+      dismissed_at,
       created_at,
       updated_at,
       queue:queues (
@@ -230,6 +231,20 @@ export async function markCaseAsSeen(caseId) {
     .update({ first_seen_at: new Date().toISOString() })
     .eq("id", caseId)
     .is("first_seen_at", null);
+}
+
+export async function dismissCase(caseId) {
+  await supabase
+    .from("cases")
+    .update({ dismissed_at: new Date().toISOString(), status: "closed" })
+    .eq("id", caseId);
+}
+
+export async function undismissCase(caseId) {
+  await supabase
+    .from("cases")
+    .update({ dismissed_at: null, status: "new" })
+    .eq("id", caseId);
 }
 
 /** Load timeline */

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { supabase } from "@/lib/supabase/client";
-import { getActiveWorkspace, getCaseAttachmentCounts } from "@/lib/db";
+import { getActiveWorkspace, getCaseAttachmentCounts, dismissCase, undismissCase } from "@/lib/db";
 
 import { Card, Col, Row, Space, Spin, Typography, message } from "antd";
 
@@ -39,6 +39,7 @@ export default function CasesPage() {
   const [status, setStatus] = useState("open");
   const [priority, setPriority] = useState("all");
   const [sortBy, setSortBy] = useState("priority");
+  const [showDismissed, setShowDismissed] = useState(false);
 
   const lastToastRef = useRef(0);
   const workspaceRef = useRef(null);
@@ -81,7 +82,7 @@ export default function CasesPage() {
       let query = supabase
         .from("cases")
         .select(
-          "id,org_id,title,status,priority,source,first_seen_at,created_at,queue_id,assigned_to, queues(name)",
+          "id,org_id,title,status,priority,source,first_seen_at,dismissed_at,created_at,queue_id,assigned_to, queues(name)",
         )
         .eq("org_id", ws.orgId)
         .order("created_at", { ascending: false })
@@ -132,7 +133,7 @@ export default function CasesPage() {
       let query = supabase
         .from("cases")
         .select(
-          "id,org_id,title,status,priority,source,first_seen_at,created_at,queue_id,assigned_to, queues(name)",
+          "id,org_id,title,status,priority,source,first_seen_at,dismissed_at,created_at,queue_id,assigned_to, queues(name)",
         )
         .eq("org_id", ws.orgId)
         .order("created_at", { ascending: false })
@@ -189,6 +190,9 @@ export default function CasesPage() {
     const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
 
     const result = (rows || []).filter((c) => {
+      // Hide dismissed cases unless toggle is on
+      if (!showDismissed && c.dismissed_at) return false;
+
       // Handle "open" filter (exclude closed and resolved)
       if (status === "open") {
         if (c.status === "closed" || c.status === "resolved") return false;
@@ -219,13 +223,28 @@ export default function CasesPage() {
       // Default: newest first
       return new Date(b.created_at) - new Date(a.created_at);
     });
-  }, [rows, q, status, priority, sortBy]);
+  }, [rows, q, status, priority, sortBy, showDismissed]);
 
   const total = rows.length;
   const openCount = rows.filter((r) => r.status !== "closed" && r.status !== "resolved").length;
   const urgentOpen = rows.filter(
     (r) => r.status !== "closed" && r.status !== "resolved" && r.priority === "urgent",
   ).length;
+
+  async function handleDismiss(caseId, isDismissed) {
+    try {
+      if (isDismissed) {
+        await undismissCase(caseId);
+        message.success("Case restored");
+      } else {
+        await dismissCase(caseId);
+        message.success("Case marked as spam");
+      }
+      await loadInitial({ silent: true });
+    } catch (e) {
+      message.error(e?.message || "Failed to update case");
+    }
+  }
 
   function setQueueFilter(nextQueueId) {
     setQueueId(nextQueueId);
@@ -280,12 +299,15 @@ export default function CasesPage() {
             queueId={queueId}
             queues={queues}
             onChangeQueue={setQueueFilter}
+            showDismissed={showDismissed}
+            onChangeShowDismissed={setShowDismissed}
             onClear={() => {
               setQ("");
               setStatus("open");
               setPriority("all");
               setSortBy("priority");
               setQueueFilter("all");
+              setShowDismissed(false);
             }}
           />
         </Col>
@@ -302,6 +324,7 @@ export default function CasesPage() {
         filtered={filtered}
         onOpenCase={(id) => router.push(`${pathname}/${id}`)}
         onRefresh={() => loadInitial({ silent: true })}
+        onDismiss={handleDismiss}
         hasMore={hasMore}
         loadingMore={loadingMore}
         onLoadMore={loadMore}

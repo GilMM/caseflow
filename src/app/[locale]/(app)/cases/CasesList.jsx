@@ -27,6 +27,7 @@ export default function CasesList({
   filtered,
   onOpenCase,
   onRefresh,
+  onDismiss,
   hasMore,
   loadingMore,
   onLoadMore,
@@ -309,8 +310,11 @@ export default function CasesList({
                       status={c.status}
                       priority={c.priority}
                       assignedTo={c.assigned_to}
+                      source={c.source}
+                      dismissedAt={c.dismissed_at}
                       compact
                       onChanged={() => onRefresh?.()}
+                      onDismiss={onDismiss}
                     />
                   </div>
                 </Col>

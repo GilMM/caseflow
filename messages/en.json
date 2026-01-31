@@ -359,7 +359,8 @@
       "tip": "Tip: click a case card to open details",
       "sortByPriority": "Sort by priority",
       "sortByNewest": "Sort by newest",
-      "sortByOldest": "Sort by oldest"
+      "sortByOldest": "Sort by oldest",
+      "showDismissed": "Show spam"
     },
     "kpis": {
       "total": "Total",
@@ -499,7 +500,12 @@
       "assignee": "Assign to",
       "assignToMe": "Assign to me",
       "unassign": "Unassign",
-      "searchMember": "Search member…"
+      "searchMember": "Search member…",
+      "markAsSpam": "Mark as Spam",
+      "restoreFromSpam": "Restore",
+      "spamSuccess": "Case marked as spam",
+      "restoreSuccess": "Case restored",
+      "spamFailed": "Failed to mark as spam"
     }
   },
   "attachments": {

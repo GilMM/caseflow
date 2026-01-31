@@ -8,6 +8,8 @@ import {
   CheckOutlined,
   ThunderboltOutlined,
   SwapOutlined,
+  StopOutlined,
+  UndoOutlined,
 } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
 
@@ -74,8 +76,11 @@ export default function CaseInlineActions({
   status,
   priority,
   assignedTo,
+  source,
+  dismissedAt,
   compact = false,
   onChanged,
+  onDismiss,
 }) {
   const t = useTranslations();
   const { message } = App.useApp();
@@ -275,10 +280,32 @@ export default function CaseInlineActions({
     items: assignMenuItems,
   };
 
+  const isEmail = source === "email" || source === "gmail";
+  const isDismissed = !!dismissedAt;
+
   // --- UI ---
   if (compact) {
     return (
       <Space size={8} wrap onClick={stop} onMouseDown={stop}>
+        {/* Spam / Restore (email cases only) */}
+        {isEmail && onDismiss && (
+          <Button
+            size="small"
+            danger={!isDismissed}
+            icon={isDismissed ? <UndoOutlined /> : <StopOutlined />}
+            onClick={(e) => {
+              stop(e);
+              onDismiss(caseId, isDismissed);
+            }}
+            disabled={busy}
+            style={{ borderRadius: 999 }}
+          >
+            {isDismissed
+              ? (t("cases.actions.restoreFromSpam") || "Restore")
+              : (t("cases.actions.markAsSpam") || "Spam")}
+          </Button>
+        )}
+
         {/* Status */}
         <Dropdown
           menu={statusMenu}
@@ -365,6 +392,22 @@ export default function CaseInlineActions({
   // non-compact (optional)
   return (
     <Space size={10} wrap onClick={stop} onMouseDown={stop}>
+      {isEmail && onDismiss && (
+        <Button
+          danger={!isDismissed}
+          icon={isDismissed ? <UndoOutlined /> : <StopOutlined />}
+          onClick={(e) => {
+            stop(e);
+            onDismiss(caseId, isDismissed);
+          }}
+          disabled={busy}
+        >
+          {isDismissed
+            ? (t("cases.actions.restoreFromSpam") || "Restore")
+            : (t("cases.actions.markAsSpam") || "Spam")}
+        </Button>
+      )}
+
       <Dropdown menu={statusMenu} trigger={["click"]} disabled={busy}>
         <Button icon={<SwapOutlined />} onClick={stop} onMouseDown={stop}>
           {t("cases.actions.status") || "Status"} <DownOutlined />

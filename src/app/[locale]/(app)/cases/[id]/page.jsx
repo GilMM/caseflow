@@ -28,6 +28,8 @@ import {
   CopyOutlined,
   MailOutlined,
   ReloadOutlined,
+  StopOutlined,
+  UndoOutlined,
 } from "@ant-design/icons";
 
 import CaseAssignment from "@/components/cases/CaseAssignment";
@@ -41,6 +43,8 @@ import {
   getCaseActivities,
   getCaseById,
   markCaseAsSeen,
+  dismissCase,
+  undismissCase,
   updateCaseStatus,
   getOrgMembers,
   getCaseAttachments,
@@ -154,6 +158,7 @@ export default function CaseDetailsPage() {
   const [note, setNote] = useState("");
   const [busyNote, setBusyNote] = useState(false);
   const [busyStatus, setBusyStatus] = useState(false);
+  const [busyDismiss, setBusyDismiss] = useState(false);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
 
   const createdLabel = useMemo(
@@ -333,6 +338,25 @@ export default function CaseDetailsPage() {
     }
   }
 
+  async function onToggleDismiss() {
+    if (!row) return;
+    setBusyDismiss(true);
+    try {
+      if (row.dismissed_at) {
+        await undismissCase(row.id);
+        message.success(safeT("cases.actions.restoreSuccess", "Case restored"));
+      } else {
+        await dismissCase(row.id);
+        message.success(safeT("cases.actions.spamSuccess", "Case marked as spam"));
+      }
+      await loadAll({ silent: true });
+    } catch (e) {
+      message.error(e?.message || safeT("cases.actions.spamFailed", "Failed to update case"));
+    } finally {
+      setBusyDismiss(false);
+    }
+  }
+
   const backToCases = () => router.push(`/${locale}/cases`);
 
   const eligibleIdsFromCase =
@@ -421,6 +445,26 @@ export default function CaseDetailsPage() {
         </Button>
 
         <Space wrap>
+          {(row.source === "email" || row.source === "gmail") && (
+            <Tooltip
+              title={
+                row.dismissed_at
+                  ? safeT("cases.actions.restoreFromSpam", "Restore")
+                  : safeT("cases.actions.markAsSpam", "Mark as Spam")
+              }
+            >
+              <Button
+                danger={!row.dismissed_at}
+                icon={row.dismissed_at ? <UndoOutlined /> : <StopOutlined />}
+                loading={busyDismiss}
+                onClick={onToggleDismiss}
+              >
+                {row.dismissed_at
+                  ? safeT("cases.actions.restoreFromSpam", "Restore")
+                  : safeT("cases.actions.markAsSpam", "Spam")}
+              </Button>
+            </Tooltip>
+          )}
           <Tooltip title={safeT("common.copy", "Copy")}>
             <Button icon={<CopyOutlined />} onClick={copyCaseKey} />
           </Tooltip>

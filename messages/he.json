@@ -359,7 +359,8 @@
       "tip": "טיפ: לחץ על כרטיס פניה לפתיחת פרטים",
       "sortByPriority": "מיון לפי דחיפות",
       "sortByNewest": "מיון לפי חדשים",
-      "sortByOldest": "מיון לפי ישנים"
+      "sortByOldest": "מיון לפי ישנים",
+      "showDismissed": "הצג דואר זבל"
     },
     "kpis": {
       "total": "סה\"כ",
@@ -498,7 +499,12 @@
       "assignee": "מוקצה ל",
       "assignToMe": "הקצה לי",
       "unassign": "בטל הקצאה",
-      "searchMember": "חפש חבר צוות…"
+      "searchMember": "חפש חבר צוות…",
+      "markAsSpam": "סמן כדואר זבל",
+      "restoreFromSpam": "שחזר",
+      "spamSuccess": "הפניה סומנה כדואר זבל",
+      "restoreSuccess": "הפניה שוחזרה",
+      "spamFailed": "נכשל בסימון כדואר זבל"
     }
   },
   "attachments": {

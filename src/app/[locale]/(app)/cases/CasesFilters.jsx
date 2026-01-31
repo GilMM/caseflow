@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Card, Col, Input, Row, Select, Space, Typography } from "antd";
+import { Button, Card, Checkbox, Col, Input, Row, Select, Space, Typography } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
 import { CASE_STATUSES } from "@/lib/ui/status";
@@ -19,6 +19,8 @@ export default function CasesFilters({
   onChangePriority,
   sortBy,
   onChangeSortBy,
+  showDismissed,
+  onChangeShowDismissed,
   onClear,
 }) {
   const t = useTranslations();
@@ -95,8 +97,14 @@ export default function CasesFilters({
         </Col>
 
         <Col xs={24}>
-          <Space wrap size={8}>
+          <Space wrap size={8} align="center">
             <Button onClick={onClear}>{t("common.clearFilters")}</Button>
+            <Checkbox
+              checked={showDismissed}
+              onChange={(e) => onChangeShowDismissed?.(e.target.checked)}
+            >
+              <Text style={{ fontSize: 12 }}>{t("cases.filters.showDismissed")}</Text>
+            </Checkbox>
             <Text type="secondary" style={{ fontSize: 12 }}>
               {t("cases.filters.tip")}
             </Text>
